@@ -24,14 +24,16 @@ The whole goal of building these kernels is to allow researchers, developers, an
 
 ```python
 import torch
+import sys
 
-torch_version = "24"
+torch_version = "24"        
 cuda_version = "121"
 
-# ie. "build/torch24-cxx11-cu121-x86_64-linux/activation"
-kernel_path = f"build/torch{torch_version}-cxx11-cu{cuda_version}-x86_64-linux/activation"
+kernel_build_path = "/home/ubuntu/activation/result"
+kernel_path = f"{kernel_build_path}/torch{torch_version}-cxx11-cu{cuda_version}-x86_64-linux/"
+sys.path.append(kernel_path)
 
-torch.ops.load_library(kernel_path)
+import activation
 
 x = torch.randn(10, 10)
 out = torch.empty_like(x)
@@ -51,13 +53,17 @@ We can reproduce a build of a kernel by cloning the kernel repository and runnin
 
 ```bash
 git clone git@hf.co:kernels-community/activation
-# this kernel already has a `build` dir so we can remove it
 cd activation
-rm -rf build
 # then run the build command
 docker run --rm \
     -v $(pwd):/kernelcode \
     ghcr.io/huggingface/kernel-builder:latest
+# we should now have the built kernels on our host
+ls result
+# torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
+# torch24-cxx11-cu121-x86_64-linux  torch24-cxx98-cu124-x86_64-linux  torch25-cxx98-cu118-x86_64-linux
+# torch24-cxx11-cu124-x86_64-linux  torch25-cxx11-cu118-x86_64-linux  torch25-cxx98-cu121-x86_64-linux
+# torch24-cxx98-cu118-x86_64-linux  torch25-cxx11-cu121-x86_64-linux  torch25-cxx98-cu124-x86_64-linux
 ```
 
 
@@ -97,4 +103,9 @@ docker run --rm -v $(pwd):/kernelcode kernel-builder:dev
 # trace: evaluation warning: CUDA versions older than 12.0 will be removed in Nixpkgs 25.05; see the 24.11 release notes for more information
 # ...
 # copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
+ls result
+# torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
+# torch24-cxx11-cu121-x86_64-linux  torch24-cxx98-cu124-x86_64-linux  torch25-cxx98-cu118-x86_64-linux
+# torch24-cxx11-cu124-x86_64-linux  torch25-cxx11-cu118-x86_64-linux  torch25-cxx98-cu121-x86_64-linux
+# torch24-cxx98-cu118-x86_64-linux  torch25-cxx11-cu121-x86_64-linux  torch25-cxx98-cu124-x86_64-linux
 ```
