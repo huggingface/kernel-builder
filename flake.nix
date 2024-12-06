@@ -80,7 +80,7 @@
         buildSets = map (pkgsForVersions pkgsByCudaVer) buildConfigs;
 
       in
-      rec {
+      {
         formatter = pkgs.nixfmt-rfc-style;
         lib = import lib/build.nix {
           inherit (pkgs) lib;
@@ -94,6 +94,21 @@
               value = buildSet.torch;
             }) buildSets
           );
+
+          # Convenience package to ensure that all Torches are built/fetched
+          # from a binary cache.
+          allTorches =
+            let
+              outputsWithoutDist = builtins.filter (output: output != "dist");
+              namePathsForBuildSet =
+                buildSet:
+                map (output: {
+                  name = "${buildVersion buildSet}-${output}";
+                  path = buildSet.torch.${output};
+                }) (outputsWithoutDist buildSet.torch.outputs);
+              allNamePaths = lib.flatten (map namePathsForBuildSet buildSets);
+            in
+            pkgs.linkFarm "all-torches" allNamePaths;
         };
       }
     );
