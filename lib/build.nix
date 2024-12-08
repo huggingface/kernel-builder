@@ -40,11 +40,11 @@ rec {
         name = "${name}-src";
         filter = srcFilter buildConfig.src;
       };
+      cudaCapabilities = lib.intersectLists pkgs.cudaPackages.flags.cudaCapabilities buildConfig.capabilities;
     in
     pkgs.callPackage ./kernel {
-      inherit src;
+      inherit cudaCapabilities src;
       kernelName = name;
-      cudaCapabilities = buildConfig.capabilities;
       kernelSources = buildConfig.src;
       kernelDeps = resolveDeps {
         inherit pkgs torch;
