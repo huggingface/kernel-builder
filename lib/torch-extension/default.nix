@@ -74,7 +74,7 @@ stdenv.mkDerivation {
       (lib.cmakeFeature "EXTENSION_NAME" "_${extensionName}_${flatVersion}")
       (lib.cmakeFeature "EXTENSION_DEST" extensionName)
       (lib.cmakeFeature "EXTENSION_SOURCES" (lib.concatStringsSep ";" extensionSources))
-      (lib.cmakeFeature "KERNEL_LIBRARIES" (lib.concatStringsSep " " kernelLibs))
+      (lib.cmakeFeature "KERNEL_LIBRARIES" (lib.concatStringsSep ";" kernelLibs))
     ];
 
   postInstall =
