@@ -7,6 +7,8 @@ final: prev: {
     _: prevAttrs: { buildInputs = prevAttrs.buildInputs ++ [ (prev.lib.getLib prev.gfortran.cc) ]; }
   );
 
+  cutlass = prev.callPackage ./pkgs/cutlass { };
+
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {

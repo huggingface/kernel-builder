@@ -10,6 +10,9 @@
 
 let
   knownDeps = with pkgs.cudaPackages; {
+    "cutlass" = [
+      pkgs.cutlass
+    ];
     "torch" = [
       torch
       torch.cxxdev
