@@ -9,6 +9,8 @@ final: prev: {
 
   cutlass = prev.callPackage ./pkgs/cutlass { };
 
+  cmakeNvccThreadsHook = prev.callPackage ./pkgs/cmake-nvcc-threads-hook { };
+
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {

@@ -10,8 +10,9 @@
   cudaPackages,
   cmake,
   ninja,
+  cmakeNvccThreadsHook,
 
-  nvccThreads ? 4,
+  nvccThreads,
 }:
 
 let
@@ -19,6 +20,8 @@ let
   stdenv = cudaPackages.backendStdenv;
 in
 stdenv.mkDerivation {
+  inherit nvccThreads;
+
   name = kernelName;
 
   inherit src;
@@ -31,6 +34,7 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     cmake
     ninja
+    cmakeNvccThreadsHook
   ];
 
   buildInputs = kernelDeps;
@@ -45,11 +49,5 @@ stdenv.mkDerivation {
     (lib.cmakeFeature "KERNEL_SOURCES" (lib.concatStringsSep ";" kernelSources))
     (lib.cmakeFeature "KERNEL_INCLUDE_DIRS" (lib.concatStringsSep ";" kernelInclude))
     (lib.cmakeFeature "CMAKE_CUDA_ARCHITECTURES" (dropDot (lib.concatStringsSep ";" cudaCapabilities)))
-    (lib.cmakeFeature "NVCC_THREADS" (toString nvccThreads))
   ];
-
-  preBuild = ''
-    # Even when using nvcc threading, we should respect the bound.
-    export NIX_BUILD_CORES=$(($NIX_BUILD_CORES / ${toString nvccThreads}))
-  '';
 }

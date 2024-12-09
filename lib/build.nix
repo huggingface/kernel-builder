@@ -51,6 +51,7 @@ rec {
         deps = buildConfig.depends;
       };
       kernelInclude = buildConfig.include or [ ];
+      nvccThreads = builtins.length cudaCapabilities;
     };
 
   # Build all kernels defined in build.toml.
