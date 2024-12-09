@@ -50,6 +50,7 @@ rec {
         inherit pkgs torch;
         deps = buildConfig.depends;
       };
+      kernelInclude = buildConfig.include or [];
     };
 
   # Build all kernels defined in build.toml.

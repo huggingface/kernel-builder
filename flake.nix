@@ -94,6 +94,15 @@
               value = buildSet.torch;
             }) buildSets
           );
+
+          # TODO: remove
+          cutlass = builtins.listToAttrs (
+            map (buildSet: {
+              name = buildVersion buildSet;
+              value = buildSet.pkgs.cutlass;
+            }) buildSets
+          );
+
         };
       }
     );

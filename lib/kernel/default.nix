@@ -2,6 +2,7 @@
   kernelName,
   kernelSources,
   kernelDeps,
+  kernelInclude,
   cudaCapabilities,
   src,
 
@@ -42,6 +43,7 @@ stdenv.mkDerivation {
   cmakeFlags = [
     (lib.cmakeFeature "KERNEL_NAME" kernelName)
     (lib.cmakeFeature "KERNEL_SOURCES" (lib.concatStringsSep ";" kernelSources))
+    (lib.cmakeFeature "KERNEL_INCLUDE_DIRS" (lib.concatStringsSep ";" kernelInclude))
     (lib.cmakeFeature "CMAKE_CUDA_ARCHITECTURES" (dropDot (lib.concatStringsSep ";" cudaCapabilities)))
     (lib.cmakeFeature "NVCC_THREADS" (toString nvccThreads))
   ];

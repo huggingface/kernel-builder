@@ -15,6 +15,10 @@ else()
   message(FATAL_ERROR "KERNEL_SOURCES must be defined")
 endif()
 
+if(DEFINED KERNEL_INCLUDE_DIRS)
+  include_directories(${KERNEL_INCLUDE_DIRS})
+endif()
+
 set(GPU_COMPILE_FLAGS "")
 
 if(DEFINED NVCC_THREADS)
