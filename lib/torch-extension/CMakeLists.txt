@@ -20,6 +20,10 @@ else()
   message(FATAL_ERROR "EXTENSION_SOURCES must be defined")
 endif()
 
+if(DEFINED EXTENSION_INCLUDE_DIRS)
+  include_directories(${EXTENSION_INCLUDE_DIRS})
+endif()
+
 if(NOT DEFINED KERNEL_LIBRARIES)
   message(FATAL_ERROR "KERNEL_LIBRARIES must be defined")
 endif()

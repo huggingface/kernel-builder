@@ -2,6 +2,7 @@
   extensionName,
   extensionVersion,
   extensionSources,
+  extensionInclude,
   pySources,
 
   # Wheter to strip rpath for non-nix use.
@@ -74,6 +75,7 @@ stdenv.mkDerivation {
       (lib.cmakeFeature "EXTENSION_NAME" "_${extensionName}_${flatVersion}")
       (lib.cmakeFeature "EXTENSION_DEST" extensionName)
       (lib.cmakeFeature "EXTENSION_SOURCES" (lib.concatStringsSep ";" extensionSources))
+      (lib.cmakeFeature "EXTENSION_INCLUDE_DIRS" (lib.concatStringsSep ";" extensionInclude))
       (lib.cmakeFeature "KERNEL_LIBRARIES" (lib.concatStringsSep ";" kernelLibs))
     ];
 

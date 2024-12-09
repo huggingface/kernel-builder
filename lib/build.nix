@@ -50,7 +50,7 @@ rec {
         inherit pkgs torch;
         deps = buildConfig.depends;
       };
-      kernelInclude = buildConfig.include or [];
+      kernelInclude = buildConfig.include or [ ];
     };
 
   # Build all kernels defined in build.toml.
@@ -99,6 +99,7 @@ rec {
       extensionName = extConfig.name;
       extensionSources = extConfig.src;
       extensionVersion = buildConfig.general.version;
+      extensionInclude = extConfig.include or [ ];
       pySources = extConfig.pysrc;
       kernels = buildKernels { inherit path pkgs torch; };
     };
