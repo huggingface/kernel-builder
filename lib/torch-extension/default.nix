@@ -3,7 +3,6 @@
   extensionVersion,
   extensionSources,
   extensionInclude,
-  pySources,
 
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
@@ -12,13 +11,13 @@
   kernels,
 
   src,
+  pySrc,
 
   lib,
   cudaPackages,
   cmake,
   ninja,
 
-  # Remove, only here while we don't have a shim yet.
   torch,
 }:
 
@@ -62,7 +61,6 @@ stdenv.mkDerivation {
 
   env = {
     CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
-    # Remove after removing torch dependency.
     #TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" cudaCapabilities;
   };
 
@@ -80,16 +78,8 @@ stdenv.mkDerivation {
     ];
 
   postInstall =
-    let
-      pySources' = map (src: ''"${src}"'') pySources;
-    in
     ''
-      (
-        cd ..
-        cp ${lib.concatStringsSep " " pySources'} $out/${extensionName}/
-        substitute ${./_ops.py.in} $out/${extensionName}/_ops.py \
-          --subst-var-by EXTENSION_NAME "${extensionName}_${flatVersion}"
-      )
+      cp -r ${pySrc}/* $out/${extensionName}
     ''
     + lib.optionalString stripRPath ''
       find $out/${extensionName} -name '*.so' \

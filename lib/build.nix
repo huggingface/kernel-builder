@@ -12,6 +12,7 @@
 
 let
   abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
+  nameToPath = path: name: path + "/${name}";
   torchBuildVersion = import ./build-version.nix;
 in
 rec {
@@ -35,10 +36,15 @@ rec {
       torch,
     }:
     let
-      src = builtins.path {
+      src' = builtins.path {
         inherit path;
         name = "${name}-src";
         filter = srcFilter buildConfig.src;
+      };
+      srcSet = lib.fileset.unions (map (nameToPath path) buildConfig.src);
+      src = lib.fileset.toSource {
+        root = path;
+        fileset = srcSet;
       };
       cudaCapabilities = lib.intersectLists pkgs.cudaPackages.flags.cudaCapabilities buildConfig.capabilities;
     in
@@ -89,19 +95,29 @@ rec {
     let
       buildConfig = readBuildConfig path;
       extConfig = buildConfig.torch;
-      src = builtins.path {
-        inherit path;
-        name = "${extConfig.name}-src";
-        filter = srcFilter (extConfig.src ++ extConfig.pysrc);
+      pyFilter = file: file.hasExt "py" || file.hasExt "pyi";
+      srcSet = lib.fileset.unions (map (nameToPath path) extConfig.src);
+      src = lib.fileset.toSource {
+        root = path;
+        fileset = srcSet;
+      };
+      pySrcSet = lib.fileset.fileFilter pyFilter (path + "/${extConfig.pyroot}");
+      pySrc = lib.fileset.toSource {
+        root = path + "/${extConfig.pyroot}";
+        fileset = pySrcSet;
       };
     in
     pkgs.callPackage ./torch-extension {
-      inherit src stripRPath torch;
+      inherit
+        pySrc
+        src
+        stripRPath
+        torch
+        ;
       extensionName = extConfig.name;
       extensionSources = extConfig.src;
       extensionVersion = buildConfig.general.version;
       extensionInclude = extConfig.include or [ ];
-      pySources = extConfig.pysrc;
       kernels = buildKernels { inherit path pkgs torch; };
     };
 
