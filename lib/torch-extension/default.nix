@@ -79,6 +79,11 @@ stdenv.mkDerivation {
 
   postInstall =
     ''
+      (
+        cd ..
+        substitute ${./_ops.py.in} $out/${extensionName}/_ops.py \
+          --subst-var-by EXTENSION_NAME "${extensionName}_${flatVersion}"
+      )
       cp -r ${pySrc}/* $out/${extensionName}
     ''
     + lib.optionalString stripRPath ''
