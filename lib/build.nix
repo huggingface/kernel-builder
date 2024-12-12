@@ -159,4 +159,21 @@ rec {
       inherit pkgs namePaths;
       name = "torch-ext-bundle";
     };
+
+  # Get a development shell with the extension in PYTHONPATH. Handy
+  # for running tests.
+  torchExtensionShells =
+    let
+      shellForBuildSet = path: buildSet: {
+        name = torchBuildVersion buildSet;
+        value = with buildSet.pkgs;
+          mkShell {
+            buildInputs = [ (python3.withPackages (ps: with ps; [ buildSet.torch pytest ])) ];
+            shellHook = ''
+              export PYTHONPATH=${buildTorchExtension ({ inherit path; } // buildSet)}
+            '';
+          };
+      };
+    in
+    path: builtins.listToAttrs (lib.map (shellForBuildSet path) buildSets);
 }
