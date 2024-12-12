@@ -1,4 +1,28 @@
-final: prev: {
+{ system }:
+
+final: prev:
+
+let
+  glibc_2_27 = (import (builtins.fetchGit {
+      # Descriptive name to make the store path easier to identify
+      name = "my-old-revision";
+      url = "https://github.com/NixOS/nixpkgs/";
+      ref = "refs/heads/nixpkgs-unstable";
+         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
+  }) { inherit system; }).glibc;
+  stdenvWithGlibc = glibc: stdenv:
+    let
+      compilerWrapped = prev.wrapCCWith {
+        cc = prev.gcc;
+        bintools = prev.wrapBintoolsWith {
+          bintools = prev.binutils-unwrapped;
+          libc = glibc;
+        };
+      };
+    in prev.overrideCC stdenv compilerWrapped;
+in 
+
+{
   blas = prev.blas.override { blasProvider = prev.mkl; };
 
   lapack = prev.lapack.override { lapackProvider = prev.mkl; };
@@ -23,4 +47,6 @@ final: prev: {
       }
     )
   ];
+
+  stdenvGlibc_2_27 = stdenvWithGlibc glibc_2_27 prev.stdenv;
 }

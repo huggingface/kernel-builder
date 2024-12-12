@@ -114,6 +114,7 @@ rec {
         stripRPath
         torch
         ;
+      stdenv = pkgs.stdenvGlibc_2_27;
       extensionName = extConfig.name;
       extensionSources = extConfig.src;
       extensionVersion = buildConfig.general.version;

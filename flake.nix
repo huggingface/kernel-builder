@@ -20,13 +20,14 @@
         cudaSupport = true;
       };
 
-      overlay = import ./overlay.nix;
     in
     flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (
       system:
       let
+        overlay = import ./overlay.nix { inherit system; };
+
         # Plain nixkpgs that we use to access utility funtions.
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs { inherit system; overlays = [ overlay ]; };
         inherit (pkgs) lib;
 
         # Get versions.
