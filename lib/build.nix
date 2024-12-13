@@ -50,6 +50,7 @@ rec {
     in
     pkgs.callPackage ./kernel {
       inherit cudaCapabilities src;
+      stdenv = pkgs.stdenvGlibc_2_27;
       kernelName = name;
       kernelSources = buildConfig.src;
       kernelDeps = resolveDeps {

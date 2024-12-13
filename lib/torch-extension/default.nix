@@ -62,8 +62,10 @@ stdenv.mkDerivation {
 
   env = {
     CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
-    #TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" cudaCapabilities;
   };
+
+  # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
+  dontSetupCUDAToolkitCompilers = true;
 
   cmakeFlags =
     let
@@ -76,6 +78,7 @@ stdenv.mkDerivation {
       (lib.cmakeFeature "EXTENSION_SOURCES" (lib.concatStringsSep ";" extensionSources))
       (lib.cmakeFeature "EXTENSION_INCLUDE_DIRS" (lib.concatStringsSep ";" extensionInclude))
       (lib.cmakeFeature "KERNEL_LIBRARIES" (lib.concatStringsSep ";" kernelLibs))
+      (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
     ];
 
   postInstall =

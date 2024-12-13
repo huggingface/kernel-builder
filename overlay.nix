@@ -4,19 +4,45 @@ final: prev:
 
 let
   glibc_2_27 = (import (builtins.fetchGit {
-      # Descriptive name to make the store path easier to identify
       name = "my-old-revision";
       url = "https://github.com/NixOS/nixpkgs/";
       ref = "refs/heads/nixpkgs-unstable";
          rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
-  }) { inherit system; }).glibc;
-  stdenvWithGlibc = glibc: stdenv:
+  }) { inherit system; }).glibc.overrideAttrs (prevAttrs: {
+                  pname = "glibc";
+                  outputs = prevAttrs.outputs ++ [ "getent" ];
+                  # New nixpkgs expect a getent output, but also keep it in
+                  # glib.bin for compat with old nixpkgs.
+                  postInstall = prevAttrs.postInstall + ''
+                    install -Dm755 $bin/bin/getent -t $getent/bin
+                  '';
+
+                  passthru = prevAttrs.passthru // { libgcc = gcc_9.libgcc; };
+                });
+
+  libcxx = (import (builtins.fetchGit {
+      name = "my-old-revision";
+      url = "https://github.com/NixOS/nixpkgs/";
+      ref = "refs/heads/nixpkgs-unstable";
+         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
+       }) { inherit system; }).stdenv.cc.cc.lib;
+
+  gcc_9 = (import (builtins.fetchGit {
+         name = "my-old-revision";
+         url = "https://github.com/NixOS/nixpkgs/";
+         ref = "refs/heads/nixpkgs-unstable";
+         rev = "3b05df1d13c1b315cecc610a2f3180f6669442f0";
+     }) { inherit system; });
+
+  stdenvWithGlibc = glibc: libcxx: gcc: stdenv:
     let
       compilerWrapped = prev.wrapCCWith {
-        cc = prev.gcc;
+        inherit libcxx;
+        cc = gcc;
         bintools = prev.wrapBintoolsWith {
           bintools = prev.binutils-unwrapped;
           libc = glibc;
+          defaultHardeningFlags = prev.lib.remove "zerocallusedregs" prev.bintools.defaultHardeningFlags;
         };
       };
     in prev.overrideCC stdenv compilerWrapped;
@@ -48,5 +74,5 @@ in
     )
   ];
 
-  stdenvGlibc_2_27 = stdenvWithGlibc glibc_2_27 prev.stdenv;
+  stdenvGlibc_2_27 = stdenvWithGlibc glibc_2_27 libcxx gcc_9.gcc-unwrapped prev.stdenv;
 }
