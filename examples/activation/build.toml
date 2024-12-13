@@ -8,9 +8,7 @@ src = [
   "ext-torch/torch_binding.cpp",
   "ext-torch/torch_binding.h"
 ]
-pysrc = [
-  "ext-torch/__init__.py"
-]
+pyroot = "ext-torch"
 
 [kernel.activation]
 capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
