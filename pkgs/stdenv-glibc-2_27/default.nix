@@ -6,7 +6,7 @@
   wrapCCWith,
   stdenv,
   bintools-unwrapped,
-  gcc-unwrapped,
+  cudaPackages,
   libgcc,
 }:
 
@@ -71,4 +71,4 @@ let
     overrideCC stdenv compilerWrapped;
 
 in
-stdenvWith glibc_2_27 gcc_8_3.cc.lib gcc-unwrapped stdenv
+stdenvWith glibc_2_27 gcc_8_3.cc.lib cudaPackages.backendStdenv.cc.cc stdenv
