@@ -24,7 +24,7 @@
     flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (
       system:
       let
-        overlay = import ./overlay.nix { inherit system; };
+        overlay = import ./overlay.nix;
 
         # Plain nixkpgs that we use to access utility funtions.
         pkgs = import nixpkgs {
