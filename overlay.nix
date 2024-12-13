@@ -57,7 +57,6 @@ let
         bintools = prev.wrapBintoolsWith {
           bintools = prev.binutils-unwrapped;
           libc = glibc;
-          defaultHardeningFlags = prev.lib.remove "zerocallusedregs" prev.bintools.defaultHardeningFlags;
         };
       };
     in prev.overrideCC stdenv compilerWrapped;

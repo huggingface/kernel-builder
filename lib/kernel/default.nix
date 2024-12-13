@@ -44,9 +44,6 @@ stdenv.mkDerivation {
     TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" cudaCapabilities;
   };
 
-  # Not supported by older gcc versions.
-  hardeningDisable = [ "zerocallusedregs" ];
-
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
   dontSetupCUDAToolkitCompilers = true;
 
