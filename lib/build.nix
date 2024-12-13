@@ -168,9 +168,17 @@ rec {
     let
       shellForBuildSet = path: buildSet: {
         name = torchBuildVersion buildSet;
-        value = with buildSet.pkgs;
+        value =
+          with buildSet.pkgs;
           mkShell {
-            buildInputs = [ (python3.withPackages (ps: with ps; [ buildSet.torch pytest ])) ];
+            buildInputs = [
+              (python3.withPackages (
+                ps: with ps; [
+                  buildSet.torch
+                  pytest
+                ]
+              ))
+            ];
             shellHook = ''
               export PYTHONPATH=${buildTorchExtension ({ inherit path; } // buildSet)}
             '';

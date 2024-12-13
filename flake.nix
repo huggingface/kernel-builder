@@ -27,7 +27,10 @@
         overlay = import ./overlay.nix { inherit system; };
 
         # Plain nixkpgs that we use to access utility funtions.
-        pkgs = import nixpkgs { inherit system; overlays = [ overlay ]; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ overlay ];
+        };
         inherit (pkgs) lib;
 
         # Get versions.

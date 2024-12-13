@@ -24,7 +24,6 @@
 
 let
   flatVersion = lib.replaceStrings [ "." ] [ "_" ] (lib.versions.pad 3 extensionVersion);
-  #stdenv = cudaPackages.backendStdenv;
 in
 stdenv.mkDerivation {
   pname = "${extensionName}-torch-ext";

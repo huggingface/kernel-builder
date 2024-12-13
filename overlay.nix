@@ -4,63 +4,59 @@ final: prev:
 
 let
   oldNixpkgs = import (builtins.fetchGit {
-      name = "my-old-revision";
-      url = "https://github.com/NixOS/nixpkgs/";
-      ref = "refs/heads/nixpkgs-unstable";
-         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
-       }) { inherit system; };
+    name = "nixpkgs-compat";
+    url = "https://github.com/NixOS/nixpkgs/";
+    ref = "refs/heads/nixpkgs-unstable";
+    rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
+  }) { inherit system; };
 
-  glibc_2_27 = (import (builtins.fetchGit {
-      name = "my-old-revision";
-      url = "https://github.com/NixOS/nixpkgs/";
-      ref = "refs/heads/nixpkgs-unstable";
-         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
-  }) { inherit system; }).glibc.overrideAttrs (prevAttrs: {
-                  pname = "glibc";
-                  outputs = prevAttrs.outputs ++ [ "getent" ];
-                  # New nixpkgs expect a getent output, but also keep it in
-                  # glib.bin for compat with old nixpkgs.
-                  postInstall = prevAttrs.postInstall + ''
-                    install -Dm755 $bin/bin/getent -t $getent/bin
-                  '';
+  glibc_2_27 = oldNixpkgs.glibc.overrideAttrs (prevAttrs: {
+    pname = "glibc";
+    outputs = prevAttrs.outputs ++ [ "getent" ];
+    # New nixpkgs expect a getent output, but also keep it in
+    # glib.bin for compat with old nixpkgs.
+    postInstall =
+      prevAttrs.postInstall
+      + ''
+        install -Dm755 $bin/bin/getent -t $getent/bin
+      '';
 
-                  passthru = prevAttrs.passthru // { libgcc = prev.libgcc; };
-                });
+    passthru = prevAttrs.passthru // {
+      libgcc = prev.libgcc;
+    };
+  });
 
-  libcxx = (import (builtins.fetchGit {
-      name = "my-old-revision";
-      url = "https://github.com/NixOS/nixpkgs/";
-      ref = "refs/heads/nixpkgs-unstable";
-         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
-       }) { inherit system; }).stdenv.cc.cc.lib;
+  libcxx = oldNixpkgs.stdenv.cc.cc.lib;
 
-  gcc_9 = (import (builtins.fetchGit {
-         name = "my-old-revision";
-         url = "https://github.com/NixOS/nixpkgs/";
-         ref = "refs/heads/nixpkgs-unstable";
-         rev = "3b05df1d13c1b315cecc610a2f3180f6669442f0";
-     }) { inherit system; });
-
-  stdenvWithGlibc = glibc: libcxx: gcc: stdenv:
+  stdenvWithGlibc =
+    glibc: libcxx: gcc: stdenv:
     let
-      onlyGlibc = prev.overrideCC stdenv (prev.wrapCCWith {
-        cc = gcc;
-        bintools = prev.wrapBintoolsWith {
-          bintools = prev.bintools-unwrapped;
-          libc = glibc;
-        };
-      });
-      gccWithGlibc = gcc.override { stdenv = onlyGlibc; };
+      # We need gcc to have a libgcc that is compatible with glibc. We
+      # do this in three steps to avoid an infinite recursion: (1) we
+      # create an stdenv with gcc and glibc; (2) we rebuild glibc using
+      # this stdenv, so that we have a libgcc that is compatible with
+      # glibc; (3) we create the final stdenv that contains the compatible
+      # gcc + glibc.
+      onlyGlibc = prev.overrideCC stdenv (
+        prev.wrapCCWith {
+          cc = gcc;
+          bintools = prev.wrapBintoolsWith {
+            bintools = prev.bintools-unwrapped;
+            libc = glibc;
+          };
+        }
+      );
       compilerWrapped = prev.wrapCCWith {
         inherit libcxx;
-        cc = gccWithGlibc;
+        cc = gcc.override { stdenv = onlyGlibc; };
         bintools = prev.wrapBintoolsWith {
           bintools = prev.binutils-unwrapped;
           libc = glibc;
         };
       };
-    in prev.overrideCC stdenv compilerWrapped;
-in 
+    in
+    prev.overrideCC stdenv compilerWrapped;
+in
 
 {
   blas = prev.blas.override { blasProvider = prev.mkl; };
