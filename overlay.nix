@@ -3,6 +3,13 @@
 final: prev:
 
 let
+  oldNixpkgs = import (builtins.fetchGit {
+      name = "my-old-revision";
+      url = "https://github.com/NixOS/nixpkgs/";
+      ref = "refs/heads/nixpkgs-unstable";
+         rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
+       }) { inherit system; };
+
   glibc_2_27 = (import (builtins.fetchGit {
       name = "my-old-revision";
       url = "https://github.com/NixOS/nixpkgs/";
@@ -17,7 +24,7 @@ let
                     install -Dm755 $bin/bin/getent -t $getent/bin
                   '';
 
-                  passthru = prevAttrs.passthru // { libgcc = gcc_9.libgcc; };
+                  passthru = prevAttrs.passthru // { libgcc = prev.libgcc; };
                 });
 
   libcxx = (import (builtins.fetchGit {
@@ -36,9 +43,17 @@ let
 
   stdenvWithGlibc = glibc: libcxx: gcc: stdenv:
     let
+      onlyGlibc = prev.overrideCC stdenv (prev.wrapCCWith {
+        cc = gcc;
+        bintools = prev.wrapBintoolsWith {
+          bintools = prev.bintools-unwrapped;
+          libc = glibc;
+        };
+      });
+      gccWithGlibc = gcc.override { stdenv = onlyGlibc; };
       compilerWrapped = prev.wrapCCWith {
         inherit libcxx;
-        cc = gcc;
+        cc = gccWithGlibc;
         bintools = prev.wrapBintoolsWith {
           bintools = prev.binutils-unwrapped;
           libc = glibc;
@@ -74,5 +89,5 @@ in
     )
   ];
 
-  stdenvGlibc_2_27 = stdenvWithGlibc glibc_2_27 libcxx gcc_9.gcc-unwrapped prev.stdenv;
+  stdenvGlibc_2_27 = stdenvWithGlibc glibc_2_27 libcxx prev.gcc-unwrapped prev.stdenv;
 }
