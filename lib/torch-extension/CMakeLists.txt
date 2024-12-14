@@ -30,8 +30,11 @@ endif()
 
 Python_add_library(${EXTENSION_NAME} USE_SABI 3 WITH_SOABI MODULE "${SOURCE_FILES}")
 target_compile_definitions(${EXTENSION_NAME} PRIVATE "-DTORCH_EXTENSION_NAME=${EXTENSION_NAME}")
-target_link_libraries(${EXTENSION_NAME} PRIVATE CUDA::cudart CUDA::cuda_driver)
 
+
+target_compile_features(${EXTENSION_NAME} PRIVATE cxx_std_17)
+
+target_link_libraries(${EXTENSION_NAME} PRIVATE CUDA::cudart CUDA::cuda_driver)
 target_link_libraries(${EXTENSION_NAME} PRIVATE torch torch_python)
 target_link_libraries(${EXTENSION_NAME} PRIVATE ${KERNEL_LIBRARIES})
 set_target_properties(${EXTENSION_NAME} PROPERTIES

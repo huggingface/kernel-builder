@@ -7,6 +7,7 @@
   src,
 
   lib,
+  stdenv ? cudaPackages.backendStdenv,
   cudaPackages,
   cmake,
   ninja,
@@ -17,7 +18,6 @@
 
 let
   dropDot = builtins.replaceStrings [ "." ] [ "" ];
-  stdenv = cudaPackages.backendStdenv;
 in
 stdenv.mkDerivation {
   inherit nvccThreads;
@@ -44,10 +44,14 @@ stdenv.mkDerivation {
     TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" cudaCapabilities;
   };
 
+  # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
+  dontSetupCUDAToolkitCompilers = true;
+
   cmakeFlags = [
     (lib.cmakeFeature "KERNEL_NAME" kernelName)
     (lib.cmakeFeature "KERNEL_SOURCES" (lib.concatStringsSep ";" kernelSources))
     (lib.cmakeFeature "KERNEL_INCLUDE_DIRS" (lib.concatStringsSep ";" kernelInclude))
     (lib.cmakeFeature "CMAKE_CUDA_ARCHITECTURES" (dropDot (lib.concatStringsSep ";" cudaCapabilities)))
+    (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
   ];
 }

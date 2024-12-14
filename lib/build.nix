@@ -34,6 +34,8 @@ rec {
       buildConfig,
       pkgs,
       torch,
+
+      oldLinuxCompat ? false,
     }:
     let
       src' = builtins.path {
@@ -48,17 +50,22 @@ rec {
       };
       cudaCapabilities = lib.intersectLists pkgs.cudaPackages.flags.cudaCapabilities buildConfig.capabilities;
     in
-    pkgs.callPackage ./kernel {
-      inherit cudaCapabilities src;
-      kernelName = name;
-      kernelSources = buildConfig.src;
-      kernelDeps = resolveDeps {
-        inherit pkgs torch;
-        deps = buildConfig.depends;
-      };
-      kernelInclude = buildConfig.include or [ ];
-      nvccThreads = builtins.length cudaCapabilities;
-    };
+    pkgs.callPackage ./kernel (
+      {
+        inherit cudaCapabilities src;
+        kernelName = name;
+        kernelSources = buildConfig.src;
+        kernelDeps = resolveDeps {
+          inherit pkgs torch;
+          deps = buildConfig.depends;
+        };
+        kernelInclude = buildConfig.include or [ ];
+        nvccThreads = builtins.length cudaCapabilities;
+      }
+      // (lib.optionalAttrs oldLinuxCompat {
+        stdenv = pkgs.stdenvGlibc_2_27;
+      })
+    );
 
   # Build all kernels defined in build.toml.
   buildKernels =
@@ -66,6 +73,7 @@ rec {
       path,
       pkgs,
       torch,
+      oldLinuxCompat ? false,
     }:
     let
       buildConfig = readBuildConfig path;
@@ -78,6 +86,7 @@ rec {
             buildConfig
             pkgs
             torch
+            oldLinuxCompat
             ;
         }
       ) buildConfig.kernel;
@@ -91,6 +100,7 @@ rec {
       pkgs,
       torch,
       stripRPath ? false,
+      oldLinuxCompat ? false,
     }:
     let
       buildConfig = readBuildConfig path;
@@ -107,19 +117,31 @@ rec {
         fileset = pySrcSet;
       };
     in
-    pkgs.callPackage ./torch-extension {
-      inherit
-        pySrc
-        src
-        stripRPath
-        torch
-        ;
-      extensionName = extConfig.name;
-      extensionSources = extConfig.src;
-      extensionVersion = buildConfig.general.version;
-      extensionInclude = extConfig.include or [ ];
-      kernels = buildKernels { inherit path pkgs torch; };
-    };
+    pkgs.callPackage ./torch-extension (
+      {
+        inherit
+          pySrc
+          src
+          stripRPath
+          torch
+          ;
+        extensionName = extConfig.name;
+        extensionSources = extConfig.src;
+        extensionVersion = buildConfig.general.version;
+        extensionInclude = extConfig.include or [ ];
+        kernels = buildKernels {
+          inherit
+            oldLinuxCompat
+            path
+            pkgs
+            torch
+            ;
+        };
+      }
+      // (lib.optionalAttrs oldLinuxCompat {
+        stdenv = pkgs.stdenvGlibc_2_27;
+      })
+    );
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =
@@ -140,6 +162,7 @@ rec {
           {
             inherit path;
             stripRPath = true;
+            oldLinuxCompat = true;
           }
           // buildSet
         );
@@ -166,9 +189,17 @@ rec {
     let
       shellForBuildSet = path: buildSet: {
         name = torchBuildVersion buildSet;
-        value = with buildSet.pkgs;
+        value =
+          with buildSet.pkgs;
           mkShell {
-            buildInputs = [ (python3.withPackages (ps: with ps; [ buildSet.torch pytest ])) ];
+            buildInputs = [
+              (python3.withPackages (
+                ps: with ps; [
+                  buildSet.torch
+                  pytest
+                ]
+              ))
+            ];
             shellHook = ''
               export PYTHONPATH=${buildTorchExtension ({ inherit path; } // buildSet)}
             '';

@@ -26,6 +26,8 @@ add_library(${KERNEL_NAME} STATIC ${SOURCE_FILES})
 target_compile_options(${KERNEL_NAME} PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:${GPU_COMPILE_FLAGS}>)
 
+target_compile_features(${KERNEL_NAME} PRIVATE cxx_std_17)
+
 target_link_libraries(${KERNEL_NAME} PRIVATE ${TORCH_LIBRARIES})
 set_target_properties(${EXTENSION_NAME} PROPERTIES
   CUDA_RESOLVE_DEVICE_SYMBOLS ON)

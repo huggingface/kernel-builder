@@ -26,7 +26,9 @@
       system:
       let
         # Plain nixkpgs that we use to access utility funtions.
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+        };
         inherit (pkgs) lib;
 
         # Get versions.
