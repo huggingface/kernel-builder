@@ -96,6 +96,18 @@
               value = buildSet.torch;
             }) buildSets
           );
+
+          # Dependencies that should be cached.
+          forCache =
+            let
+              oldLinuxStdenvs = builtins.listToAttrs (
+                map (buildSet: {
+                  name = "stdenv-${buildVersion buildSet}";
+                  value = buildSet.pkgs.stdenvGlibc_2_27;
+                }) buildSets
+              );
+            in
+            pkgs.linkFarm "packages-for-cache" (torch // oldLinuxStdenvs);
         };
       }
     );
