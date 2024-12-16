@@ -1,15 +1,15 @@
 {
   nixpkgs,
-  pkgs,
+  system,
 }:
 
 let
-  inherit (pkgs) lib;
+  inherit (nixpkgs) lib;
 
   overlay = import ../overlay.nix;
 
   # Get versions.
-  inherit (pkgs.callPackage ../versions.nix { }) buildConfigs cudaVersions;
+  inherit (import ../versions.nix { inherit lib; }) buildConfigs cudaVersions;
 
   buildVersion = import ./lib/build-version.nix;
   flattenVersion = version: lib.replaceStrings [ "." ] [ "_" ] (lib.versions.pad 2 version);
@@ -46,7 +46,7 @@ let
       map (cudaVersion: {
         name = cudaVersion;
         value = import nixpkgs {
-          inherit (pkgs) system;
+          inherit system;
           config = {
             allowUnfree = true;
             cudaSupport = true;

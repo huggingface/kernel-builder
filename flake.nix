@@ -14,26 +14,69 @@
       flake-utils,
       nixpkgs,
     }:
-    flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (
+    let
+      systems = [ flake-utils.lib.system.x86_64-linux ];
+
+      # Create an attrset { "<system>" = [ <buildset> ...]; ... }.
+      buildSetPerSystem = builtins.listToAttrs (
+        builtins.map (system: {
+          name = system;
+          value = import ./lib/buildsets.nix { inherit nixpkgs system; };
+        }) systems
+      );
+
+      libPerSystem = builtins.mapAttrs (
+        system: buildSet:
+        import lib/build.nix {
+          inherit (nixpkgs) lib;
+          buildSets = buildSetPerSystem.${system};
+        }
+      ) buildSetPerSystem;
+
+      # The lib output consists of two parts:
+      #
+      # - Per-system build functions.
+      # - `genFlakeOutputs`, which can be used by downstream flakes to make
+      #   standardized outputs (for all supported systems).
+      lib = {
+        genFlakeOutputs =
+          path:
+          flake-utils.lib.eachSystem systems (
+            system:
+            let
+              build = libPerSystem.${system};
+            in
+            {
+              devShells = rec {
+                default = shells.torch24-cxx98-cu124-x86_64-linux;
+                shells = build.torchExtensionShells path;
+              };
+              packages = {
+                bundle = build.buildTorchExtensionBundle path;
+                redistributable = build.buildDistTorchExtensions path;
+              };
+            }
+          );
+      } // libPerSystem;
+
+    in
+    flake-utils.lib.eachSystem systems (
       system:
       let
         # Plain nixkpgs that we use to access utility funtions.
         pkgs = import nixpkgs {
           inherit system;
         };
-        inherit (pkgs) lib;
+        inherit (nixpkgs) lib;
 
         buildVersion = import ./lib/build-version.nix;
 
-        buildSets = import ./lib/buildsets.nix { inherit nixpkgs pkgs; };
+        buildSets = buildSetPerSystem.${system};
 
       in
       rec {
         formatter = pkgs.nixfmt-rfc-style;
-        lib = import lib/build.nix {
-          inherit (pkgs) lib;
-          inherit buildSets;
-        };
+
         packages = rec {
           # This package set is exposed so that we can prebuild the Torch versions.
           torch = builtins.listToAttrs (
@@ -56,5 +99,8 @@
             pkgs.linkFarm "packages-for-cache" (torch // oldLinuxStdenvs);
         };
       }
-    );
+    )
+    // {
+      inherit lib;
+    };
 }
