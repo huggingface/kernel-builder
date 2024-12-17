@@ -41,16 +41,14 @@ let
     };
   });
 
-  gcc_8_3 = nixpkgs_20191230.gcc;
-
   stdenvWith =
-    newGlibc: newLibcxx: newGcc: stdenv:
+    newGlibc: newGcc: stdenv:
     let
-      # We need gcc to have a libgcc that is compatible with glibc. We
-      # do this in three steps to avoid an infinite recursion: (1) we
-      # create an stdenv with gcc and glibc; (2) we rebuild glibc using
-      # this stdenv, so that we have a libgcc that is compatible with
-      # glibc; (3) we create the final stdenv that contains the compatible
+      # We need gcc to have a libgcc/libstdc++ that is compatible with
+      # glibc. We do this in three steps to avoid an infinite recursion:
+      # (1) we create an stdenv with gcc and glibc; (2) we rebuild gcc using
+      # this stdenv, so that we have a libgcc/libstdc++ that is compatible
+      # with glibc; (3) we create the final stdenv that contains the compatible
       # gcc + glibc.
       onlyGlibc = overrideCC stdenv (wrapCCWith {
         cc = newGcc;
@@ -59,16 +57,16 @@ let
           libc = newGlibc;
         };
       });
-      compilerWrapped = wrapCCWith {
+      compilerWrapped = wrapCCWith rec {
         cc = newGcc.override { stdenv = onlyGlibc; };
         bintools = wrapBintoolsWith {
           bintools = bintools-unwrapped;
           libc = newGlibc;
         };
-        libcxx = newLibcxx;
+        libcxx = cc.lib;
       };
     in
     overrideCC stdenv compilerWrapped;
 
 in
-stdenvWith glibc_2_27 gcc_8_3.cc.lib cudaPackages.backendStdenv.cc.cc stdenv
+stdenvWith glibc_2_27 cudaPackages.backendStdenv.cc.cc stdenv
