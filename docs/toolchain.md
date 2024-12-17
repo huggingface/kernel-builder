@@ -76,4 +76,5 @@ to use our modified stdenv using CMake.
 To make this possible, we import the glibc and libstd++ derivations
 from an old nixpkgs. We then create an intermediate stdenv to rebuild
 gcc/libgcc against the old glibc. Then glibc, libstdc++, and the
-rebuilt gcc form make a new stdenv together.
+rebuilt gcc form make a new stdenv together. We also link libstdc++
+statically.

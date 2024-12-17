@@ -39,6 +39,7 @@ target_link_libraries(${EXTENSION_NAME} PRIVATE torch torch_python)
 target_link_libraries(${EXTENSION_NAME} PRIVATE ${KERNEL_LIBRARIES})
 set_target_properties(${EXTENSION_NAME} PROPERTIES
   CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+target_link_options(${EXTENSION_NAME} PRIVATE -static-libstdc++)
 
 install(TARGETS ${EXTENSION_NAME} LIBRARY COMPONENT ${EXTENSION_NAME} DESTINATION ${EXTENSION_DEST})
 
