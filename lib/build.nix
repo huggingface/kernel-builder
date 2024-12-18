@@ -105,7 +105,8 @@ rec {
     let
       buildConfig = readBuildConfig path;
       extConfig = buildConfig.torch;
-      pyFilter = file: file.hasExt "py" || file.hasExt "pyi";
+      pyExt = extConfig.pyext or [ "py" "pyi" ];
+      pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
       srcSet = lib.fileset.unions (map (nameToPath path) extConfig.src);
       src = lib.fileset.toSource {
         root = path;
