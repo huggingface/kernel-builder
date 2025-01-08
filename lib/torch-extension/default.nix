@@ -87,7 +87,7 @@ stdenv.mkDerivation {
         substitute ${./_ops.py.in} $out/${extensionName}/_ops.py \
           --subst-var-by EXTENSION_NAME "${extensionName}_${flatVersion}"
       )
-      cp -r ${pySrc}/* $out/${extensionName}
+      cp -r ${pySrc}/${extensionName} $out/
     ''
     + lib.optionalString stripRPath ''
       find $out/${extensionName} -name '*.so' \
