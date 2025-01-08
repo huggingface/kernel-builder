@@ -123,3 +123,8 @@ ls result
 # torch24-cxx11-cu124-x86_64-linux  torch25-cxx11-cu118-x86_64-linux  torch25-cxx98-cu121-x86_64-linux
 # torch24-cxx98-cu118-x86_64-linux  torch25-cxx11-cu121-x86_64-linux  torch25-cxx98-cu124-x86_64-linux
 ```
+
+## Credits
+
+The generated CMake build files are based on the vLLM build infrastructure.
+
