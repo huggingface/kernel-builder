@@ -1,0 +1,16 @@
+[package]
+name = "toml2cmake"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+eyre = "0.6.12"
+itertools = "0.13"
+minijinja = "2.5"
+minijinja-embed = "2.5"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+[build-dependencies]
+minijinja-embed = "2.5"
