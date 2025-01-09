@@ -26,3 +26,7 @@ message(STATUS "CUDA target architectures: ${CUDA_ARCHS}")
 # since for some files we will build for all CUDA_ARCHS.
 cuda_archs_loose_intersection(CUDA_ARCHS "${CUDA_SUPPORTED_ARCHS}" "${CUDA_ARCHS}")
 message(STATUS "CUDA supported target architectures: ${CUDA_ARCHS}")
+
+if(NVCC_THREADS AND GPU_LANGUAGE STREQUAL "CUDA")
+  list(APPEND GPU_FLAGS "--threads=${NVCC_THREADS}")
+endif()

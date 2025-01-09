@@ -1,7 +1,10 @@
 find_package(Torch REQUIRED)
 find_package(Python REQUIRED COMPONENTS Development Development.SABIModule)
 
-get_torch_gpu_compiler_flags(GPU_FLAGS ${GPU_LANGUAGE})
+get_torch_gpu_compiler_flags(TORCH_GPU_FLAGS ${GPU_LANGUAGE})
+list(APPEND GPU_FLAGS ${TORCH_GPU_FLAGS})
+
+
 
 set(TORCH_{{name}}_SRC
   {{ src|join(' ') }}
