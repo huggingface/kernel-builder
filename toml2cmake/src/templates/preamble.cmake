@@ -14,6 +14,16 @@ set(GPU_LANGUAGE "CUDA")
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils.cmake)
 
+if(DEFINED Python_EXECUTABLE)
+  # Allow passing through the interpreter (e.g. from setup.py).
+  find_package(Python COMPONENTS Development Development.SABIModule Interpreter)
+  if (NOT Python_FOUND)
+    message(FATAL_ERROR "Unable to find python matching: ${EXECUTABLE}.")
+  endif()
+else()
+  find_package(Python REQUIRED COMPONENTS Development Development.SABIModule Interpreter)
+endif()
+
 append_cmake_prefix_path("torch" "torch.utils.cmake_prefix_path")
 
 find_package(Torch REQUIRED)
