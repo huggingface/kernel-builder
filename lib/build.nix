@@ -26,73 +26,6 @@ rec {
     src: name: type:
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
 
-  # Build a single kernel.
-  buildKernel =
-    {
-      name,
-      path,
-      buildConfig,
-      pkgs,
-      torch,
-
-      oldLinuxCompat ? false,
-    }:
-    let
-      src' = builtins.path {
-        inherit path;
-        name = "${name}-src";
-        filter = srcFilter buildConfig.src;
-      };
-      srcSet = lib.fileset.unions (map (nameToPath path) buildConfig.src);
-      src = lib.fileset.toSource {
-        root = path;
-        fileset = srcSet;
-      };
-      cudaCapabilities = lib.intersectLists pkgs.cudaPackages.flags.cudaCapabilities buildConfig.capabilities;
-    in
-    pkgs.callPackage ./kernel (
-      {
-        inherit cudaCapabilities src;
-        kernelName = name;
-        kernelSources = buildConfig.src;
-        kernelDeps = resolveDeps {
-          inherit pkgs torch;
-          deps = buildConfig.depends;
-        };
-        kernelInclude = buildConfig.include or [ ];
-        nvccThreads = builtins.length cudaCapabilities;
-      }
-      // (lib.optionalAttrs oldLinuxCompat {
-        stdenv = pkgs.stdenvGlibc_2_27;
-      })
-    );
-
-  # Build all kernels defined in build.toml.
-  buildKernels =
-    {
-      path,
-      pkgs,
-      torch,
-      oldLinuxCompat ? false,
-    }:
-    let
-      buildConfig = readBuildConfig path;
-      kernels = lib.mapAttrs (
-        name: buildConfig:
-        buildKernel {
-          inherit
-            name
-            path
-            buildConfig
-            pkgs
-            torch
-            oldLinuxCompat
-            ;
-        }
-      ) buildConfig.kernel;
-    in
-    kernels;
-
   # Build a single Torch extension.
   buildTorchExtension =
     {
@@ -103,41 +36,40 @@ rec {
       oldLinuxCompat ? false,
     }:
     let
+      inherit (lib) fileset;
       buildConfig = readBuildConfig path;
+      extraDeps = resolveDeps {
+        inherit pkgs torch;
+        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) buildConfig.kernel));
+      };
       extConfig = buildConfig.torch;
       pyExt = extConfig.pyext or [ "py" "pyi" ];
       pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
-      srcSet = lib.fileset.unions (map (nameToPath path) extConfig.src);
-      src = lib.fileset.toSource {
+      extSrc = extConfig.src ++ [ "build.toml" ];
+      pySrcSet = fileset.fileFilter pyFilter (path + "/${extConfig.pyroot}");
+      kernelsSrc = fileset.unions (lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) buildConfig.kernel));
+      srcSet = fileset.unions (map (nameToPath path) extSrc);
+      src = fileset.toSource {
         root = path;
-        fileset = srcSet;
+        fileset = fileset.unions [ kernelsSrc srcSet pySrcSet ];
       };
-      pySrcSet = lib.fileset.fileFilter pyFilter (path + "/${extConfig.pyroot}");
-      pySrc = lib.fileset.toSource {
-        root = path + "/${extConfig.pyroot}";
-        fileset = pySrcSet;
-      };
+
+      # Set number of threads to the largest number of capabilities.
+      listMax = lib.foldl' lib.max 1;
+      nvccThreads = listMax (lib.mapAttrsToList (_: buildConfig: builtins.length buildConfig.capabilities) buildConfig.kernel);
     in
     pkgs.callPackage ./torch-extension (
       {
         inherit
-          pySrc
+          extraDeps
+          nvccThreads
           src
           stripRPath
           torch
           ;
         extensionName = extConfig.name;
-        extensionSources = extConfig.src;
         extensionVersion = buildConfig.general.version;
-        extensionInclude = extConfig.include or [ ];
-        kernels = buildKernels {
-          inherit
-            oldLinuxCompat
-            path
-            pkgs
-            torch
-            ;
-        };
+        pyRoot = extConfig.pyroot;
       }
       // (lib.optionalAttrs oldLinuxCompat {
         stdenv = pkgs.stdenvGlibc_2_27;

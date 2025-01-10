@@ -1,24 +1,24 @@
 {
   extensionName,
   extensionVersion,
-  extensionSources,
-  extensionInclude,
+  nvccThreads,
+  pyRoot,
 
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
 
-  # Keys are kernel names, values derivations.
-  kernels,
-
   src,
-  pySrc,
 
   lib,
   stdenv ? cudaPackages.backendStdenv,
   cudaPackages,
   cmake,
+  cmakeNvccThreadsHook,
   ninja,
+  python3,
+  toml2cmake,
 
+  extraDeps ? [],
   torch,
 }:
 
@@ -29,17 +29,19 @@ stdenv.mkDerivation {
   pname = "${extensionName}-torch-ext";
   version = extensionVersion;
 
-  inherit src;
+  inherit nvccThreads src;
 
-  # Copy generic build files into the source tree.
+  # Generate build files.
   postPatch = ''
-    cp ${./CMakeLists.txt} CMakeLists.txt
+    toml2cmake generate-torch build.toml
   '';
 
   nativeBuildInputs = [
     cmake
+    cmakeNvccThreadsHook
     ninja
     cudaPackages.cuda_nvcc
+    toml2cmake
   ];
 
   buildInputs =
@@ -56,38 +58,32 @@ stdenv.mkDerivation {
       libcublas
       libcusolver
       libcusparse
-    ])
-    ++ (lib.attrValues kernels);
+    ]) ++ extraDeps;
 
   env = {
     CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
+    TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" torch.cudaCapabilities;
   };
 
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
   dontSetupCUDAToolkitCompilers = true;
 
-  cmakeFlags =
-    let
-      kernelPath = name: drv: "${drv}/lib/lib${name}.a";
-      kernelLibs = lib.mapAttrsToList kernelPath kernels;
-    in
-    [
-      (lib.cmakeFeature "EXTENSION_NAME" "_${extensionName}_${flatVersion}")
-      (lib.cmakeFeature "EXTENSION_DEST" extensionName)
-      (lib.cmakeFeature "EXTENSION_SOURCES" (lib.concatStringsSep ";" extensionSources))
-      (lib.cmakeFeature "EXTENSION_INCLUDE_DIRS" (lib.concatStringsSep ";" extensionInclude))
-      (lib.cmakeFeature "KERNEL_LIBRARIES" (lib.concatStringsSep ";" kernelLibs))
+  cmakeFlags = [
       (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
+      (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
     ];
 
   postInstall =
+    let
+      versionedName = "_${extensionName}_${flatVersion}";
+    in
     ''
       (
         cd ..
-        substitute ${./_ops.py.in} $out/${extensionName}/_ops.py \
-          --subst-var-by EXTENSION_NAME "${extensionName}_${flatVersion}"
+        cp -r ${pyRoot}/${extensionName} $out/
       )
-      cp -r ${pySrc}/${extensionName} $out/
+      cp $out/${versionedName}/* $out/${extensionName}
+      rm -rf $out/${versionedName}
     ''
     + lib.optionalString stripRPath ''
       find $out/${extensionName} -name '*.so' \

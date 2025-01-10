@@ -25,4 +25,6 @@ final: prev: {
   ];
 
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
+
+  toml2cmake = prev.callPackage ./pkgs/toml2cmake { };
 }

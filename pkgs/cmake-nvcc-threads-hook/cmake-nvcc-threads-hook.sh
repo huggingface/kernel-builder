@@ -13,7 +13,7 @@ _setNvccThreadsHook() {
   # within bounds.
   export NIX_BUILD_CORES=$(($NIX_BUILD_CORES / nvccThreads))
 
-  appendToVar cmakeFlags -DCUDA_NVCC_FLAGS=--threads="${nvccThreads}"
+  appendToVar cmakeFlags -DNVCC_THREADS="${nvccThreads}"
 }
 
 preConfigureHooks+=(_setNvccThreadsHook)
