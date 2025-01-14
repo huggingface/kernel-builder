@@ -1,25 +1,30 @@
-use std::{
-    collections::HashSet,
-    fs::File,
-    io::{BufWriter, Write},
-    path::{Path, PathBuf},
-};
+use std::collections::HashSet;
+use std::io::Write;
+use std::path::PathBuf;
 
-use eyre::{bail, eyre, Context, Result};
+use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
 use crate::config::{Build, Dependencies, Kernel, Torch};
+use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
 
-pub fn write_torch_ext(env: &Environment, build: &Build, target_dir: PathBuf) -> Result<()> {
+pub fn write_torch_ext(
+    env: &Environment,
+    build: &Build,
+    target_dir: PathBuf,
+    force: bool,
+) -> Result<()> {
     let torch_ext = match build.torch.as_ref() {
         Some(torch_ext) => torch_ext,
         None => bail!("Build configuration does not have `torch` section"),
     };
 
-    write_cmake(env, build, torch_ext, &target_dir)?;
+    let mut file_set = FileSet::default();
+
+    write_cmake(env, build, torch_ext, &mut file_set)?;
 
     let ext_name = format!(
         "_{}_{}",
@@ -32,23 +37,20 @@ pub fn write_torch_ext(env: &Environment, build: &Build, target_dir: PathBuf) ->
         torch_ext,
         &ext_name,
         &build.general.version,
-        &target_dir,
+        &mut file_set,
     )?;
 
-    write_ops_py(env, torch_ext, &ext_name, &target_dir)?;
+    write_ops_py(env, torch_ext, &ext_name, &mut file_set)?;
 
-    write_pyproject_toml(env, &target_dir)?;
+    write_pyproject_toml(env, &mut file_set)?;
+
+    file_set.write(&target_dir, force)?;
 
     Ok(())
 }
 
-fn write_pyproject_toml(env: &Environment, target_dir: &Path) -> Result<()> {
-    let mut path = target_dir.to_owned();
-    path.push("pyproject.toml");
-    let writer = BufWriter::new(
-        File::create(&path)
-            .wrap_err_with(|| format!("Cannot create `{}`", path.to_string_lossy()))?,
-    );
+fn write_pyproject_toml(env: &Environment, file_set: &mut FileSet) -> Result<()> {
+    let writer = file_set.entry("pyproject.toml");
 
     env.get_template("pyproject.toml")
         .wrap_err("Cannot get pyproject.toml template")?
@@ -63,14 +65,9 @@ fn write_setup_py(
     torch: &Torch,
     ext_name: &str,
     version: &str,
-    target_dir: &Path,
+    file_set: &mut FileSet,
 ) -> Result<()> {
-    let mut path = target_dir.to_owned();
-    path.push("setup.py");
-    let writer = BufWriter::new(
-        File::create(&path)
-            .wrap_err_with(|| format!("Cannot create `{}`", path.to_string_lossy()))?,
-    );
+    let writer = file_set.entry("setup.py");
 
     env.get_template("setup.py")
         .wrap_err("Cannot get setup.py template")?
@@ -88,15 +85,17 @@ fn write_setup_py(
     Ok(())
 }
 
-fn write_ops_py(env: &Environment, torch: &Torch, ext_name: &str, target_dir: &Path) -> Result<()> {
-    let mut path = target_dir.to_owned();
+fn write_ops_py(
+    env: &Environment,
+    torch: &Torch,
+    ext_name: &str,
+    file_set: &mut FileSet,
+) -> Result<()> {
+    let mut path = PathBuf::new();
     path.push(&torch.pyroot);
     path.push(&torch.name);
     path.push("_ops.py");
-    let writer = BufWriter::new(
-        File::create(&path)
-            .wrap_err_with(|| format!("Cannot create `{}`", path.to_string_lossy()))?,
-    );
+    let writer = file_set.entry(path);
 
     env.get_template("_ops.py")
         .wrap_err("Cannot get _ops.py template")?
@@ -111,25 +110,27 @@ fn write_ops_py(env: &Environment, torch: &Torch, ext_name: &str, target_dir: &P
     Ok(())
 }
 
-fn write_cmake(env: &Environment, build: &Build, torch: &Torch, target_dir: &Path) -> Result<()> {
-    let mut utils_path = target_dir.to_owned();
+fn write_cmake(
+    env: &Environment,
+    build: &Build,
+    torch: &Torch,
+    file_set: &mut FileSet,
+) -> Result<()> {
+    let mut utils_path = PathBuf::new();
     utils_path.push("cmake");
     utils_path.push("utils.cmake");
-    write_to_file(&utils_path, CMAKE_UTILS)?;
+    file_set
+        .entry(utils_path.clone())
+        .extend_from_slice(CMAKE_UTILS.as_bytes());
 
-    let mut cmakelists_path = target_dir.to_owned();
-    cmakelists_path.push("CMakeLists.txt");
-    let mut cmake_writer = BufWriter::new(
-        File::create(&cmakelists_path)
-            .wrap_err_with(|| format!("Cannot create `{}`", cmakelists_path.to_string_lossy()))?,
-    );
+    let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, torch, &mut cmake_writer)?;
+    render_preamble(env, torch, cmake_writer)?;
 
-    render_deps(env, build, &mut cmake_writer)?;
+    render_deps(env, build, cmake_writer)?;
 
     for (kernel_name, kernel) in &build.kernels {
-        render_kernel(env, kernel_name, kernel, &mut cmake_writer)?;
+        render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
     let ext_name = format!(
@@ -138,7 +139,7 @@ fn write_cmake(env: &Environment, build: &Build, torch: &Torch, target_dir: &Pat
         build.general.version.replace(".", "_")
     );
 
-    render_extension(env, torch, &ext_name, &mut cmake_writer)?;
+    render_extension(env, torch, &ext_name, cmake_writer)?;
 
     Ok(())
 }
@@ -242,22 +243,4 @@ where
         .map(|include| format!("${{CMAKE_SOURCE_DIR}}/{}", include.as_ref()))
         .collect_vec()
         .join(";")
-}
-
-fn write_to_file(path: impl AsRef<Path>, data: &str) -> Result<()> {
-    let path = path.as_ref();
-
-    let parent = path
-        .parent()
-        .ok_or_else(|| eyre!("Cannot get parent of `{}`", path.to_string_lossy()))?;
-    std::fs::create_dir_all(parent)
-        .wrap_err_with(|| format!("Cannot create directory `{}`", parent.to_string_lossy()))?;
-
-    let mut write = BufWriter::new(
-        File::create(path)
-            .wrap_err_with(|| format!("Cannot open `{}` for writing", path.to_string_lossy()))?,
-    );
-    write
-        .write_all(data.as_bytes())
-        .wrap_err_with(|| format!("Cannot write to `{}`", path.to_string_lossy()))
 }

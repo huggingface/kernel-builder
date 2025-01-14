@@ -14,6 +14,9 @@ use torch::write_torch_ext;
 mod config;
 use config::Build;
 
+mod fileset;
+use fileset::FileSet;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -28,8 +31,14 @@ enum Commands {
         #[arg(name = "BUILD_TOML")]
         build_toml: PathBuf,
 
+        /// The directory to write the generated files to
+        /// (directory of `BUILD_TOML` when absent).
         #[arg(name = "TARGET_DIR")]
         target_dir: Option<PathBuf>,
+
+        /// Force-overwrite existing files.
+        #[arg(short, long)]
+        force: bool,
     },
 
     /// Validate the build.toml file.
@@ -44,13 +53,14 @@ fn main() -> Result<()> {
     match args.command {
         Commands::GenerateTorch {
             build_toml,
+            force,
             target_dir,
-        } => generate_torch(build_toml, target_dir),
+        } => generate_torch(build_toml, target_dir, force),
         Commands::Validate { build_toml } => validate(build_toml),
     }
 }
 
-fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>) -> Result<()> {
+fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>, force: bool) -> Result<()> {
     let target_dir = check_or_infer_target_dir(&build_toml, target_dir)?;
 
     let mut toml_data = String::new();
@@ -65,7 +75,7 @@ fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>) -> Result<()
     let mut env = Environment::new();
     minijinja_embed::load_templates!(&mut env);
 
-    write_torch_ext(&env, &build, target_dir)?;
+    write_torch_ext(&env, &build, target_dir, force)?;
 
     Ok(())
 }
