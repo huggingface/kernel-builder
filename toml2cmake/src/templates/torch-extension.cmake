@@ -18,8 +18,8 @@ set_source_files_properties(
 list(APPEND SRC {{'"${TORCH_' + name + '_SRC}"'}})
 
 define_gpu_extension_target(
-  {{ ext_name }}
-  DESTINATION {{ ext_name }}
+  {{ ops_name }}
+  DESTINATION {{ ops_name }}
   LANGUAGE ${GPU_LANGUAGE}
   SOURCES ${SRC}
   COMPILE_FLAGS ${GPU_FLAGS}
@@ -28,5 +28,5 @@ define_gpu_extension_target(
   USE_SABI 3
   WITH_SOABI)
 
-target_link_options({{ ext_name }} PRIVATE -static-libstdc++)
+target_link_options({{ ops_name }} PRIVATE -static-libstdc++)
 

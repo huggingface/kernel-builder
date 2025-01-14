@@ -4,11 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+base32 = "0.5"
 clap = { version = "4", features = ["derive"] }
 eyre = "0.6.12"
 itertools = "0.13"
 minijinja = "2.5"
 minijinja-embed = "2.5"
+rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 

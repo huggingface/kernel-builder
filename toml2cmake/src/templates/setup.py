@@ -119,7 +119,7 @@ class CMakeBuild(build_ext):
 setup(
     name="{{ name }}",
     version="{{ version }}",
-    ext_modules=[CMakeExtension("{{ name }}.{{ ext_name }}")],
+    ext_modules=[CMakeExtension("{{ name }}.{{ ops_name }}")],
     cmdclass={"build_ext": CMakeBuild},
     packages=["{{ name }}"],
     package_dir={"{{ name }}": "{{ pyroot }}/{{ name }}"},

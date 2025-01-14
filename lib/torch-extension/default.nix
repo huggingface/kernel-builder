@@ -22,9 +22,6 @@
   torch,
 }:
 
-let
-  flatVersion = lib.replaceStrings [ "." ] [ "_" ] (lib.versions.pad 3 extensionVersion);
-in
 stdenv.mkDerivation {
   pname = "${extensionName}-torch-ext";
   version = extensionVersion;
@@ -73,17 +70,13 @@ stdenv.mkDerivation {
       (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
     ];
 
-  postInstall =
-    let
-      versionedName = "_${extensionName}_${flatVersion}";
-    in
-    ''
+  postInstall = ''
       (
         cd ..
         cp -r ${pyRoot}/${extensionName} $out/
       )
-      cp $out/${versionedName}/* $out/${extensionName}
-      rm -rf $out/${versionedName}
+      cp $out/_${extensionName}_*/* $out/${extensionName}
+      rm -rf $out/_${extensionName}_*
     ''
     + lib.optionalString stripRPath ''
       find $out/${extensionName} -name '*.so' \

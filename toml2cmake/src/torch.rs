@@ -5,11 +5,23 @@ use std::path::PathBuf;
 use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
+use rand::Rng;
 
 use crate::config::{Build, Dependencies, Kernel, Torch};
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
+
+fn kernel_ops_identifier(name: &str) -> String {
+    let mut rng = rand::thread_rng();
+    let build_id: u64 = rng.gen();
+    let build_string = base32::encode(
+        base32::Alphabet::Rfc4648Lower { padding: false },
+        &build_id.to_le_bytes(),
+    );
+
+    format!("_{}_{}", name, build_string)
+}
 
 pub fn write_torch_ext(
     env: &Environment,
@@ -24,23 +36,19 @@ pub fn write_torch_ext(
 
     let mut file_set = FileSet::default();
 
-    write_cmake(env, build, torch_ext, &mut file_set)?;
+    let ops_name = kernel_ops_identifier(&torch_ext.name);
 
-    let ext_name = format!(
-        "_{}_{}",
-        torch_ext.name,
-        build.general.version.replace(".", "_")
-    );
+    write_cmake(env, build, torch_ext, &ops_name, &mut file_set)?;
 
     write_setup_py(
         env,
         torch_ext,
-        &ext_name,
+        &ops_name,
         &build.general.version,
         &mut file_set,
     )?;
 
-    write_ops_py(env, torch_ext, &ext_name, &mut file_set)?;
+    write_ops_py(env, torch_ext, &ops_name, &mut file_set)?;
 
     write_pyproject_toml(env, &mut file_set)?;
 
@@ -63,7 +71,7 @@ fn write_pyproject_toml(env: &Environment, file_set: &mut FileSet) -> Result<()>
 fn write_setup_py(
     env: &Environment,
     torch: &Torch,
-    ext_name: &str,
+    ops_name: &str,
     version: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
@@ -73,7 +81,7 @@ fn write_setup_py(
         .wrap_err("Cannot get setup.py template")?
         .render_to_write(
             context! {
-                ext_name => ext_name,
+                ops_name => ops_name,
                 name => torch.name,
                 version => version,
                 pyroot => torch.pyroot,
@@ -88,7 +96,7 @@ fn write_setup_py(
 fn write_ops_py(
     env: &Environment,
     torch: &Torch,
-    ext_name: &str,
+    ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let mut path = PathBuf::new();
@@ -101,7 +109,7 @@ fn write_ops_py(
         .wrap_err("Cannot get _ops.py template")?
         .render_to_write(
             context! {
-                ext_name => ext_name,
+                ops_name => ops_name,
             },
             writer,
         )
@@ -114,6 +122,7 @@ fn write_cmake(
     env: &Environment,
     build: &Build,
     torch: &Torch,
+    ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let mut utils_path = PathBuf::new();
@@ -133,13 +142,7 @@ fn write_cmake(
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
-    let ext_name = format!(
-        "_{}_{}",
-        torch.name,
-        build.general.version.replace(".", "_")
-    );
-
-    render_extension(env, torch, &ext_name, cmake_writer)?;
+    render_extension(env, torch, ops_name, cmake_writer)?;
 
     Ok(())
 }
@@ -201,7 +204,7 @@ pub fn render_kernel(
 pub fn render_extension(
     env: &Environment,
     torch: &Torch,
-    ext_name: &str,
+    ops_name: &str,
     write: &mut impl Write,
 ) -> Result<()> {
     env.get_template("torch-extension.cmake")
@@ -209,7 +212,7 @@ pub fn render_extension(
         .render_to_write(
             context! {
                 includes => torch.include.as_ref().map(prefix_and_join_includes),
-                ext_name => ext_name,
+                ops_name => ops_name,
                 name => torch.name,
                 src => torch.src
             },
