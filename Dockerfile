@@ -13,4 +13,6 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
 WORKDIR /kernelcode
 COPY . /etc/kernel-builder/
 
+ENV MAX_JOBS=${MAX_JOBS}
+ENV CORES=${CORES}
 ENTRYPOINT ["/bin/sh", "-c", "nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle /kernelcode' -L"]
