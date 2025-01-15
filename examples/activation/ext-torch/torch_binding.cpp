@@ -28,6 +28,10 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
   // Approximate GELU implementation.
   ops.def("gelu_fast(Tensor! out, Tensor input) -> ()");
   ops.impl("gelu_fast", torch::kCUDA, &gelu_fast);
+
+  // Quick GELU implementation.
+  ops.def("gelu_quick(Tensor! out, Tensor input) -> ()");
+  ops.impl("gelu_quick", torch::kCUDA, &gelu_quick);
 }
 
 REGISTER_EXTENSION(TORCH_EXTENSION_NAME)
