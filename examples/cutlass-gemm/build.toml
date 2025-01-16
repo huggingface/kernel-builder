@@ -1,0 +1,18 @@
+[general]
+version = "0.0.1"
+
+[torch]
+name = "cutlass_gemm"
+src = [
+  "torch-ext/registration.h",
+  "torch-ext/torch_binding.cpp",
+  "torch-ext/torch_binding.h"
+]
+pyroot = "torch-ext"
+
+[kernel.gemm]
+capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
+src = [
+  "gemm.cu",
+]
+depends = [ "torch", "cutlass_3_6" ]
