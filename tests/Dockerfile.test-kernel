@@ -65,12 +65,12 @@ RUN CUDA_MAJOR_MINOR=$(echo ${CUDA_VERSION} | cut -d'.' -f1,2) && \
 # add pytest for runtime tests
 RUN uv add numpy pytest
 
-# Copy application files
-COPY kernel ./kernel
-COPY examples/activation/tests ./tests
-
-RUN find .
+# Copy kernels and tests
+COPY activation-kernel ./activation-kernel
+COPY cutlass-gemm-kernel ./cutlass-gemm-kernel
+COPY examples/activation/tests ./activation_tests
+COPY examples/cutlass-gemm/tests ./tests/cutlass_gemm_tests
 
 # Run tests
-ENV PYTHONPATH="kernel:$PYTHONPATH"
-CMD ["/bin/sh", "-c", ".venv/bin/pytest", "tests"] 
+ENV PYTHONPATH="activation-kernel:cutlass-gemm-kernel:$PYTHONPATH"
+CMD ["/bin/sh", "-c", ".venv/bin/pytest", "activation_tests", "cutlass_gemm_tests"] 
