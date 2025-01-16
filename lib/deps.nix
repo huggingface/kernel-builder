@@ -10,8 +10,11 @@
 
 let
   knownDeps = with pkgs.cudaPackages; {
-    "cutlass" = [
-      pkgs.cutlass
+    "cutlass_3_5" = [
+      pkgs.cutlass_3_5
+    ];
+    "cutlass_3_6" = [
+      pkgs.cutlass_3_6
     ];
     "torch" = [
       torch

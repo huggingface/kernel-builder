@@ -4,7 +4,7 @@ if (NOT NvidiaCutlass_FOUND)
   set(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
 
 # Set CUTLASS_REVISION manually -- its revision detection doesn't work in this case.
-  set(CUTLASS_REVISION "v3.5.1" CACHE STRING "CUTLASS revision to use")
+  set(CUTLASS_REVISION "v{{ version }}" CACHE STRING "CUTLASS revision to use")
 
 
 # Use the specified CUTLASS source directory for compilation if CUTLASS_SRC_DIR is provided
@@ -22,7 +22,7 @@ if (NOT NvidiaCutlass_FOUND)
     FetchContent_Declare(
         cutlass
         GIT_REPOSITORY https://github.com/nvidia/cutlass.git
-        GIT_TAG v3.5.1
+        GIT_TAG v{{ version }}
         GIT_PROGRESS TRUE
 
         # Speed up CUTLASS download by retrieving only the specified GIT_TAG instead of the history.

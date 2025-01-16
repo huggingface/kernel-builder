@@ -155,10 +155,26 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
 
     for dep in deps {
         match dep {
-            Dependencies::Cutlass => {
+            Dependencies::Cutlass35 => {
                 env.get_template("dep-cutlass.cmake")
                     .wrap_err("Cannot get CUTLASS dependency template")?
-                    .render_to_write(context! {}, &mut *write)
+                    .render_to_write(
+                        context! {
+                            version => "3.5.1",
+                        },
+                        &mut *write,
+                    )
+                    .wrap_err("Cannot render CUTLASS dependency template")?;
+            }
+            Dependencies::Cutlass36 => {
+                env.get_template("dep-cutlass.cmake")
+                    .wrap_err("Cannot get CUTLASS dependency template")?
+                    .render_to_write(
+                        context! {
+                            version => "3.6.0",
+                        },
+                        &mut *write,
+                    )
                     .wrap_err("Cannot render CUTLASS dependency template")?;
             }
             Dependencies::Torch => (),

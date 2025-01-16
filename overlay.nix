@@ -7,8 +7,6 @@ final: prev: {
     _: prevAttrs: { buildInputs = prevAttrs.buildInputs ++ [ (prev.lib.getLib prev.gfortran.cc) ]; }
   );
 
-  cutlass = prev.callPackage ./pkgs/cutlass { };
-
   cmakeNvccThreadsHook = prev.callPackage ./pkgs/cmake-nvcc-threads-hook { };
 
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
@@ -27,4 +25,4 @@ final: prev: {
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 
   toml2cmake = prev.callPackage ./pkgs/toml2cmake { };
-}
+} // (import ./pkgs/cutlass { pkgs = final; })

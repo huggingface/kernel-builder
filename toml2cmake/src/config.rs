@@ -43,6 +43,9 @@ pub struct Kernel {
 #[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Dependencies {
-    Cutlass,
+    #[serde[rename = "cutlass_3_5"]]
+    Cutlass35,
+    #[serde[rename = "cutlass_3_6"]]
+    Cutlass36,
     Torch,
 }
