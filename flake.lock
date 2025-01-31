@@ -2,11 +2,11 @@
   "nodes": {
     "flake-compat": {
       "locked": {
-        "lastModified": 1732722421,
-        "narHash": "sha256-HRJ/18p+WoXpWJkcdsk9St5ZiukCqSDgbOGFa8Okehg=",
+        "lastModified": 1733328505,
+        "narHash": "sha256-NeCCThCEP3eCl2l/+27kNNK7QrwZB1IJCrXfrbv5oqU=",
         "owner": "edolstra",
         "repo": "flake-compat",
-        "rev": "9ed2ac151eada2306ca8c418ebd97807bb08f6ac",
+        "rev": "ff81ac966bb2cae68946d5ed5fc4994f96d0ffec",
         "type": "github"
       },
       "original": {
@@ -35,16 +35,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1732866476,
-        "narHash": "sha256-fQPhGk0rBifqOtcq07Que6MWuWU08AmiaOVZ6TTAHUw=",
-        "owner": "nixos",
+        "lastModified": 1738247409,
+        "narHash": "sha256-F72dKl9Na6/2N+garOm9qCXPa92GzR8eYSuDra6kbjY=",
+        "owner": "danieldk",
         "repo": "nixpkgs",
-        "rev": "564e219aa5ca9306ab22fb803c16391aacb4417b",
+        "rev": "358f57074b70e3ee9e1dc118151a4f6f81fcd3bb",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable-small",
+        "owner": "danieldk",
+        "ref": "cuda-12.6-for-kernel-builder",
         "repo": "nixpkgs",
         "type": "github"
       }

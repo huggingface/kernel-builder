@@ -12,12 +12,9 @@ final: prev: {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {
-        torch_2_4 = callPackage ./pkgs/python-modules/torch_2_4 {
-          inherit (prev.darwin.apple_sdk.frameworks) Accelerate CoreServices;
-          inherit (prev.darwin) libobjc;
-        };
-
         torch_2_5 = callPackage ./pkgs/python-modules/torch_2_5 { };
+
+        torch_2_6 = callPackage ./pkgs/python-modules/torch_2_6 { };
       }
     )
   ];

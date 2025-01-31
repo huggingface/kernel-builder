@@ -36,12 +36,10 @@
   removeReferencesTo,
 
   # Build inputs
+  darwin,
   numactl,
-  Accelerate,
-  CoreServices,
-  libobjc,
 
-  # Propagated build inputs
+  # dependencies
   astunparse,
   fsspec,
   filelock,
@@ -54,8 +52,19 @@
   click,
   typing-extensions,
   # ROCm build and `torch.compile` requires `triton`
-  tritonSupport ? (!stdenv.isDarwin),
+  tritonSupport ? (!stdenv.hostPlatform.isDarwin),
   triton,
+
+  # TODO: 1. callPackage needs to learn to distinguish between the task
+  #          of "asking for an attribute from the parent scope" and
+  #          the task of "exposing a formal parameter in .override".
+  # TODO: 2. We should probably abandon attributes such as `torchWithCuda` (etc.)
+  #          as they routinely end up consuming the wrong arguments\
+  #          (dependencies without cuda support).
+  #          Instead we should rely on overlays and nixpkgsFun.
+  # (@SomeoneSerge)
+  _tritonEffective ? if cudaSupport then triton-cuda else triton,
+  triton-cuda,
 
   # Unit tests
   hypothesis,
@@ -63,7 +72,7 @@
 
   # Disable MKLDNN on aarch64-darwin, it negatively impacts performance,
   # this is also what official pytorch build does
-  mklDnnSupport ? !(stdenv.isDarwin && stdenv.isAarch64),
+  mklDnnSupport ? !(stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64),
 
   # virtual pkg that consistently instantiates blas across nixpkgs
   # See https://github.com/NixOS/nixpkgs/pull/83888
@@ -79,8 +88,6 @@
   tensorboard,
   protobuf,
 
-  pythonOlder,
-
   # ROCm dependencies
   rocmSupport ? config.rocmSupport,
   rocmPackages_5,
@@ -95,6 +102,8 @@ let
     trivial
     ;
   inherit (cudaPackages) cudaFlags cudnn nccl;
+
+  triton = throw "python3Packages.torch: use _tritonEffective instead of triton to avoid divergence";
 
   rocmPackages = rocmPackages_5;
 
@@ -187,7 +196,7 @@ let
 
   brokenConditions = attrsets.filterAttrs (_: cond: cond) {
     "CUDA and ROCm are mutually exclusive" = cudaSupport && rocmSupport;
-    "CUDA is not targeting Linux" = cudaSupport && !stdenv.isLinux;
+    "CUDA is not targeting Linux" = cudaSupport && !stdenv.hostPlatform.isLinux;
     "Unsupported CUDA version" =
       cudaSupport
       && !(builtins.elem cudaPackages.cudaMajorVersion [
@@ -196,8 +205,11 @@ let
       ]);
     "MPI cudatoolkit does not match cudaPackages.cudatoolkit" =
       MPISupport && cudaSupport && (mpi.cudatoolkit != cudaPackages.cudatoolkit);
+    # This used to be a deep package set comparison between cudaPackages and
+    # effectiveMagma.cudaPackages, making torch too strict in cudaPackages.
+    # In particular, this triggered warnings from cuda's `aliases.nix`
     "Magma cudaPackages does not match cudaPackages" =
-      cudaSupport && (effectiveMagma.cudaPackages != cudaPackages);
+      cudaSupport && (effectiveMagma.cudaPackages.cudaVersion != cudaPackages.cudaVersion);
     "Rocm support is currently broken because `rocmPackages.hipblaslt` is unpackaged. (2024-06-09)" =
       rocmSupport;
   };
@@ -205,10 +217,8 @@ in
 buildPythonPackage rec {
   pname = "torch";
   # Don't forget to update torch-bin to the same version.
-  version = "2.4.1";
+  version = "2.6.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8.0";
 
   outputs = [
     "out" # output standard python package
@@ -221,18 +231,17 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "pytorch";
     repo = "pytorch";
+    # Switch after release. This is a pre-release build to ensure that we
+    # are ready.
     rev = "refs/tags/v${version}";
     fetchSubmodules = true;
-    hash = "sha256-x/zM/57syr46CP1TfGaefSjzvNm4jJbWFZGVGyzPMg8=";
+    hash = "sha256-pjpIEM/pIdcpidhd4hJwjimDX8F21RNySMwJDTCB4p8=";
   };
 
   patches =
-    [
-      ./passthrough-python-lib-rel-path.patch
-      ./mkl-rpath.patch
-    ]
+    [ ./mkl-rpath.patch ]
     ++ lib.optionals cudaSupport [ ./fix-cmake-cuda-toolkit.patch ]
-    ++ lib.optionals (stdenv.isDarwin && stdenv.isx86_64) [
+    ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
       # pthreadpool added support for Grand Central Dispatch in April
       # 2020. However, this relies on functionality (DISPATCH_APPLY_AUTO)
       # that is available starting with macOS 10.13. However, our current
@@ -240,14 +249,25 @@ buildPythonPackage rec {
       # pthread support.
       ./pthreadpool-disable-gcd.diff
     ]
-    ++ lib.optionals stdenv.isLinux [
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
       # Propagate CUPTI to Kineto by overriding the search path with environment variables.
       # https://github.com/pytorch/pytorch/pull/108847
       ./pytorch-pr-108847.patch
     ];
 
   postPatch =
-    lib.optionalString rocmSupport ''
+    ''
+      substituteInPlace cmake/public/cuda.cmake \
+        --replace-fail \
+          'message(FATAL_ERROR "Found two conflicting CUDA' \
+          'message(WARNING "Found two conflicting CUDA' \
+        --replace-warn \
+          "set(CUDAToolkit_ROOT" \
+          "# Upstream: set(CUDAToolkit_ROOT"
+      substituteInPlace third_party/gloo/cmake/Cuda.cmake \
+        --replace-warn "find_package(CUDAToolkit 7.0" "find_package(CUDAToolkit"
+    ''
+    + lib.optionalString rocmSupport ''
       # https://github.com/facebookincubator/gloo/pull/297
       substituteInPlace third_party/gloo/cmake/Hipify.cmake \
         --replace "\''${HIPIFY_COMMAND}" "python \''${HIPIFY_COMMAND}"
@@ -276,16 +296,18 @@ buildPythonPackage rec {
           'message(FATAL_ERROR "Found NCCL header version and library version' \
           'message(WARNING "Found NCCL header version and library version'
     ''
-    # Remove PyTorch's FindCUDAToolkit.cmake and to use CMake's default.
-    # We do not remove the entirety of cmake/Modules_CUDA_fix because we need FindCUDNN.cmake.
+    # Remove PyTorch's FindCUDAToolkit.cmake and use CMake's default.
+    # NOTE: Parts of pytorch rely on unmaintained FindCUDA.cmake with custom patches to support e.g.
+    # newer architectures (sm_90a). We do want to delete vendored patches, but have to keep them
+    # until https://github.com/pytorch/pytorch/issues/76082 is addressed
     + lib.optionalString cudaSupport ''
       rm cmake/Modules/FindCUDAToolkit.cmake
-      #rm -rf cmake/Modules_CUDA_fix/{upstream,FindCUDA.cmake}
     ''
     # error: no member named 'aligned_alloc' in the global namespace; did you mean simply 'aligned_alloc'
     # This lib overrided aligned_alloc hence the error message. Tltr: his function is linkable but not in header.
     +
-      lib.optionalString (stdenv.isDarwin && lib.versionOlder stdenv.hostPlatform.darwinSdkVersion "11.0")
+      lib.optionalString
+        (stdenv.hostPlatform.isDarwin && lib.versionOlder stdenv.hostPlatform.darwinSdkVersion "11.0")
         ''
           substituteInPlace third_party/pocketfft/pocketfft_hdronly.h --replace-fail '#if (__cplusplus >= 201703L) && (!defined(__MINGW32__)) && (!defined(_MSC_VER))
           inline void *aligned_alloc(size_t align, size_t size)' '#if 0
@@ -341,6 +363,17 @@ buildPythonPackage rec {
 
   # NB technical debt: building without NNPACK as workaround for missing `six`
   USE_NNPACK = 0;
+
+  cmakeFlags =
+    [
+      # (lib.cmakeBool "CMAKE_FIND_DEBUG_MODE" true)
+      (lib.cmakeFeature "CUDAToolkit_VERSION" cudaPackages.cudaVersion)
+    ]
+    ++ lib.optionals cudaSupport [
+      # Unbreaks version discovery in enable_language(CUDA) when wrapping nvcc with ccache
+      # Cf. https://gitlab.kitware.com/cmake/cmake/-/issues/26363
+      (lib.cmakeFeature "CMAKE_CUDA_COMPILER_TOOLKIT_VERSION" cudaPackages.cudaVersion)
+    ];
 
   preBuild = ''
     export MAX_JOBS=$NIX_BUILD_CORES
@@ -460,7 +493,7 @@ buildPythonPackage rec {
         cuda_cccl # <thrust/*>
         cuda_cudart # cuda_runtime.h and libraries
         cuda_cupti # For kineto
-        cuda_nvcc # crt/host_config.h; even though we include this in nativeBuildinputs, it's needed here too
+        cuda_nvcc # crt/host_config.h; even though we include this in nativeBuildInputs, it's needed here too
         cuda_nvml_dev # <nvml.h>
         cuda_nvrtc
         cuda_nvtx # -llibNVToolsExt
@@ -484,16 +517,19 @@ buildPythonPackage rec {
     )
     ++ lib.optionals rocmSupport [ rocmPackages.llvm.openmp ]
     ++ lib.optionals (cudaSupport || rocmSupport) [ effectiveMagma ]
-    ++ lib.optionals stdenv.isLinux [ numactl ]
-    ++ lib.optionals stdenv.isDarwin [
-      Accelerate
-      CoreServices
-      libobjc
+    ++ lib.optionals stdenv.hostPlatform.isLinux [ numactl ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      darwin.apple_sdk.frameworks.Accelerate
+      darwin.apple_sdk.frameworks.CoreServices
+      darwin.libobjc
     ]
-    ++ lib.optionals tritonSupport [ triton ]
+    ++ lib.optionals tritonSupport [ _tritonEffective ]
     ++ lib.optionals MPISupport [ mpi ]
     ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
 
+  pythonRelaxDeps = [
+    "sympy"
+  ];
   dependencies = [
     astunparse
     cffi
@@ -518,7 +554,7 @@ buildPythonPackage rec {
 
     # torch/csrc requires `pybind11` at runtime
     pybind11
-  ] ++ lib.optionals tritonSupport [ triton ];
+  ] ++ lib.optionals tritonSupport [ _tritonEffective ];
 
   propagatedCxxBuildInputs =
     [ ] ++ lib.optionals MPISupport [ mpi ] ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
@@ -592,7 +628,7 @@ buildPythonPackage rec {
       mkdir -p "$cxxdev/nix-support"
       printWords "''${propagatedCxxBuildInputs[@]}" >> "$cxxdev/nix-support/propagated-build-inputs"
     ''
-    + lib.optionalString stdenv.isDarwin ''
+    + lib.optionalString stdenv.hostPlatform.isDarwin ''
       for f in $(ls $lib/lib/*.dylib); do
           install_name_tool -id $lib/lib/$(basename $f) $f || true
       done
@@ -612,7 +648,7 @@ buildPythonPackage rec {
   # This is a quick hack to add `libnvrtc` to the runpath so that torch can find
   # it when it is needed at runtime.
   extraRunpaths = lib.optionals cudaSupport [ "${lib.getLib cudaPackages.cuda_nvrtc}/lib" ];
-  postPhases = lib.optionals stdenv.isLinux [ "postPatchelfPhase" ];
+  postPhases = lib.optionals stdenv.hostPlatform.isLinux [ "postPatchelfPhase" ];
   postPatchelfPhase = ''
     while IFS= read -r -d $'\0' elf ; do
       for extra in $extraRunpaths ; do
@@ -654,7 +690,9 @@ buildPythonPackage rec {
       thoughtpolice
       tscholak
     ]; # tscholak esp. for darwin-related builds
-    platforms = with lib.platforms; linux ++ lib.optionals (!cudaSupport && !rocmSupport) darwin;
+    platforms =
+      lib.platforms.linux
+      ++ lib.optionals (!cudaSupport && !rocmSupport) lib.platforms.darwin;
     broken = builtins.any trivial.id (builtins.attrValues brokenConditions);
   };
 }

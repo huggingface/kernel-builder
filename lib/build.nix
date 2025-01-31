@@ -57,6 +57,7 @@ rec {
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
       nvccThreads = listMax (lib.mapAttrsToList (_: buildConfig: builtins.length buildConfig.capabilities) buildConfig.kernel);
+      stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
     in
     pkgs.callPackage ./torch-extension (
       {
@@ -64,6 +65,7 @@ rec {
           extraDeps
           nvccThreads
           src
+          stdenv
           stripRPath
           torch
           ;
@@ -71,9 +73,6 @@ rec {
         extensionVersion = buildConfig.general.version;
         pyRoot = extConfig.pyroot;
       }
-      // (lib.optionalAttrs oldLinuxCompat {
-        stdenv = pkgs.stdenvGlibc_2_27;
-      })
     );
 
   # Build multiple Torch extensions.

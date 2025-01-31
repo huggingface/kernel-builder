@@ -37,7 +37,7 @@ let
 
     passthru = prevAttrs.passthru // {
       # Should be stdenv's gcc, but we don't have access to it.
-      libgcc = libgcc;
+      libgcc = stdenv.cc.cc.libgcc;
     };
   });
 

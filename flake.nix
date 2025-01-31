@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
+    nixpkgs.url = "github:danieldk/nixpkgs/cuda-12.6-for-kernel-builder";
     flake-compat.url = "github:edolstra/flake-compat";
   };
 
@@ -48,7 +48,7 @@
             in
             {
               devShells = rec {
-                default = shells.torch24-cxx98-cu124-x86_64-linux;
+                default = shells.torch26-cxx98-cu126-x86_64-linux;
                 shells = build.torchExtensionShells path;
               };
               packages = {
@@ -78,7 +78,7 @@
         formatter = pkgs.nixfmt-rfc-style;
 
         packages = rec {
-          toml2cmake = pkgs.callPackage ./pkgs/toml2cmake {};
+          toml2cmake = pkgs.callPackage ./pkgs/toml2cmake { };
 
           # This package set is exposed so that we can prebuild the Torch versions.
           torch = builtins.listToAttrs (
@@ -91,6 +91,23 @@
           # Dependencies that should be cached.
           forCache =
             let
+              filterDist = lib.filter (output: output != "dist");
+              # Get all `torch` outputs except for `dist`. Not all outputs
+              # are dependencies of `out`, but we'll need the `cxxdev` and
+              # `dev` outputs for kernel builds.
+              torchOutputs = builtins.listToAttrs (
+                lib.flatten (
+                  # Map over build sets.
+                  map (
+                    buildSet:
+                    # Map over all outputs of `torch` in a buildset.
+                    map (output: {
+                      name = "${buildVersion buildSet}-${output}";
+                      value = buildSet.torch.${output};
+                    }) (filterDist buildSet.torch.outputs)
+                  ) buildSets
+                )
+              );
               oldLinuxStdenvs = builtins.listToAttrs (
                 map (buildSet: {
                   name = "stdenv-${buildVersion buildSet}";
@@ -98,7 +115,7 @@
                 }) buildSets
               );
             in
-            pkgs.linkFarm "packages-for-cache" (torch // oldLinuxStdenvs);
+            pkgs.linkFarm "packages-for-cache" (torchOutputs // oldLinuxStdenvs);
         };
       }
     )
