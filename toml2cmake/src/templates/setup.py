@@ -124,6 +124,6 @@ setup(
     packages=["{{ name }}"],
     package_dir={"{{ name }}": "{{ pyroot }}/{{ name }}"},
     zip_safe=False,
-    install_requires=["torch==2.4.*"],
+    install_requires=["torch"],
     python_requires=">=3.9",
 )
