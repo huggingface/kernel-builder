@@ -90,7 +90,7 @@
 
   # ROCm dependencies
   rocmSupport ? config.rocmSupport,
-  rocmPackages_5,
+  rocmPackages,
   gpuTargets ? [ ],
 }:
 
@@ -104,8 +104,6 @@ let
   inherit (cudaPackages) cudaFlags cudnn nccl;
 
   triton = throw "python3Packages.torch: use _tritonEffective instead of triton to avoid divergence";
-
-  rocmPackages = rocmPackages_5;
 
   setBool = v: if v then "1" else "0";
 
@@ -162,30 +160,30 @@ let
 
     paths = with rocmPackages; [
       rocm-core
-      clr
+      hipcc
       rccl
-      miopen
-      miopengemm
+      miopen-hip
       rocrand
       rocblas
       rocsparse
       hipsparse
-      rocthrust
-      rocprim
-      hipcub
+      rocthrust-dev
+      rocprim-dev
+      hipcub-dev
       roctracer
-      rocfft
       rocsolver
       hipfft
       hipsolver
       hipblas
       rocminfo
-      rocm-thunk
-      rocm-comgr
+      #rocm-thunk
+      comgr
       rocm-device-libs
-      rocm-runtime
-      clr.icd
-      hipify
+      #rocm-runtime
+      rocm-hip-runtime # ???
+      #clr.icd
+      #hipify
+      hipify-clang
     ];
 
     # Fix `setuptools` not being found
@@ -210,8 +208,8 @@ let
     # In particular, this triggered warnings from cuda's `aliases.nix`
     "Magma cudaPackages does not match cudaPackages" =
       cudaSupport && (effectiveMagma.cudaPackages.cudaVersion != cudaPackages.cudaVersion);
-    "Rocm support is currently broken because `rocmPackages.hipblaslt` is unpackaged. (2024-06-09)" =
-      rocmSupport;
+    #"Rocm support is currently broken because `rocmPackages.hipblaslt` is unpackaged. (2024-06-09)" =
+    #  rocmSupport;
   };
 in
 buildPythonPackage rec {
@@ -515,7 +513,7 @@ buildPythonPackage rec {
         cuda_profiler_api # <cuda_profiler_api.h>
       ]
     )
-    ++ lib.optionals rocmSupport [ rocmPackages.llvm.openmp ]
+    ++ lib.optionals rocmSupport [ rocmPackages.openmp-extras-dev ]
     ++ lib.optionals (cudaSupport || rocmSupport) [ effectiveMagma ]
     ++ lib.optionals stdenv.hostPlatform.isLinux [ numactl ]
     ++ lib.optionals stdenv.hostPlatform.isDarwin [

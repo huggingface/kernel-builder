@@ -24,15 +24,16 @@ rec {
           false
         ];
       };
-    in
     # Cartesian product of the build configurations and the CUDA versions
     # supported by the Torch in the build configuration. We can't use
     # `cartesianProduct` here because of this CUDA -> Torch dependency.
-    lib.flatten (
+    cuda = lib.flatten (
       map (
         config:
-        map (cudaVersion: config // { inherit cudaVersion; }) cudaVersionForTorch.${config.torchVersion}
+        map (cudaVersion: config // { inherit cudaVersion; gpu = "cuda"; }) cudaVersionForTorch.${config.torchVersion}
       ) buildConfigsWithoutCuda
     );
-
+    rocm = map (config: config // { gpu = "rocm"; }) buildConfigsWithoutCuda;
+    in
+    cuda ++ rocm;
 }

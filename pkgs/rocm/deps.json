@@ -1,0 +1,573 @@
+{
+  "rocprofiler-systems": [
+    "roctracer-dev",
+    "rocm-smi-lib",
+    "rocprofiler-dev"
+  ],
+  "rocm-opencl-sdk": [
+    "hsa-rocr-dev",
+    "rocm-opencl-dev",
+    "rocm-opencl-runtime",
+    "rocm-core"
+  ],
+  "hipblas-common-dev": [
+    "rocm-core"
+  ],
+  "hipfft-dev": [
+    "hipfft"
+  ],
+  "rocm-device-libs": [
+    "rocm-core"
+  ],
+  "hsa-rocr": [
+    "rocm-core",
+    "libdrm-amdgpu-amdgpu1",
+    "rocprofiler-register"
+  ],
+  "rocm-gdb": [
+    "rocm-core",
+    "rocm-dbgapi"
+  ],
+  "rocdecode-test": [
+    "rocm-core",
+    "rocdecode-dev"
+  ],
+  "rocm": [
+    "rocm-developer-tools",
+    "migraphx-dev",
+    "rocm-openmp-sdk",
+    "rocm-utils",
+    "rocm-ml-sdk",
+    "rocm-core",
+    "migraphx",
+    "rpp-dev",
+    "mivisionx-dev",
+    "mivisionx",
+    "rocm-opencl-sdk",
+    "rpp"
+  ],
+  "rccl-dev": [
+    "rccl"
+  ],
+  "hiprand-dev": [
+    "hiprand"
+  ],
+  "half": [
+    "rocm-core"
+  ],
+  "rocthrust-dev": [
+    "rocm-core",
+    "rocprim-dev"
+  ],
+  "hipify-clang": [
+    "rocm-core"
+  ],
+  "rocm-utils": [
+    "rocm-core",
+    "rocminfo",
+    "rocm-cmake"
+  ],
+  "rocm-opencl-runtime": [
+    "rocm-core",
+    "rocm-language-runtime",
+    "rocm-opencl"
+  ],
+  "rocfft-dev": [
+    "rocfft"
+  ],
+  "rpp": [
+    "rocm-hip-runtime"
+  ],
+  "mesa-amdgpu-va-drivers": [
+    "amdgpu-core",
+    "mesa-amdgpu-libgallium"
+  ],
+  "libva-amdgpu-glx2": [
+    "libva-amdgpu-x11-2",
+    "amdgpu-core",
+    "libva2-amdgpu"
+  ],
+  "rocm-opencl": [
+    "hsa-rocr",
+    "comgr",
+    "rocm-core"
+  ],
+  "hipsparse": [
+    "rocm-core",
+    "rocsparse"
+  ],
+  "rocm-llvm-dev": [
+    "rocm-core",
+    "rocm-llvm"
+  ],
+  "hipsolver-dev": [
+    "hipsolver"
+  ],
+  "libwayland-amdgpu-client0": [
+    "amdgpu-core"
+  ],
+  "rocsparse": [
+    "rocm-core",
+    "hip-runtime-amd"
+  ],
+  "rocm-opencl-dev": [
+    "hsa-rocr-dev",
+    "rocm-opencl",
+    "rocm-core"
+  ],
+  "libva-amdgpu-x11-2": [
+    "libdrm2-amdgpu",
+    "amdgpu-core",
+    "libva2-amdgpu"
+  ],
+  "hipsparselt-dev": [
+    "hipsparselt"
+  ],
+  "rocblas": [
+    "rocm-core",
+    "hipblaslt",
+    "hip-runtime-amd"
+  ],
+  "miopen-hip-dev": [
+    "miopen-hip"
+  ],
+  "hipcc": [
+    "rocm-core",
+    "rocm-llvm",
+    "hip-dev"
+  ],
+  "hip-samples": [
+    "rocm-core",
+    "hipcc",
+    "hip-dev"
+  ],
+  "libdrm-amdgpu-radeon1": [
+    "libdrm2-amdgpu"
+  ],
+  "roctracer": [
+    "rocm-core"
+  ],
+  "mesa-amdgpu-libgallium": [
+    "libdrm-amdgpu-amdgpu1",
+    "amdgpu-core",
+    "libdrm2-amdgpu",
+    "libglapi-amdgpu-mesa",
+    "libdrm-amdgpu-radeon1",
+    "libllvm19.1-amdgpu"
+  ],
+  "hip-doc": [
+    "rocm-core",
+    "hip-dev"
+  ],
+  "rocprofiler-sdk-roctx": [
+    "rocm-core"
+  ],
+  "migraphx-dev": [
+    "migraphx"
+  ],
+  "rocm-llvm": [
+    "rocm-core"
+  ],
+  "rocm-ml-libraries": [
+    "rocm-llvm",
+    "rocm-hip-libraries",
+    "half",
+    "rocm-core",
+    "miopen-hip"
+  ],
+  "mivisionx": [
+    "rocblas",
+    "rocm-core",
+    "migraphx",
+    "rocm-hip-runtime",
+    "miopen-hip",
+    "rpp"
+  ],
+  "rocsolver-dev": [
+    "rocsolver"
+  ],
+  "rocprofiler-dev": [
+    "hsa-rocr-dev",
+    "rocprofiler",
+    "rocm-core"
+  ],
+  "libglapi-amdgpu-mesa": [
+    "amdgpu-core"
+  ],
+  "rocdecode-dev": [
+    "rocm-core",
+    "rocdecode",
+    "rocm-hip-runtime-dev",
+    "libva-amdgpu-dev"
+  ],
+  "hiptensor-dev": [
+    "hiptensor"
+  ],
+  "hip-dev": [
+    "hsa-rocr-dev",
+    "rocm-llvm",
+    "hip-runtime-amd",
+    "rocm-core"
+  ],
+  "rocm-dbgapi": [
+    "rocm-core"
+  ],
+  "rocsparse-dev": [
+    "rocsparse"
+  ],
+  "libdrm-amdgpu-common": [
+    "amdgpu-core"
+  ],
+  "amd-smi-lib": [
+    "rocm-core"
+  ],
+  "rocm-validation-suite": [
+    "comgr",
+    "hipblaslt",
+    "rocblas",
+    "hiprand",
+    "hsa-rocr",
+    "rocm-core",
+    "rocm-smi-lib",
+    "hip-runtime-amd"
+  ],
+  "hipblaslt-dev": [
+    "hipblas-common-dev",
+    "hipblaslt"
+  ],
+  "rocm-cmake": [
+    "rocm-core"
+  ],
+  "rocm-hip-runtime": [
+    "rocm-core",
+    "rocminfo",
+    "hip-runtime-amd",
+    "rocm-language-runtime"
+  ],
+  "rocalution-dev": [
+    "rocalution"
+  ],
+  "composablekernel-dev": [
+    "rocm-core"
+  ],
+  "rocm-hip-runtime-dev": [
+    "rocm-llvm",
+    "hipify-clang",
+    "rocm-device-libs",
+    "hip-samples",
+    "hip-dev",
+    "hsa-rocr-dev",
+    "hip-doc",
+    "hipcc",
+    "rocm-cmake",
+    "rocm-core",
+    "rocm-hip-runtime"
+  ],
+  "rocrand-dev": [
+    "rocrand"
+  ],
+  "hipsparse-dev": [
+    "hipsparse"
+  ],
+  "rocm-hip-libraries": [
+    "hipblaslt",
+    "rocalution",
+    "hiptensor",
+    "rocblas",
+    "hipsparse",
+    "rocfft",
+    "rocsparse",
+    "rocrand",
+    "hipfft",
+    "rccl",
+    "hiprand",
+    "rocm-core",
+    "rocm-hip-runtime",
+    "hipblas",
+    "hipsparselt",
+    "rocm-smi-lib",
+    "hipsolver",
+    "rocsolver"
+  ],
+  "hipsparselt": [
+    "rocm-core",
+    "hipsparse"
+  ],
+  "rocprofiler": [
+    "hsa-rocr",
+    "rocminfo",
+    "rocm-core"
+  ],
+  "libdrm-amdgpu-amdgpu1": [
+    "libdrm2-amdgpu",
+    "libdrm-amdgpu-common"
+  ],
+  "libllvm19.1-amdgpu": [
+    "amdgpu-core"
+  ],
+  "rocalution": [
+    "rocblas",
+    "rocsparse",
+    "rocrand",
+    "rocm-core",
+    "hip-runtime-amd"
+  ],
+  "hipcub-dev": [
+    "rocm-core",
+    "rocprim-dev"
+  ],
+  "rocm-language-runtime": [
+    "hsa-rocr",
+    "comgr",
+    "openmp-extras-runtime",
+    "rocm-core"
+  ],
+  "rccl": [
+    "rocm-core",
+    "rocm-smi-lib",
+    "hip-runtime-amd",
+    "rocprofiler-register"
+  ],
+  "rocprofiler-register": [
+    "rocm-core"
+  ],
+  "hipblas": [
+    "rocm-core",
+    "rocblas",
+    "rocsolver"
+  ],
+  "migraphx": [
+    "hipblaslt",
+    "rocblas",
+    "half",
+    "hip-dev",
+    "rocm-core",
+    "hip-runtime-amd",
+    "miopen-hip"
+  ],
+  "mivisionx-dev": [
+    "miopen-hip-dev",
+    "rocblas-dev",
+    "rocm-hip-runtime-dev",
+    "half",
+    "migraphx-dev",
+    "rocm-core",
+    "rpp-dev",
+    "mivisionx"
+  ],
+  "rocprim-dev": [
+    "rocm-core",
+    "hip-runtime-amd"
+  ],
+  "rpp-dev": [
+    "rocm-hip-runtime-dev",
+    "half",
+    "rpp"
+  ],
+  "hipblas-dev": [
+    "hipblas",
+    "hipblas-common-dev"
+  ],
+  "amdgpu-core": [],
+  "hipblaslt": [
+    "rocm-core"
+  ],
+  "hipfft": [
+    "rocm-core",
+    "rocfft"
+  ],
+  "rocwmma-dev": [
+    "rocm-core"
+  ],
+  "hipsolver": [
+    "rocm-core",
+    "rocblas",
+    "rocsolver"
+  ],
+  "rocm-developer-tools": [
+    "rocprofiler-register",
+    "hsa-amd-aqlprofile",
+    "roctracer",
+    "rocm-language-runtime",
+    "rocprofiler",
+    "rocm-dbgapi",
+    "roctracer-dev",
+    "rocm-debug-agent",
+    "rocm-gdb",
+    "rocprofiler-plugins",
+    "rocprofiler-dev",
+    "rocprofiler-sdk",
+    "rocm-core",
+    "rocm-smi-lib",
+    "rocprofiler-sdk-roctx",
+    "amd-smi-lib"
+  ],
+  "hsa-amd-aqlprofile": [
+    "rocm-core"
+  ],
+  "rocprofiler-compute": [
+    "rocprofiler"
+  ],
+  "rocm-debug-agent": [
+    "rocm-core",
+    "rocm-dbgapi"
+  ],
+  "rocm-ml-sdk": [
+    "miopen-hip-dev",
+    "rocm-hip-sdk",
+    "rocm-core",
+    "rocm-ml-libraries"
+  ],
+  "rocprofiler-plugins": [
+    "hsa-rocr-dev",
+    "rocprofiler",
+    "rocm-core"
+  ],
+  "openmp-extras-runtime": [
+    "hsa-rocr",
+    "rocm-core"
+  ],
+  "miopen-hip": [
+    "comgr",
+    "rocblas",
+    "hipblaslt",
+    "roctracer",
+    "rocrand",
+    "rocm-core",
+    "hip-runtime-amd"
+  ],
+  "hiprand": [
+    "rocm-core"
+  ],
+  "hipfort-dev": [
+    "rocm-core",
+    "hip-runtime-amd"
+  ],
+  "rocm-hip-sdk": [
+    "rocblas-dev",
+    "hipfft-dev",
+    "rocfft-dev",
+    "hipcub-dev",
+    "rocprim-dev",
+    "rocsparse-dev",
+    "rocrand-dev",
+    "rccl-dev",
+    "hiptensor-dev",
+    "composablekernel-dev",
+    "rocm-hip-libraries",
+    "hipsparselt-dev",
+    "rocalution-dev",
+    "hipblas-dev",
+    "hipsolver-dev",
+    "hiprand-dev",
+    "hipfort-dev",
+    "hipblaslt-dev",
+    "rocm-hip-runtime-dev",
+    "rocm-core",
+    "rocsolver-dev",
+    "rocthrust-dev",
+    "hipsparse-dev",
+    "rocwmma-dev"
+  ],
+  "rocm-core": [],
+  "libva-amdgpu-drm2": [
+    "libdrm2-amdgpu",
+    "amdgpu-core",
+    "libva2-amdgpu"
+  ],
+  "libva2-amdgpu": [
+    "amdgpu-core"
+  ],
+  "libva-amdgpu-dev": [
+    "libva-amdgpu-glx2",
+    "libva-amdgpu-x11-2",
+    "libva-amdgpu-drm2",
+    "libva2-amdgpu",
+    "libva-amdgpu-wayland2"
+  ],
+  "hsa-rocr-dev": [
+    "hsa-rocr",
+    "rocm-core",
+    "libdrm-amdgpu-dev"
+  ],
+  "libdrm2-amdgpu": [
+    "amdgpu-core"
+  ],
+  "hip-runtime-amd": [
+    "rocprofiler-register",
+    "comgr",
+    "hsa-rocr",
+    "rocm-core",
+    "rocminfo"
+  ],
+  "rocblas-dev": [
+    "rocblas"
+  ],
+  "comgr": [
+    "rocm-core"
+  ],
+  "libva-amdgpu-wayland2": [
+    "libdrm2-amdgpu",
+    "amdgpu-core",
+    "libwayland-amdgpu-client0",
+    "libva2-amdgpu"
+  ],
+  "rocdecode": [
+    "libva-amdgpu-x11-2",
+    "rocm-core",
+    "rocm-hip-runtime",
+    "libva-amdgpu-drm2",
+    "mesa-amdgpu-va-drivers",
+    "libva2-amdgpu",
+    "libva-amdgpu-wayland2"
+  ],
+  "rocm-openmp-sdk": [
+    "rocm-llvm",
+    "rocm-language-runtime",
+    "rocm-device-libs",
+    "openmp-extras-dev",
+    "hsa-rocr-dev",
+    "rocm-core"
+  ],
+  "hiptensor": [
+    "rocm-core"
+  ],
+  "rocprofiler-sdk": [
+    "rocm-core",
+    "rocprofiler-sdk-roctx"
+  ],
+  "rocfft": [
+    "rocm-core"
+  ],
+  "roctracer-dev": [
+    "hsa-rocr-dev",
+    "roctracer",
+    "rocm-core"
+  ],
+  "libdrm-amdgpu-dev": [
+    "libdrm2-amdgpu",
+    "libdrm-amdgpu-amdgpu1",
+    "libdrm-amdgpu-radeon1"
+  ],
+  "rocminfo": [
+    "hsa-rocr",
+    "rocm-core"
+  ],
+  "rocrand": [
+    "rocm-core"
+  ],
+  "rocsolver": [
+    "rocm-core",
+    "rocblas"
+  ],
+  "openmp-extras-dev": [
+    "rocm-llvm",
+    "rocm-device-libs",
+    "hsa-rocr-dev",
+    "rocm-core",
+    "openmp-extras-runtime"
+  ],
+  "rocm-smi-lib": [
+    "rocm-core"
+  ]
+}
