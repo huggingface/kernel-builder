@@ -80,6 +80,8 @@
         packages = rec {
           toml2cmake = pkgs.callPackage ./pkgs/toml2cmake { };
 
+          rocm = pkgs.callPackage ./pkgs/rocm { };
+
           # This package set is exposed so that we can prebuild the Torch versions.
           torch = builtins.listToAttrs (
             map (buildSet: {

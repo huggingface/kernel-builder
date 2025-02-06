@@ -1,4 +1,5 @@
-final: prev: {
+final: prev:
+{
   blas = prev.blas.override { blasProvider = prev.mkl; };
 
   lapack = prev.lapack.override { lapackProvider = prev.mkl; };
@@ -19,7 +20,10 @@ final: prev: {
     )
   ];
 
+  rocm = callPackage ./pkgs/rocm { };
+
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 
   toml2cmake = prev.callPackage ./pkgs/toml2cmake { };
-} // (import ./pkgs/cutlass { pkgs = final; })
+}
+// (import ./pkgs/cutlass { pkgs = final; })
