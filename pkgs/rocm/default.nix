@@ -1,17 +1,29 @@
 {
   lib,
   callPackage,
+  newScope,
 }:
 
 let
   namesWithDeps = builtins.fromJSON (builtins.readFile ./deps.json);
-  rocmPackages' = lib.mapAttrs (
-    pname: metadata:
-    callPackage ./generic.nix {
-      inherit pname rocmPackages;
-      inherit (metadata) deps bundleSrcs;
-    }
-  ) namesWithDeps;
-  rocmPackages = callPackage ./overrides.nix { rocmPackages = rocmPackages'; };
+  # Package set without overrides.
+  rocmPackages =
+    final: prev:
+    lib.mapAttrs (
+      pname: metadata:
+      callPackage ./generic.nix {
+        inherit pname;
+        inherit (metadata) deps bundleSrcs;
+        rocmPackages = final;
+      }
+    ) namesWithDeps;
+  overrides = callPackage ./overrides.nix { };
+  aliases = final: prev: { clr = final.hipcc; };
+  composed = lib.composeManyExtensions [
+    rocmPackages
+    overrides
+    (callPackage ./llvm.nix {})
+    aliases
+  ];
 in
-rocmPackages // { clr = rocmPackages.hipcc; }
+lib.makeScope newScope (lib.extends composed (_: { }))

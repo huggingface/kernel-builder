@@ -1,17 +1,10 @@
 {
   lib,
-  callPackage,
-  rocmPackages,
 }:
 let
   applyOverrides =
-    overrides:
-    let
-      rocmPackages' = lib.mapAttrs (
-        name: value: rocmPackages.${name}.overrideAttrs (callPackage value { })
-      ) overrides;
-    in
-    rocmPackages // rocmPackages';
+    overrides: final: prev:
+    lib.mapAttrs (name: value: prev.${name}.overrideAttrs (final.callPackage value { })) overrides;
 in
 applyOverrides {
   comgr =
@@ -24,9 +17,9 @@ applyOverrides {
     };
 
   hipblaslt =
-    { }:
+    { hip-runtime-amd }:
     prevAttrs: {
-      buildInputs = prevAttrs.buildInputs ++ [ rocmPackages.hip-runtime-amd ];
+      buildInputs = prevAttrs.buildInputs ++ [ hip-runtime-amd ];
     };
 
   hipcc =
@@ -70,6 +63,16 @@ applyOverrides {
       ];
     };
 
+  openmp-extras-runtime =
+    { rocm-llvm }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [ rocm-llvm ];
+      # Can we change rocm-llvm to pick these up?
+      installPhase = (prevAttrs.installPhase or "") + ''
+        addAutoPatchelfSearchPath ${rocm-llvm}/lib/llvm/lib
+      '';
+    };
+
   hsa-rocr =
     {
       elfutils,
@@ -84,15 +87,37 @@ applyOverrides {
       ];
     };
 
-  rocrand =
-    { }:
+  rocfft =
+    { hip-runtime-amd }:
     prevAttrs: {
-      buildInputs = prevAttrs.buildInputs ++ [ rocmPackages.hip-runtime-amd ];
+      buildInputs = prevAttrs.buildInputs ++ [ hip-runtime-amd ];
+    };
+
+  rocm-llvm =
+    { libxml2, zlib, zstd }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [
+        libxml2
+        zlib
+        zstd
+      ];
+    };
+
+  rocminfo =
+    { python3 }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [ python3 ];
+    };
+
+  rocrand =
+    { hip-runtime-amd }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [ hip-runtime-amd ];
     };
 
   roctracer =
-    { }:
+    { comgr }:
     prevAttr: {
-      buildInputs = prevAttr.buildInputs ++ [ rocmPackages.comgr ];
+      buildInputs = prevAttr.buildInputs ++ [ comgr ];
     };
 }

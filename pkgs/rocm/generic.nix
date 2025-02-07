@@ -53,4 +53,19 @@ stdenv.mkDerivation rec {
       rsync -a ${src}/component-rocm/$bundleSrc/content/opt/rocm-${version}/* $out/
     done
   '';
+
+  autoPatchelfIgnoreMissingDeps = [
+    # Not sure where this comes from, not in the distribution.
+    "amdpythonlib.so"
+
+    # Should come from the driver runpath.
+    "libOpenCL.so.1"
+
+    # Distribution only has libamdhip64.so.6? Only seems to be used
+    # by /bin/roofline-* for older Linux distributions.
+    "libamdhip64.so.5"
+
+    # Python 3.8 is not in nixpkgs anymore.
+    "libpython3.8.so.1.0"
+  ];
 }
