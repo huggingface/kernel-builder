@@ -150,7 +150,7 @@ let
     else if cudaSupport then
       gpuArchWarner supportedCudaCapabilities unsupportedCudaCapabilities
     else if rocmSupport then
-      rocmPackages.clr.gpuTargets
+      rocmPackages.hipcc.gpuTargets
     else
       throw "No GPU targets specified"
   );
@@ -285,7 +285,7 @@ buildPythonPackage rec {
       # Strangely, this is never set in cmake
       substituteInPlace cmake/public/LoadHIP.cmake \
         --replace "set(ROCM_PATH \$ENV{ROCM_PATH})" \
-          "set(ROCM_PATH \$ENV{ROCM_PATH})''\nset(ROCM_VERSION ${lib.concatStrings (lib.intersperse "0" (lib.splitVersion rocmPackages.clr.version))})"
+          "set(ROCM_PATH \$ENV{ROCM_PATH})''\nset(ROCM_VERSION ${lib.concatStrings (lib.intersperse "0" (lib.splitVersion rocmPackages.hipcc.version))})"
     ''
     # Detection of NCCL version doesn't work particularly well when using the static binary.
     + lib.optionalString cudaSupport ''

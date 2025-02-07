@@ -17,26 +17,45 @@ def main():
             continue
         pkgs.add(entry.name)
 
-    # Second pass: get ROCm dependencies
+    # Find -dev packages that should be merged.
+    dev_to_merge = {}
+    for pkg in pkgs:
+        if pkg.endswith("-dev") and pkg[:-4] in pkgs:
+            dev_to_merge[pkg] = pkg[:-4]
+
+    # Second pass: get ROCm dependencies and merge -dev packages.
     metadata = {}
-    for entry in args.directory.iterdir():
-        if not entry.is_dir():
-            continue
-        pkg = entry.name
 
+    # sorted will put -dev after non-dev packages.
+    for pkg in sorted(pkgs):
+        dir = args.directory / pkg
+
+        # Gather dependencies.
         deps = set()
-
-        depsFile = entry / "deps" / "deps.txt"
+        depsFile = dir / "deps" / "deps.txt"
         if depsFile.exists():
             with open(depsFile) as f:
                 for line in f:
                     parts = line.strip().split()
                     if len(parts) == 0:
                         continue
-                    if parts[0] in pkgs:
-                        deps.add(parts[0])
+                    dep = parts[0]
+                    if dep in pkgs:
+                        dep = dev_to_merge.get(dep, dep)
+                        deps.add(dep)
 
-        metadata[pkg] = list(deps)
+        if pkg in dev_to_merge:
+            target_pkg = dev_to_merge[pkg]
+            metadata[target_pkg]["bundleSrcs"].append(pkg)
+            metadata[target_pkg]["deps"].update(deps)
+        else:
+            metadata[pkg] = {"bundleSrcs": [pkg], "deps": deps}
+
+    # Remove self-references and convert dependencies to list.
+    for name, pkg_metadata in metadata.items():
+        deps = pkg_metadata["deps"]
+        deps -= {name, f"name-dev"}
+        pkg_metadata["deps"] = list(sorted(deps))
 
     print(json.dumps(metadata, indent=2))
 

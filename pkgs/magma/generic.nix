@@ -161,7 +161,8 @@ stdenv.mkDerivation {
       ]
     )
     ++ lists.optionals rocmSupport [
-      rocmPackages.clr
+      #rocmPackages.clr ???
+      rocmPackages.hipcc
       rocmPackages.hipblas
       rocmPackages.hipsparse
       rocmPackages.llvm.openmp

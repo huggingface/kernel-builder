@@ -1,39 +1,17 @@
 {
+  lib,
   callPackage,
 }:
 
 let
-  deps = builtins.fromJSON (builtins.readFile ./deps.json);
-  packages = [
-    "comgr"
-    "hipblas"
-    "hipcc"
-    "hipfft"
-    "hipify-clang"
-    "hipsolver"
-    "llvm"
-    "miopen-hip"
-    "openmp-extras-dev"
-    "rccl"
-    "rocm-core"
-    "rocm-device-libs"
-    "rocm-hip-runtime"
-    "rocminfo"
-    "rocrand"
-    "rocblas"
-    "rocfft"
-    "rocsolver"
-    "rocsparse"
-    "roctracer"
-    "hipcub-dev"
-    "hipsparse"
-    "rocthrust-dev"
-    "rocprim-dev"
-  ];
-  rocmPackages' = builtins.listToAttrs (map (pname: {
-    name = pname;
-    value = callPackage ./generic.nix { inherit pname; };
-  }) packages);
+  namesWithDeps = builtins.fromJSON (builtins.readFile ./deps.json);
+  rocmPackages' = lib.mapAttrs (
+    pname: metadata:
+    callPackage ./generic.nix {
+      inherit pname rocmPackages;
+      inherit (metadata) deps bundleSrcs;
+    }
+  ) namesWithDeps;
   rocmPackages = callPackage ./overrides.nix { rocmPackages = rocmPackages'; };
 in
-  rocmPackages // { clr = rocmPackages.hipcc; }
+rocmPackages // { clr = rocmPackages.hipcc; }
