@@ -7,8 +7,6 @@ runCommand "rocm-llvm-binutils-${llvm.version}" { preferLocalBuild = true; } ''
   mkdir -p $out/bin
 
   for prog in ${llvm}/llvm/bin/*; do
-    echo $prog
-    echo $(basename $prog)
     ln -sf $prog $out/bin/$(basename $prog)
   done
 

@@ -16,6 +16,12 @@ applyOverrides {
       ];
     };
 
+  hipblas =
+    { hipblas-common-dev }:
+    prevAttrs: {
+      propagatedBuildInputs = prevAttrs.buildInputs ++ [ hipblas-common-dev ];
+    };
+
   hipblaslt =
     { hip-runtime-amd }:
     prevAttrs: {

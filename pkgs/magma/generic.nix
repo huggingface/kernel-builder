@@ -15,7 +15,7 @@
   fetchurl,
   gfortran,
   gpuTargets ? [ ], # Non-CUDA targets, that is HIP
-  rocmPackages_5,
+  rocmPackages,
   lapack,
   lib,
   libpthreadstubs,
@@ -45,9 +45,6 @@ let
     if strings.versionOlder version "2.7.1" then cudaPackages_11 else cudaPackages;
 
   inherit (effectiveCudaPackages) cudaAtLeast flags cudaOlder;
-
-  # move to newer ROCm version once supported
-  rocmPackages = rocmPackages_5;
 
   # NOTE: The lists.subtractLists function is perhaps a bit unintuitive. It subtracts the elements
   #   of the first list *from* the second list. That means:
@@ -118,10 +115,13 @@ stdenv.mkDerivation {
   # Fixup for the python test runners
   postPatch = ''
     patchShebangs ./testing/run_{tests,summarize}.py
-    substituteInPlace ./testing/run_tests.py \
-      --replace-fail \
-        "print >>sys.stderr, cmdp, \"doesn't exist (original name: \" + cmd + \", precision: \" + precision + \")\"" \
-        "print(f\"{cmdp} doesn't exist (original name: {cmd}, precision: {precision})\", file=sys.stderr)"
+    patchShebangs ./tools/get-rocm-version.sh
+    substituteInPlace ./tools/get-rocm-version.sh \
+        --replace-fail "/opt/rocm" "${rocmPackages.rocm-core}"
+    #substituteInPlace ./testing/run_tests.py \
+    #  --replace-fail \
+    #    "print >>sys.stderr, cmdp, \"doesn't exist (original name: \" + cmd + \", precision: \" + precision + \")\"" \
+    #    "print(f\"{cmdp} doesn't exist (original name: {cmd}, precision: {precision})\", file=sys.stderr)"
   '';
 
   nativeBuildInputs =
@@ -161,11 +161,14 @@ stdenv.mkDerivation {
       ]
     )
     ++ lists.optionals rocmSupport [
-      #rocmPackages.clr ???
-      rocmPackages.hipcc
+      rocmPackages.clr
+      #rocmPackages.hip-dev
+      #rocmPackages.hip-runtime-amd
+      #rocmPackages.hipcc
       rocmPackages.hipblas
       rocmPackages.hipsparse
-      rocmPackages.llvm.openmp
+      #rocmPackages.hipsparse
+      #rocmPackages.llvm.openmp
     ];
 
   cmakeFlags =
@@ -190,6 +193,12 @@ stdenv.mkDerivation {
       (strings.cmakeFeature "CMAKE_C_COMPILER" "${rocmPackages.clr}/bin/hipcc")
       (strings.cmakeFeature "CMAKE_CXX_COMPILER" "${rocmPackages.clr}/bin/hipcc")
     ];
+
+
+  env = lib.optionalAttrs rocmSupport {
+    #ROCM_PATH = rocmPackages.rocminfo;
+    #HIP_CLANG_PATH = "${rocmPackages.llvm.clang}/bin";
+  };
 
   # Magma doesn't have a test suite we can easily run, just loose executables, all of which require a GPU.
   doCheck = false;

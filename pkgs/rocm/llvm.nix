@@ -8,6 +8,12 @@ let
   bintools = wrapBintoolsWith {
     bintools = bintools-unwrapped;
     libc = glibc;
+    # TODO: move to unwrapped bintools
+    isLLVM = true;
+
+    extraBuildCommands = ''
+      wrap ld.lld ${./ld-wrapper.sh} ${bintools-unwrapped}/bin/ld.lld
+    '';
   };
   clang = final.callPackage ./clang.nix { inherit bintools llvm; };
 in {

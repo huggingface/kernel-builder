@@ -36,8 +36,8 @@
     ];
   }
   {
-    version = "2.7.2";
-    hash = "sha256-cpvBpw5RinQi/no6VFN6R0EDWne+M0n2bqxcNiV21WA=";
+    version = "2.9.0";
+    hash = "sha256-/3f9Nyaz3+w7+1V5CwZICqXMOEOWwts1xW/a5KgsZBw=";
     supportedGpuTargets = [
       "700"
       "701"

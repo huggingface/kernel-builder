@@ -18,12 +18,11 @@ let
       }
     ) namesWithDeps;
   overrides = callPackage ./overrides.nix { };
-  aliases = final: prev: { clr = final.hipcc; };
   composed = lib.composeManyExtensions [
     rocmPackages
     overrides
     (callPackage ./llvm.nix {})
-    aliases
+    (callPackage ./clr.nix {})
   ];
 in
 lib.makeScope newScope (lib.extends composed (_: { }))
