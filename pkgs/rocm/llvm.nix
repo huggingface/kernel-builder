@@ -1,4 +1,9 @@
-{ stdenv, wrapBintoolsWith, wrapCCWith, glibc }:
+{
+  gcc12Stdenv,
+  wrapBintoolsWith,
+  wrapCCWith,
+  glibc,
+}:
 final: prev:
 let
   llvm = final.rocm-llvm;
@@ -15,8 +20,9 @@ let
       wrap ld.lld ${./ld-wrapper.sh} ${bintools-unwrapped}/bin/ld.lld
     '';
   };
-  clang = final.callPackage ./clang.nix { inherit bintools llvm; };
-in {
+  clang = final.callPackage ./clang.nix { inherit bintools llvm; stdenv = gcc12Stdenv; };
+in
+{
   llvm = {
     inherit bintools-unwrapped;
     inherit bintools;

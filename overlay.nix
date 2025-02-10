@@ -16,6 +16,8 @@ final: prev:
       rocmSupport = true;
     }).magma;
 
+  aotriton = final.callPackage ./pkgs/aotriton { };
+
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {

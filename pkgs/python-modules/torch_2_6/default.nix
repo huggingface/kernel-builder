@@ -40,6 +40,7 @@
   numactl,
 
   # dependencies
+  aotriton,
   astunparse,
   fsspec,
   filelock,
@@ -63,7 +64,13 @@
   #          (dependencies without cuda support).
   #          Instead we should rely on overlays and nixpkgsFun.
   # (@SomeoneSerge)
-  _tritonEffective ? if cudaSupport then triton-cuda else triton,
+  _tritonEffective ?
+    if cudaSupport then
+      triton-cuda
+    else if rocmSupport then
+      aotriton
+    else
+      triton,
   triton-cuda,
 
   # Unit tests
@@ -150,7 +157,9 @@ let
     else if cudaSupport then
       gpuArchWarner supportedCudaCapabilities unsupportedCudaCapabilities
     else if rocmSupport then
-      rocmPackages.hipcc.gpuTargets
+      # rocmPackages.clr.gpuTargets
+      # https://github.com/pytorch/pytorch/blob/374b762bbf3d8e00015de14b1ede47089d0b2fda/.ci/docker/manywheel/build.sh#L100
+      [ "gfx900" "gfx906" "gfx908" "gfx90a" "gfx942" "gfx1030" "gfx1100" "gfx1101" ]
     else
       throw "No GPU targets specified"
   );
@@ -159,8 +168,10 @@ let
     name = "rocm-merged";
 
     paths = with rocmPackages; [
+      hsa-rocr
       rocm-core
-      hipcc
+      clr
+      composablekernel-dev
       rccl
       miopen-hip
       rocrand
@@ -173,8 +184,11 @@ let
       roctracer
       rocsolver
       hipfft
+      hiprand
       hipsolver
       hipblas
+      hipblas-common-dev
+      hipblaslt
       rocminfo
       #rocm-thunk
       comgr
@@ -285,7 +299,7 @@ buildPythonPackage rec {
       # Strangely, this is never set in cmake
       substituteInPlace cmake/public/LoadHIP.cmake \
         --replace "set(ROCM_PATH \$ENV{ROCM_PATH})" \
-          "set(ROCM_PATH \$ENV{ROCM_PATH})''\nset(ROCM_VERSION ${lib.concatStrings (lib.intersperse "0" (lib.splitVersion rocmPackages.hipcc.version))})"
+          "set(ROCM_PATH \$ENV{ROCM_PATH})''\nset(ROCM_VERSION ${lib.concatStrings (lib.intersperse "0" (lib.splitVersion rocmPackages.clr.version))})"
     ''
     # Detection of NCCL version doesn't work particularly well when using the static binary.
     + lib.optionalString cudaSupport ''
@@ -345,6 +359,10 @@ buildPythonPackage rec {
 
   # We only do an imports check, so do not build tests either.
   BUILD_TEST = setBool false;
+
+  # ninja hook doesn't automatically turn on ninja
+  # because pytorch setup.py is responsible for this
+  CMAKE_GENERATOR = "Ninja";
 
   # Whether to use C++11 ABI (or earlier).
   _GLIBCXX_USE_CXX11_ABI = setBool cxx11Abi;
@@ -417,51 +435,61 @@ buildPythonPackage rec {
   #
   # Also of interest: pytorch ignores CXXFLAGS uses CFLAGS for both C and C++:
   # https://github.com/pytorch/pytorch/blob/v1.11.0/setup.py#L17
-  env.NIX_CFLAGS_COMPILE = toString (
-    (
-      lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ]
-      # Suppress gcc regression: avx512 math function raises uninitialized variable warning
-      # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105593
-      # See also: Fails to compile with GCC 12.1.0 https://github.com/pytorch/pytorch/issues/77939
-      ++ lib.optionals (stdenv.cc.isGNU && lib.versionAtLeast stdenv.cc.version "12.0.0") [
-        "-Wno-error=maybe-uninitialized"
-        "-Wno-error=uninitialized"
-      ]
-      # Since pytorch 2.0:
-      # gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158:33: error: ‘void operator delete(void*, std::size_t)’
-      # ... called on pointer ‘<unknown>’ with nonzero offset [1, 9223372036854775800] [-Werror=free-nonheap-object]
-      ++ lib.optionals (stdenv.cc.isGNU && lib.versions.major stdenv.cc.version == "12") [
-        "-Wno-error=free-nonheap-object"
-      ]
-      # .../source/torch/csrc/autograd/generated/python_functions_0.cpp:85:3:
-      # error: cast from ... to ... converts to incompatible function type [-Werror,-Wcast-function-type-strict]
-      ++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast stdenv.cc.version "16") [
-        "-Wno-error=cast-function-type-strict"
-        # Suppresses the most spammy warnings.
-        # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
-      ]
-      ++ lib.optionals rocmSupport [
-        "-Wno-#warnings"
-        "-Wno-cpp"
-        "-Wno-unknown-warning-option"
-        "-Wno-ignored-attributes"
-        "-Wno-deprecated-declarations"
-        "-Wno-defaulted-function-deleted"
-        "-Wno-pass-failed"
-      ]
-      ++ [
-        "-Wno-unused-command-line-argument"
-        "-Wno-uninitialized"
-        "-Wno-array-bounds"
-        "-Wno-free-nonheap-object"
-        "-Wno-unused-result"
-      ]
-      ++ lib.optionals stdenv.cc.isGNU [
-        "-Wno-maybe-uninitialized"
-        "-Wno-stringop-overflow"
-      ]
-    )
-  );
+  env =
+    {
+       # Builds faster without this and we don't have enough inputs that cmd length is an issue
+      NIX_CC_USE_RESPONSE_FILE = 0;
+
+      NIX_CFLAGS_COMPILE = toString (
+        (
+          lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ]
+          ++ [ "-Wno-error" ]
+          # Suppress gcc regression: avx512 math function raises uninitialized variable warning
+          # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105593
+          # See also: Fails to compile with GCC 12.1.0 https://github.com/pytorch/pytorch/issues/77939
+          #++ lib.optionals (stdenv.cc.isGNU && lib.versionAtLeast stdenv.cc.version "12.0.0") [
+          #  "-Wno-error=maybe-uninitialized"
+          #  "-Wno-error=uninitialized"
+          #]
+          # Since pytorch 2.0:
+          # gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158:33: error: ‘void operator delete(void*, std::size_t)’
+          # ... called on pointer ‘<unknown>’ with nonzero offset [1, 9223372036854775800] [-Werror=free-nonheap-object]
+          #++ lib.optionals (stdenv.cc.isGNU && lib.versions.major stdenv.cc.version == "12") [
+          #  "-Wno-error=free-nonheap-object"
+          #]
+          # .../source/torch/csrc/autograd/generated/python_functions_0.cpp:85:3:
+          # error: cast from ... to ... converts to incompatible function type [-Werror,-Wcast-function-type-strict]
+          #++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast stdenv.cc.version "16") [
+          #  "-Wno-error=cast-function-type-strict"
+            # Suppresses the most spammy warnings.
+            # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
+          #]
+          #++ lib.optionals rocmSupport [
+          #  "-Wno-#warnings"
+          #  "-Wno-cpp"
+          #  "-Wno-unknown-warning-option"
+          #  "-Wno-ignored-attributes"
+          #  "-Wno-deprecated-declarations"
+          #  "-Wno-defaulted-function-deleted"
+          #  "-Wno-pass-failed"
+          #]
+          #++ [
+          #  "-Wno-unused-command-line-argument"
+          #  "-Wno-uninitialized"
+          #  "-Wno-array-bounds"
+          #  "-Wno-free-nonheap-object"
+          #  "-Wno-unused-result"
+          #]
+          #++ lib.optionals stdenv.cc.isGNU [
+          #  "-Wno-maybe-uninitialized"
+          #  "-Wno-stringop-overflow"
+          #]
+        )
+      );
+    }
+    // lib.optionalAttrs rocmSupport {
+      AOTRITON_INSTALLED_PREFIX = aotriton;
+    };
 
   nativeBuildInputs =
     [

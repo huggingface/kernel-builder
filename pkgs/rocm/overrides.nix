@@ -60,6 +60,15 @@ applyOverrides {
       ];
     };
 
+  hiprand =
+    { hip-runtime-amd, rocrand }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [
+        hip-runtime-amd
+        rocrand
+      ];
+    };
+
   openmp-extras-dev =
     { ncurses, zlib }:
     prevAttrs: {
@@ -74,9 +83,11 @@ applyOverrides {
     prevAttrs: {
       buildInputs = prevAttrs.buildInputs ++ [ rocm-llvm ];
       # Can we change rocm-llvm to pick these up?
-      installPhase = (prevAttrs.installPhase or "") + ''
-        addAutoPatchelfSearchPath ${rocm-llvm}/lib/llvm/lib
-      '';
+      installPhase =
+        (prevAttrs.installPhase or "")
+        + ''
+          addAutoPatchelfSearchPath ${rocm-llvm}/lib/llvm/lib
+        '';
     };
 
   hsa-rocr =
@@ -100,7 +111,11 @@ applyOverrides {
     };
 
   rocm-llvm =
-    { libxml2, zlib, zstd }:
+    {
+      libxml2,
+      zlib,
+      zstd,
+    }:
     prevAttrs: {
       buildInputs = prevAttrs.buildInputs ++ [
         libxml2

@@ -21,8 +21,8 @@ let
   composed = lib.composeManyExtensions [
     rocmPackages
     overrides
-    (callPackage ./llvm.nix {})
-    (callPackage ./clr.nix {})
+    (callPackage ./llvm.nix { })
+    (callPackage ./clr.nix { })
   ];
 in
 lib.makeScope newScope (lib.extends composed (_: { }))
