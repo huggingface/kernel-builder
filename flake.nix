@@ -5,6 +5,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:danieldk/nixpkgs/cuda-12.6-for-kernel-builder";
     flake-compat.url = "github:edolstra/flake-compat";
+    rocm-nix.url = "github:huggingface/rocm-nix";
   };
 
   outputs =
@@ -13,6 +14,7 @@
       flake-compat,
       flake-utils,
       nixpkgs,
+      rocm-nix,
     }:
     let
       systems = [ flake-utils.lib.system.x86_64-linux ];
@@ -21,7 +23,7 @@
       buildSetPerSystem = builtins.listToAttrs (
         builtins.map (system: {
           name = system;
-          value = import ./lib/buildsets.nix { inherit nixpkgs system; };
+          value = import ./lib/buildsets.nix { inherit nixpkgs system; rocm = rocm-nix.overlays.default; };
         }) systems
       );
 

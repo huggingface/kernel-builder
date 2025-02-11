@@ -1,6 +1,7 @@
 {
   nixpkgs,
   system,
+  rocm,
 }:
 
 let
@@ -11,7 +12,6 @@ let
   # Get versions.
   inherit (import ../versions.nix { inherit lib; }) buildConfigs cudaVersions;
 
-  buildVersion = import ./lib/build-version.nix;
   flattenVersion = version: lib.replaceStrings [ "." ] [ "_" ] (lib.versions.pad 2 version);
 
   # An overlay that overides CUDA to the given version.
@@ -23,20 +23,22 @@ let
   pkgsForVersions =
     pkgsByCudaVer:
     {
-      cudaVersion,
+      gpu,
+      cudaVersion ? "",
       torchVersion,
       cxx11Abi,
     }:
     let
-      pkgsForCudaVersion = pkgsByCudaVer.${cudaVersion};
-      torch = pkgsForCudaVersion.python3.pkgs."torch_${flattenVersion torchVersion}".override {
+      pkgs = if gpu == "cuda" then pkgsByCudaVer.${cudaVersion} else pkgsForRocm;
+      torch = pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
         inherit cxx11Abi;
       };
     in
     {
-      inherit torch;
-      pkgs = pkgsForCudaVersion;
+      inherit pkgs torch;
     };
+
+  pkgsForRocm = import nixpkgs { inherit system; config = { allowUnfree = true; rocmSupport = true; }; overlays = [ overlay rocm ]; };
 
   # Instantiate nixpkgs for the given CUDA versions. Returns
   # an attribute set like `{ "12.4" = <nixpkgs with 12.4>; ... }`.

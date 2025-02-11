@@ -14,25 +14,25 @@ rec {
   # are currently the same.
   buildConfigs =
     let
+      torchVersions = [ "2.5" "2.6" ];
       buildConfigsWithoutCuda = lib.cartesianProduct {
-        torchVersion = [
-          "2.5"
-          "2.6"
-        ];
+        torchVersion = torchVersions;
         cxx11Abi = [
           true
           false
         ];
       };
-    in
     # Cartesian product of the build configurations and the CUDA versions
     # supported by the Torch in the build configuration. We can't use
     # `cartesianProduct` here because of this CUDA -> Torch dependency.
-    lib.flatten (
+    cuda = lib.flatten (
       map (
         config:
-        map (cudaVersion: config // { inherit cudaVersion; }) cudaVersionForTorch.${config.torchVersion}
+        map (cudaVersion: config // { inherit cudaVersion; gpu = "cuda"; }) cudaVersionForTorch.${config.torchVersion}
       ) buildConfigsWithoutCuda
     );
-
+    # ROCm always uses the C++11 ABI.
+    rocm = map (torchVersion: { inherit torchVersion; gpu = "rocm"; cxx11Abi = true; }) torchVersions;
+    in
+    cuda ++ rocm;
 }

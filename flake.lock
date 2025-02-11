@@ -49,11 +49,46 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1739184465,
+        "narHash": "sha256-7Z9kNbr6qZwPG1z/6Hn/re4SS9nu1krxyknyNeCBh/o=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "58edd1e2acbc9be9fe29964344c6419db013141e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable-small",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "rocm-nix": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1739274763,
+        "narHash": "sha256-qyvbbSmkdvyoOrp1ll6psU0SeH4W+8+bZO9vKPe/vvU=",
+        "owner": "huggingface",
+        "repo": "rocm-nix",
+        "rev": "08477e42d6c1bdddc7e33acf549a10645f894253",
+        "type": "github"
+      },
+      "original": {
+        "owner": "huggingface",
+        "repo": "rocm-nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "rocm-nix": "rocm-nix"
       }
     },
     "systems": {

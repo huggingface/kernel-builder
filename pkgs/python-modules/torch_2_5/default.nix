@@ -63,7 +63,13 @@
   #          (dependencies without cuda support).
   #          Instead we should rely on overlays and nixpkgsFun.
   # (@SomeoneSerge)
-  _tritonEffective ? if cudaSupport then triton-cuda else triton,
+  _tritonEffective ?
+    if cudaSupport then
+      triton-cuda
+    else if rocmSupport then
+      rocmPackages.aotriton
+    else
+      triton,
   triton-cuda,
 
   # Unit tests
@@ -90,7 +96,7 @@
 
   # ROCm dependencies
   rocmSupport ? config.rocmSupport,
-  rocmPackages_5,
+  rocmPackages,
   gpuTargets ? [ ],
 }:
 
@@ -104,8 +110,6 @@ let
   inherit (cudaPackages) cudaFlags cudnn nccl;
 
   triton = throw "python3Packages.torch: use _tritonEffective instead of triton to avoid divergence";
-
-  rocmPackages = rocmPackages_5;
 
   setBool = v: if v then "1" else "0";
 
@@ -152,7 +156,18 @@ let
     else if cudaSupport then
       gpuArchWarner supportedCudaCapabilities unsupportedCudaCapabilities
     else if rocmSupport then
-      rocmPackages.clr.gpuTargets
+      # rocmPackages.clr.gpuTargets
+      # https://github.com/pytorch/pytorch/blob/374b762bbf3d8e00015de14b1ede47089d0b2fda/.ci/docker/manywheel/build.sh#L100
+      [
+        "gfx900"
+        "gfx906"
+        "gfx908"
+        "gfx90a"
+        "gfx942"
+        "gfx1030"
+        "gfx1100"
+        "gfx1101"
+      ]
     else
       throw "No GPU targets specified"
   );
@@ -161,31 +176,28 @@ let
     name = "rocm-merged";
 
     paths = with rocmPackages; [
-      rocm-core
       clr
-      rccl
-      miopen
-      miopengemm
-      rocrand
-      rocblas
-      rocsparse
-      hipsparse
-      rocthrust
-      rocprim
-      hipcub
-      roctracer
-      rocfft
-      rocsolver
-      hipfft
-      hipsolver
+      comgr
       hipblas
-      rocminfo
-      rocm-thunk
-      rocm-comgr
+      hipblas-common-dev
+      hipblaslt
+      hipfft
+      hipify-clang
+      hiprand
+      hipsolver
+      hipsparse
+      hsa-rocr
+      miopen-hip
+      rccl
+      rocblas
+      rocm-core
       rocm-device-libs
-      rocm-runtime
-      clr.icd
-      hipify
+      rocm-hip-runtime
+      rocminfo
+      rocrand
+      rocsolver
+      rocsparse
+      roctracer
     ];
 
     # Fix `setuptools` not being found
@@ -210,8 +222,8 @@ let
     # In particular, this triggered warnings from cuda's `aliases.nix`
     "Magma cudaPackages does not match cudaPackages" =
       cudaSupport && (effectiveMagma.cudaPackages.cudaVersion != cudaPackages.cudaVersion);
-    "Rocm support is currently broken because `rocmPackages.hipblaslt` is unpackaged. (2024-06-09)" =
-      rocmSupport;
+    #"Rocm support is currently broken because `rocmPackages.hipblaslt` is unpackaged. (2024-06-09)" =
+    #  rocmSupport;
   };
 in
 buildPythonPackage rec {
@@ -346,6 +358,10 @@ buildPythonPackage rec {
   # We only do an imports check, so do not build tests either.
   BUILD_TEST = setBool false;
 
+  # ninja hook doesn't automatically turn on ninja
+  # because pytorch setup.py is responsible for this
+  CMAKE_GENERATOR = "Ninja";
+
   # Whether to use C++11 ABI (or earlier).
   _GLIBCXX_USE_CXX11_ABI = setBool cxx11Abi;
 
@@ -417,51 +433,18 @@ buildPythonPackage rec {
   #
   # Also of interest: pytorch ignores CXXFLAGS uses CFLAGS for both C and C++:
   # https://github.com/pytorch/pytorch/blob/v1.11.0/setup.py#L17
-  env.NIX_CFLAGS_COMPILE = toString (
-    (
-      lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ]
-      # Suppress gcc regression: avx512 math function raises uninitialized variable warning
-      # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105593
-      # See also: Fails to compile with GCC 12.1.0 https://github.com/pytorch/pytorch/issues/77939
-      ++ lib.optionals (stdenv.cc.isGNU && lib.versionAtLeast stdenv.cc.version "12.0.0") [
-        "-Wno-error=maybe-uninitialized"
-        "-Wno-error=uninitialized"
-      ]
-      # Since pytorch 2.0:
-      # gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158:33: error: ‘void operator delete(void*, std::size_t)’
-      # ... called on pointer ‘<unknown>’ with nonzero offset [1, 9223372036854775800] [-Werror=free-nonheap-object]
-      ++ lib.optionals (stdenv.cc.isGNU && lib.versions.major stdenv.cc.version == "12") [
-        "-Wno-error=free-nonheap-object"
-      ]
-      # .../source/torch/csrc/autograd/generated/python_functions_0.cpp:85:3:
-      # error: cast from ... to ... converts to incompatible function type [-Werror,-Wcast-function-type-strict]
-      ++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast stdenv.cc.version "16") [
-        "-Wno-error=cast-function-type-strict"
-        # Suppresses the most spammy warnings.
-        # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
-      ]
-      ++ lib.optionals rocmSupport [
-        "-Wno-#warnings"
-        "-Wno-cpp"
-        "-Wno-unknown-warning-option"
-        "-Wno-ignored-attributes"
-        "-Wno-deprecated-declarations"
-        "-Wno-defaulted-function-deleted"
-        "-Wno-pass-failed"
-      ]
-      ++ [
-        "-Wno-unused-command-line-argument"
-        "-Wno-uninitialized"
-        "-Wno-array-bounds"
-        "-Wno-free-nonheap-object"
-        "-Wno-unused-result"
-      ]
-      ++ lib.optionals stdenv.cc.isGNU [
-        "-Wno-maybe-uninitialized"
-        "-Wno-stringop-overflow"
-      ]
-    )
-  );
+  env =
+    {
+      # Builds faster without this and we don't have enough inputs that cmd length is an issue
+      NIX_CC_USE_RESPONSE_FILE = 0;
+
+      NIX_CFLAGS_COMPILE = toString (
+        (lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ] ++ [ "-Wno-error" ])
+      );
+    }
+    // lib.optionalAttrs rocmSupport {
+      AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton;
+    };
 
   nativeBuildInputs =
     [
@@ -513,7 +496,17 @@ buildPythonPackage rec {
         cuda_profiler_api # <cuda_profiler_api.h>
       ]
     )
-    ++ lib.optionals rocmSupport [ rocmPackages.llvm.openmp ]
+    ++ lib.optionals rocmSupport (
+      with rocmPackages;
+      [
+        composablekernel-dev
+        hipcub-dev
+        openmp
+        rocmtoolkit_joined
+        rocprim-dev
+        rocthrust-dev
+      ]
+    )
     ++ lib.optionals (cudaSupport || rocmSupport) [ effectiveMagma ]
     ++ lib.optionals stdenv.hostPlatform.isLinux [ numactl ]
     ++ lib.optionals stdenv.hostPlatform.isDarwin [
@@ -522,8 +515,7 @@ buildPythonPackage rec {
       darwin.libobjc
     ]
     ++ lib.optionals tritonSupport [ _tritonEffective ]
-    ++ lib.optionals MPISupport [ mpi ]
-    ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
+    ++ lib.optionals MPISupport [ mpi ];
 
   pythonRelaxDeps = [
     "sympy"
