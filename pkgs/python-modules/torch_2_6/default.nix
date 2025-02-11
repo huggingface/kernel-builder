@@ -443,9 +443,7 @@ buildPythonPackage rec {
       NIX_CC_USE_RESPONSE_FILE = 0;
 
       NIX_CFLAGS_COMPILE = toString (
-        (
-          lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ] ++ [ "-Wno-error" ]
-        )
+        (lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ] ++ [ "-Wno-error" ])
       );
     }
     // lib.optionalAttrs rocmSupport {
