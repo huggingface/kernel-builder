@@ -159,7 +159,16 @@ let
     else if rocmSupport then
       # rocmPackages.clr.gpuTargets
       # https://github.com/pytorch/pytorch/blob/374b762bbf3d8e00015de14b1ede47089d0b2fda/.ci/docker/manywheel/build.sh#L100
-      [ "gfx900" "gfx906" "gfx908" "gfx90a" "gfx942" "gfx1030" "gfx1100" "gfx1101" ]
+      [
+        "gfx900"
+        "gfx906"
+        "gfx908"
+        "gfx90a"
+        "gfx942"
+        "gfx1030"
+        "gfx1100"
+        "gfx1101"
+      ]
     else
       throw "No GPU targets specified"
   );
@@ -437,13 +446,12 @@ buildPythonPackage rec {
   # https://github.com/pytorch/pytorch/blob/v1.11.0/setup.py#L17
   env =
     {
-       # Builds faster without this and we don't have enough inputs that cmd length is an issue
+      # Builds faster without this and we don't have enough inputs that cmd length is an issue
       NIX_CC_USE_RESPONSE_FILE = 0;
 
       NIX_CFLAGS_COMPILE = toString (
         (
-          lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ]
-          ++ [ "-Wno-error" ]
+          lib.optionals (blas.implementation == "mkl") [ "-Wno-error=array-bounds" ] ++ [ "-Wno-error" ]
           # Suppress gcc regression: avx512 math function raises uninitialized variable warning
           # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105593
           # See also: Fails to compile with GCC 12.1.0 https://github.com/pytorch/pytorch/issues/77939
@@ -461,8 +469,8 @@ buildPythonPackage rec {
           # error: cast from ... to ... converts to incompatible function type [-Werror,-Wcast-function-type-strict]
           #++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast stdenv.cc.version "16") [
           #  "-Wno-error=cast-function-type-strict"
-            # Suppresses the most spammy warnings.
-            # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
+          # Suppresses the most spammy warnings.
+          # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
           #]
           #++ lib.optionals rocmSupport [
           #  "-Wno-#warnings"

@@ -194,7 +194,6 @@ stdenv.mkDerivation {
       (strings.cmakeFeature "CMAKE_CXX_COMPILER" "${rocmPackages.clr}/bin/hipcc")
     ];
 
-
   env = lib.optionalAttrs rocmSupport {
     #ROCM_PATH = rocmPackages.rocminfo;
     #HIP_CLANG_PATH = "${rocmPackages.llvm.clang}/bin";

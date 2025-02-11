@@ -20,7 +20,10 @@ let
       wrap ld.lld ${./ld-wrapper.sh} ${bintools-unwrapped}/bin/ld.lld
     '';
   };
-  clang = final.callPackage ./clang.nix { inherit bintools llvm; stdenv = gcc12Stdenv; };
+  clang = final.callPackage ./clang.nix {
+    inherit bintools llvm;
+    stdenv = gcc12Stdenv;
+  };
 in
 {
   llvm = {
