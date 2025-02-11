@@ -46,10 +46,10 @@ def main():
 
         if pkg in dev_to_merge:
             target_pkg = dev_to_merge[pkg]
-            metadata[target_pkg]["bundleSrcs"].append(pkg)
+            metadata[target_pkg]["components"].append(pkg)
             metadata[target_pkg]["deps"].update(deps)
         else:
-            metadata[pkg] = {"bundleSrcs": [pkg], "deps": deps}
+            metadata[pkg] = {"components": [pkg], "deps": deps}
 
     # Remove self-references and convert dependencies to list.
     for name, pkg_metadata in metadata.items():

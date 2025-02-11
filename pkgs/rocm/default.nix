@@ -5,24 +5,19 @@
 }:
 
 let
-  namesWithDeps = builtins.fromJSON (builtins.readFile ./deps.json);
-  # Package set without overrides.
-  rocmPackages =
-    final: prev:
-    lib.mapAttrs (
-      pname: metadata:
-      callPackage ./generic.nix {
-        inherit pname;
-        inherit (metadata) deps bundleSrcs;
-        rocmPackages = final;
-      }
-    ) namesWithDeps;
-  overrides = callPackage ./overrides.nix { };
+  runfileMetadata = builtins.fromJSON (builtins.readFile ./runfile-metadata.json);
+  fixedPoint = final: { inherit callPackage lib runfileMetadata; };
   composed = lib.composeManyExtensions [
-    rocmPackages
-    overrides
+    # Base package set.
+    (import ./components.nix)
+    # Overrides (adding dependencies, etc.)
+    (import ./overrides.nix)
+    # Compiler toolchain.
     (callPackage ./llvm.nix { })
-    (callPackage ./clr.nix { })
+    # Packages that are joins of other packages.
+    (callPackage ./joins.nix { })
+    # Add aotriton
+    (final: prev: { aotriton = prev.callPackage ../aotriton { }; })
   ];
 in
-lib.makeScope newScope (lib.extends composed (_: { }))
+lib.makeScope newScope (lib.extends composed fixedPoint)

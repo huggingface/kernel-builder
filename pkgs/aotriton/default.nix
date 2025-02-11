@@ -1,3 +1,5 @@
+# Vendored from: https://github.com/NixOS/nixpkgs/pull/367695
+# Sync with upstream after it gets merged.
 {
   lib,
   stdenv,
@@ -235,10 +237,9 @@ stdenv.mkDerivation (
         rmdir $out/bin
       '';
     meta = with lib; {
-      description = "ROCm BLAS marshalling library";
-      homepage = "https://github.com/ROCm/hipBLAS";
+      description = "Ahead of Time (AOT) Triton Math Library";
+      homepage = "https://github.com/ROCm/aotriton";
       license = with licenses; [ mit ];
-      maintainers = teams.rocm.members;
       platforms = platforms.linux;
     };
   }

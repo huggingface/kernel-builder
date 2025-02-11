@@ -40,7 +40,6 @@
   numactl,
 
   # dependencies
-  aotriton,
   astunparse,
   fsspec,
   filelock,
@@ -68,7 +67,7 @@
     if cudaSupport then
       triton-cuda
     else if rocmSupport then
-      aotriton
+      rocmPackages.aotriton
     else
       triton,
   triton-cuda,
@@ -496,7 +495,7 @@ buildPythonPackage rec {
       );
     }
     // lib.optionalAttrs rocmSupport {
-      AOTRITON_INSTALLED_PREFIX = aotriton;
+      AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton;
     };
 
   nativeBuildInputs =

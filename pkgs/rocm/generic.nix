@@ -11,8 +11,8 @@
   # List of string-typed dependencies.
   deps,
 
-  # List of source packages in the bundle.
-  bundleSrcs,
+  # List of components from the runfile.
+  components,
 }:
 
 let
@@ -32,7 +32,10 @@ stdenv.mkDerivation rec {
   inherit pname;
   version = src.version;
 
-  src = callPackage ./bundle.nix { };
+  src = callPackage ./runfile.nix { };
+
+  # Avoid expensive copy of the whole bundle on each build.
+  dontUnpack = true;
 
   nativeBuildInputs = [
     autoPatchelfHook
@@ -44,12 +47,9 @@ stdenv.mkDerivation rec {
     stdenv.cc.cc.libgcc
   ] ++ (map (dep: rocmPackages.${dep}) filteredDeps);
 
-  # Avoid expensive copy of the whole bundle on each build.
-  dontUnpack = true;
-
   installPhase = ''
     mkdir $out
-    for bundleSrc in ${lib.concatStringsSep " " bundleSrcs}; do
+    for bundleSrc in ${lib.concatStringsSep " " components}; do
       rsync -a ${src}/component-rocm/$bundleSrc/content/opt/rocm-${version}/* $out/
     done
   '';

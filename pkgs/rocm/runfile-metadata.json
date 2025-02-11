@@ -1,6 +1,6 @@
 {
   "amd-smi-lib": {
-    "bundleSrcs": [
+    "components": [
       "amd-smi-lib"
     ],
     "deps": [
@@ -8,13 +8,13 @@
     ]
   },
   "amdgpu-core": {
-    "bundleSrcs": [
+    "components": [
       "amdgpu-core"
     ],
     "deps": []
   },
   "comgr": {
-    "bundleSrcs": [
+    "components": [
       "comgr"
     ],
     "deps": [
@@ -22,7 +22,7 @@
     ]
   },
   "composablekernel-dev": {
-    "bundleSrcs": [
+    "components": [
       "composablekernel-dev"
     ],
     "deps": [
@@ -30,7 +30,7 @@
     ]
   },
   "half": {
-    "bundleSrcs": [
+    "components": [
       "half"
     ],
     "deps": [
@@ -38,7 +38,7 @@
     ]
   },
   "hip-dev": {
-    "bundleSrcs": [
+    "components": [
       "hip-dev"
     ],
     "deps": [
@@ -49,7 +49,7 @@
     ]
   },
   "hip-doc": {
-    "bundleSrcs": [
+    "components": [
       "hip-doc"
     ],
     "deps": [
@@ -58,7 +58,7 @@
     ]
   },
   "hip-runtime-amd": {
-    "bundleSrcs": [
+    "components": [
       "hip-runtime-amd"
     ],
     "deps": [
@@ -70,7 +70,7 @@
     ]
   },
   "hip-samples": {
-    "bundleSrcs": [
+    "components": [
       "hip-samples"
     ],
     "deps": [
@@ -80,7 +80,7 @@
     ]
   },
   "hipblas": {
-    "bundleSrcs": [
+    "components": [
       "hipblas",
       "hipblas-dev"
     ],
@@ -92,7 +92,7 @@
     ]
   },
   "hipblas-common-dev": {
-    "bundleSrcs": [
+    "components": [
       "hipblas-common-dev"
     ],
     "deps": [
@@ -100,7 +100,7 @@
     ]
   },
   "hipblaslt": {
-    "bundleSrcs": [
+    "components": [
       "hipblaslt",
       "hipblaslt-dev"
     ],
@@ -110,7 +110,7 @@
     ]
   },
   "hipcc": {
-    "bundleSrcs": [
+    "components": [
       "hipcc"
     ],
     "deps": [
@@ -120,7 +120,7 @@
     ]
   },
   "hipcub-dev": {
-    "bundleSrcs": [
+    "components": [
       "hipcub-dev"
     ],
     "deps": [
@@ -129,7 +129,7 @@
     ]
   },
   "hipfft": {
-    "bundleSrcs": [
+    "components": [
       "hipfft",
       "hipfft-dev"
     ],
@@ -139,7 +139,7 @@
     ]
   },
   "hipfort-dev": {
-    "bundleSrcs": [
+    "components": [
       "hipfort-dev"
     ],
     "deps": [
@@ -148,7 +148,7 @@
     ]
   },
   "hipify-clang": {
-    "bundleSrcs": [
+    "components": [
       "hipify-clang"
     ],
     "deps": [
@@ -156,7 +156,7 @@
     ]
   },
   "hiprand": {
-    "bundleSrcs": [
+    "components": [
       "hiprand",
       "hiprand-dev"
     ],
@@ -165,7 +165,7 @@
     ]
   },
   "hipsolver": {
-    "bundleSrcs": [
+    "components": [
       "hipsolver",
       "hipsolver-dev"
     ],
@@ -176,7 +176,7 @@
     ]
   },
   "hipsparse": {
-    "bundleSrcs": [
+    "components": [
       "hipsparse",
       "hipsparse-dev"
     ],
@@ -186,7 +186,7 @@
     ]
   },
   "hipsparselt": {
-    "bundleSrcs": [
+    "components": [
       "hipsparselt",
       "hipsparselt-dev"
     ],
@@ -196,7 +196,7 @@
     ]
   },
   "hiptensor": {
-    "bundleSrcs": [
+    "components": [
       "hiptensor",
       "hiptensor-dev"
     ],
@@ -205,7 +205,7 @@
     ]
   },
   "hsa-amd-aqlprofile": {
-    "bundleSrcs": [
+    "components": [
       "hsa-amd-aqlprofile"
     ],
     "deps": [
@@ -213,7 +213,7 @@
     ]
   },
   "hsa-rocr": {
-    "bundleSrcs": [
+    "components": [
       "hsa-rocr",
       "hsa-rocr-dev"
     ],
@@ -225,7 +225,7 @@
     ]
   },
   "libdrm-amdgpu-amdgpu1": {
-    "bundleSrcs": [
+    "components": [
       "libdrm-amdgpu-amdgpu1"
     ],
     "deps": [
@@ -234,7 +234,7 @@
     ]
   },
   "libdrm-amdgpu-common": {
-    "bundleSrcs": [
+    "components": [
       "libdrm-amdgpu-common"
     ],
     "deps": [
@@ -242,7 +242,7 @@
     ]
   },
   "libdrm-amdgpu-dev": {
-    "bundleSrcs": [
+    "components": [
       "libdrm-amdgpu-dev"
     ],
     "deps": [
@@ -252,7 +252,7 @@
     ]
   },
   "libdrm-amdgpu-radeon1": {
-    "bundleSrcs": [
+    "components": [
       "libdrm-amdgpu-radeon1"
     ],
     "deps": [
@@ -260,7 +260,7 @@
     ]
   },
   "libdrm2-amdgpu": {
-    "bundleSrcs": [
+    "components": [
       "libdrm2-amdgpu"
     ],
     "deps": [
@@ -268,7 +268,7 @@
     ]
   },
   "libglapi-amdgpu-mesa": {
-    "bundleSrcs": [
+    "components": [
       "libglapi-amdgpu-mesa"
     ],
     "deps": [
@@ -276,7 +276,7 @@
     ]
   },
   "libllvm19.1-amdgpu": {
-    "bundleSrcs": [
+    "components": [
       "libllvm19.1-amdgpu"
     ],
     "deps": [
@@ -284,7 +284,7 @@
     ]
   },
   "libva-amdgpu-dev": {
-    "bundleSrcs": [
+    "components": [
       "libva-amdgpu-dev"
     ],
     "deps": [
@@ -296,7 +296,7 @@
     ]
   },
   "libva-amdgpu-drm2": {
-    "bundleSrcs": [
+    "components": [
       "libva-amdgpu-drm2"
     ],
     "deps": [
@@ -306,7 +306,7 @@
     ]
   },
   "libva-amdgpu-glx2": {
-    "bundleSrcs": [
+    "components": [
       "libva-amdgpu-glx2"
     ],
     "deps": [
@@ -316,7 +316,7 @@
     ]
   },
   "libva-amdgpu-wayland2": {
-    "bundleSrcs": [
+    "components": [
       "libva-amdgpu-wayland2"
     ],
     "deps": [
@@ -327,7 +327,7 @@
     ]
   },
   "libva-amdgpu-x11-2": {
-    "bundleSrcs": [
+    "components": [
       "libva-amdgpu-x11-2"
     ],
     "deps": [
@@ -337,7 +337,7 @@
     ]
   },
   "libva2-amdgpu": {
-    "bundleSrcs": [
+    "components": [
       "libva2-amdgpu"
     ],
     "deps": [
@@ -345,7 +345,7 @@
     ]
   },
   "libwayland-amdgpu-client0": {
-    "bundleSrcs": [
+    "components": [
       "libwayland-amdgpu-client0"
     ],
     "deps": [
@@ -353,7 +353,7 @@
     ]
   },
   "mesa-amdgpu-libgallium": {
-    "bundleSrcs": [
+    "components": [
       "mesa-amdgpu-libgallium"
     ],
     "deps": [
@@ -366,7 +366,7 @@
     ]
   },
   "mesa-amdgpu-va-drivers": {
-    "bundleSrcs": [
+    "components": [
       "mesa-amdgpu-va-drivers"
     ],
     "deps": [
@@ -375,7 +375,7 @@
     ]
   },
   "migraphx": {
-    "bundleSrcs": [
+    "components": [
       "migraphx",
       "migraphx-dev"
     ],
@@ -390,7 +390,7 @@
     ]
   },
   "miopen-hip": {
-    "bundleSrcs": [
+    "components": [
       "miopen-hip",
       "miopen-hip-dev"
     ],
@@ -405,7 +405,7 @@
     ]
   },
   "mivisionx": {
-    "bundleSrcs": [
+    "components": [
       "mivisionx",
       "mivisionx-dev"
     ],
@@ -420,7 +420,7 @@
     ]
   },
   "openmp-extras-dev": {
-    "bundleSrcs": [
+    "components": [
       "openmp-extras-dev"
     ],
     "deps": [
@@ -432,7 +432,7 @@
     ]
   },
   "openmp-extras-runtime": {
-    "bundleSrcs": [
+    "components": [
       "openmp-extras-runtime"
     ],
     "deps": [
@@ -441,7 +441,7 @@
     ]
   },
   "rccl": {
-    "bundleSrcs": [
+    "components": [
       "rccl",
       "rccl-dev"
     ],
@@ -453,7 +453,7 @@
     ]
   },
   "rocalution": {
-    "bundleSrcs": [
+    "components": [
       "rocalution",
       "rocalution-dev"
     ],
@@ -466,7 +466,7 @@
     ]
   },
   "rocblas": {
-    "bundleSrcs": [
+    "components": [
       "rocblas",
       "rocblas-dev"
     ],
@@ -477,7 +477,7 @@
     ]
   },
   "rocdecode": {
-    "bundleSrcs": [
+    "components": [
       "rocdecode",
       "rocdecode-dev"
     ],
@@ -493,7 +493,7 @@
     ]
   },
   "rocdecode-test": {
-    "bundleSrcs": [
+    "components": [
       "rocdecode-test"
     ],
     "deps": [
@@ -502,7 +502,7 @@
     ]
   },
   "rocfft": {
-    "bundleSrcs": [
+    "components": [
       "rocfft",
       "rocfft-dev"
     ],
@@ -511,7 +511,7 @@
     ]
   },
   "rocm": {
-    "bundleSrcs": [
+    "components": [
       "rocm"
     ],
     "deps": [
@@ -527,7 +527,7 @@
     ]
   },
   "rocm-cmake": {
-    "bundleSrcs": [
+    "components": [
       "rocm-cmake"
     ],
     "deps": [
@@ -535,13 +535,13 @@
     ]
   },
   "rocm-core": {
-    "bundleSrcs": [
+    "components": [
       "rocm-core"
     ],
     "deps": []
   },
   "rocm-dbgapi": {
-    "bundleSrcs": [
+    "components": [
       "rocm-dbgapi"
     ],
     "deps": [
@@ -549,7 +549,7 @@
     ]
   },
   "rocm-debug-agent": {
-    "bundleSrcs": [
+    "components": [
       "rocm-debug-agent"
     ],
     "deps": [
@@ -558,7 +558,7 @@
     ]
   },
   "rocm-developer-tools": {
-    "bundleSrcs": [
+    "components": [
       "rocm-developer-tools"
     ],
     "deps": [
@@ -579,7 +579,7 @@
     ]
   },
   "rocm-device-libs": {
-    "bundleSrcs": [
+    "components": [
       "rocm-device-libs"
     ],
     "deps": [
@@ -587,7 +587,7 @@
     ]
   },
   "rocm-gdb": {
-    "bundleSrcs": [
+    "components": [
       "rocm-gdb"
     ],
     "deps": [
@@ -596,7 +596,7 @@
     ]
   },
   "rocm-hip-libraries": {
-    "bundleSrcs": [
+    "components": [
       "rocm-hip-libraries"
     ],
     "deps": [
@@ -621,7 +621,7 @@
     ]
   },
   "rocm-hip-runtime": {
-    "bundleSrcs": [
+    "components": [
       "rocm-hip-runtime",
       "rocm-hip-runtime-dev"
     ],
@@ -642,7 +642,7 @@
     ]
   },
   "rocm-hip-sdk": {
-    "bundleSrcs": [
+    "components": [
       "rocm-hip-sdk"
     ],
     "deps": [
@@ -673,7 +673,7 @@
     ]
   },
   "rocm-language-runtime": {
-    "bundleSrcs": [
+    "components": [
       "rocm-language-runtime"
     ],
     "deps": [
@@ -684,7 +684,7 @@
     ]
   },
   "rocm-llvm": {
-    "bundleSrcs": [
+    "components": [
       "rocm-llvm",
       "rocm-llvm-dev"
     ],
@@ -693,7 +693,7 @@
     ]
   },
   "rocm-ml-libraries": {
-    "bundleSrcs": [
+    "components": [
       "rocm-ml-libraries"
     ],
     "deps": [
@@ -705,7 +705,7 @@
     ]
   },
   "rocm-ml-sdk": {
-    "bundleSrcs": [
+    "components": [
       "rocm-ml-sdk"
     ],
     "deps": [
@@ -716,7 +716,7 @@
     ]
   },
   "rocm-opencl": {
-    "bundleSrcs": [
+    "components": [
       "rocm-opencl",
       "rocm-opencl-dev"
     ],
@@ -727,7 +727,7 @@
     ]
   },
   "rocm-opencl-runtime": {
-    "bundleSrcs": [
+    "components": [
       "rocm-opencl-runtime"
     ],
     "deps": [
@@ -737,7 +737,7 @@
     ]
   },
   "rocm-opencl-sdk": {
-    "bundleSrcs": [
+    "components": [
       "rocm-opencl-sdk"
     ],
     "deps": [
@@ -748,7 +748,7 @@
     ]
   },
   "rocm-openmp-sdk": {
-    "bundleSrcs": [
+    "components": [
       "rocm-openmp-sdk"
     ],
     "deps": [
@@ -761,7 +761,7 @@
     ]
   },
   "rocm-smi-lib": {
-    "bundleSrcs": [
+    "components": [
       "rocm-smi-lib"
     ],
     "deps": [
@@ -769,7 +769,7 @@
     ]
   },
   "rocm-utils": {
-    "bundleSrcs": [
+    "components": [
       "rocm-utils"
     ],
     "deps": [
@@ -779,7 +779,7 @@
     ]
   },
   "rocm-validation-suite": {
-    "bundleSrcs": [
+    "components": [
       "rocm-validation-suite"
     ],
     "deps": [
@@ -794,7 +794,7 @@
     ]
   },
   "rocminfo": {
-    "bundleSrcs": [
+    "components": [
       "rocminfo"
     ],
     "deps": [
@@ -803,7 +803,7 @@
     ]
   },
   "rocprim-dev": {
-    "bundleSrcs": [
+    "components": [
       "rocprim-dev"
     ],
     "deps": [
@@ -812,7 +812,7 @@
     ]
   },
   "rocprofiler": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler",
       "rocprofiler-dev"
     ],
@@ -823,7 +823,7 @@
     ]
   },
   "rocprofiler-compute": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-compute"
     ],
     "deps": [
@@ -831,7 +831,7 @@
     ]
   },
   "rocprofiler-plugins": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-plugins"
     ],
     "deps": [
@@ -841,7 +841,7 @@
     ]
   },
   "rocprofiler-register": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-register"
     ],
     "deps": [
@@ -849,7 +849,7 @@
     ]
   },
   "rocprofiler-sdk": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-sdk"
     ],
     "deps": [
@@ -858,7 +858,7 @@
     ]
   },
   "rocprofiler-sdk-roctx": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-sdk-roctx"
     ],
     "deps": [
@@ -866,7 +866,7 @@
     ]
   },
   "rocprofiler-systems": {
-    "bundleSrcs": [
+    "components": [
       "rocprofiler-systems"
     ],
     "deps": [
@@ -876,7 +876,7 @@
     ]
   },
   "rocrand": {
-    "bundleSrcs": [
+    "components": [
       "rocrand",
       "rocrand-dev"
     ],
@@ -885,7 +885,7 @@
     ]
   },
   "rocsolver": {
-    "bundleSrcs": [
+    "components": [
       "rocsolver",
       "rocsolver-dev"
     ],
@@ -895,7 +895,7 @@
     ]
   },
   "rocsparse": {
-    "bundleSrcs": [
+    "components": [
       "rocsparse",
       "rocsparse-dev"
     ],
@@ -905,7 +905,7 @@
     ]
   },
   "rocthrust-dev": {
-    "bundleSrcs": [
+    "components": [
       "rocthrust-dev"
     ],
     "deps": [
@@ -914,7 +914,7 @@
     ]
   },
   "roctracer": {
-    "bundleSrcs": [
+    "components": [
       "roctracer",
       "roctracer-dev"
     ],
@@ -924,7 +924,7 @@
     ]
   },
   "rocwmma-dev": {
-    "bundleSrcs": [
+    "components": [
       "rocwmma-dev"
     ],
     "deps": [
@@ -932,7 +932,7 @@
     ]
   },
   "rpp": {
-    "bundleSrcs": [
+    "components": [
       "rpp",
       "rpp-dev"
     ],
