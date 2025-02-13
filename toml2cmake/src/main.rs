@@ -73,6 +73,7 @@ fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>, force: bool)
         .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
 
     let mut env = Environment::new();
+    env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
     write_torch_ext(&env, &build, target_dir, force)?;
