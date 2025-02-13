@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from setuptools import Extension, setup
+from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 
 logger = logging.getLogger(__name__)
@@ -121,8 +121,8 @@ setup(
     version="{{ version }}",
     ext_modules=[CMakeExtension("{{ name }}.{{ ops_name }}")],
     cmdclass={"build_ext": CMakeBuild},
-    packages=["{{ name }}"],
-    package_dir={"{{ name }}": "{{ pyroot }}/{{ name }}"},
+    packages=find_packages(where="torch-ext", include=["{{ name }}*"]),
+    package_dir={"": "{{ pyroot }}"},
     zip_safe=False,
     install_requires=["torch"],
     python_requires=">=3.9",
