@@ -123,6 +123,9 @@ setup(
     cmdclass={"build_ext": CMakeBuild},
     packages=find_packages(where="torch-ext", include=["{{ name }}*"]),
     package_dir={"": "{{ pyroot }}"},
+{% if data_globs %}
+    package_data={"{{ name }}": [ {{ data_globs }} ]},
+{% endif %}
     zip_safe=False,
     install_requires=["torch"],
     python_requires=">=3.9",

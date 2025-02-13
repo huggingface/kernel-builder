@@ -23,9 +23,7 @@ pub struct General {
 pub struct Torch {
     pub name: String,
     pub include: Option<Vec<String>>,
-    // Used by the builder, so we have to accept this field.
-    #[serde(rename = "pyext")]
-    pub _pyext: Option<Vec<String>>,
+    pub pyext: Option<Vec<String>>,
     pub pyroot: PathBuf,
     pub src: Vec<PathBuf>,
 }
