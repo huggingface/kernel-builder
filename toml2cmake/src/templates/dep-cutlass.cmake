@@ -1,4 +1,4 @@
-find_package(NvidiaCutlass QUIET)
+find_package(NvidiaCutlass)
 
 if (NOT NvidiaCutlass_FOUND)
   set(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
@@ -22,7 +22,7 @@ if (NOT NvidiaCutlass_FOUND)
     FetchContent_Declare(
         cutlass
         GIT_REPOSITORY https://github.com/nvidia/cutlass.git
-        GIT_TAG v{{ version }}
+        GIT_TAG ${CUTLASS_REVISION}
         GIT_PROGRESS TRUE
 
         # Speed up CUTLASS download by retrieving only the specified GIT_TAG instead of the history.
