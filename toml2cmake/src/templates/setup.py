@@ -121,7 +121,7 @@ setup(
     version="{{ version }}",
     ext_modules=[CMakeExtension("{{ name }}.{{ ops_name }}")],
     cmdclass={"build_ext": CMakeBuild},
-    packages=find_packages(where="torch-ext", include=["{{ name }}*"]),
+    packages=find_packages(where="{{ pyroot }}", include=["{{ name }}*"]),
     package_dir={"": "{{ pyroot }}"},
 {% if data_globs %}
     package_data={"{{ name }}": [ {{ data_globs }} ]},
