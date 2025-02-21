@@ -52,7 +52,7 @@ rec {
         ];
       pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
       extSrc = extConfig.src ++ [ "build.toml" ];
-      pySrcSet = fileset.fileFilter pyFilter (path + "/${extConfig.pyroot}");
+      pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
       kernelsSrc = fileset.unions (
         lib.flatten (
           lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) buildConfig.kernel
@@ -71,7 +71,9 @@ rec {
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
       nvccThreads = listMax (
-        lib.mapAttrsToList (_: buildConfig: builtins.length buildConfig.capabilities) buildConfig.kernel
+        lib.mapAttrsToList (
+          _: buildConfig: builtins.length buildConfig.cuda-capabilities
+        ) buildConfig.kernel
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
     in
@@ -84,9 +86,7 @@ rec {
         stripRPath
         torch
         ;
-      extensionName = extConfig.name;
-      extensionVersion = buildConfig.general.version;
-      pyRoot = extConfig.pyroot;
+      extensionName = buildConfig.general.name;
     });
 
   # Build multiple Torch extensions.

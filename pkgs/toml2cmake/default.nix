@@ -14,9 +14,12 @@ rustPlatform.buildRustPackage {
         file.name == "Cargo.toml"
         || file.name == "Cargo.lock"
         || file.name == "pyproject.toml"
-        || file.hasExt "rs"
-        || file.hasExt "cmake"
-        || file.hasExt "py";
+        || (builtins.any file.hasExt [
+          "cmake"
+          "h"
+          "py"
+          "rs"
+        ]);
     in
     lib.fileset.toSource {
       root = ../../toml2cmake;

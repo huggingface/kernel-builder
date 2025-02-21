@@ -11,6 +11,7 @@ use crate::config::{Build, Dependencies, Kernel, Torch};
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
+static REGISTRATION_H: &str = include_str!("templates/registration.h");
 
 fn kernel_ops_identifier(name: &str) -> String {
     let mut rng = rand::thread_rng();
@@ -36,23 +37,43 @@ pub fn write_torch_ext(
 
     let mut file_set = FileSet::default();
 
-    let ops_name = kernel_ops_identifier(&torch_ext.name);
+    let ops_name = kernel_ops_identifier(&build.general.name);
 
-    write_cmake(env, build, torch_ext, &ops_name, &mut file_set)?;
+    write_cmake(
+        env,
+        build,
+        torch_ext,
+        &build.general.name,
+        &ops_name,
+        &mut file_set,
+    )?;
 
     write_setup_py(
         env,
         torch_ext,
+        &build.general.name,
         &ops_name,
-        &build.general.version,
         &mut file_set,
     )?;
 
-    write_ops_py(env, torch_ext, &ops_name, &mut file_set)?;
+    write_ops_py(env, &build.general.name, &ops_name, &mut file_set)?;
 
     write_pyproject_toml(env, &mut file_set)?;
 
+    write_torch_registration_macros(&mut file_set)?;
+
     file_set.write(&target_dir, force)?;
+
+    Ok(())
+}
+
+fn write_torch_registration_macros(file_set: &mut FileSet) -> Result<()> {
+    let mut path = PathBuf::new();
+    path.push("torch-ext");
+    path.push("registration.h");
+    file_set
+        .entry(path)
+        .extend_from_slice(REGISTRATION_H.as_bytes());
 
     Ok(())
 }
@@ -71,8 +92,8 @@ fn write_pyproject_toml(env: &Environment, file_set: &mut FileSet) -> Result<()>
 fn write_setup_py(
     env: &Environment,
     torch: &Torch,
+    name: &str,
     ops_name: &str,
-    version: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let writer = file_set.entry("setup.py");
@@ -101,9 +122,8 @@ fn write_setup_py(
             context! {
                 data_globs => data_globs,
                 ops_name => ops_name,
-                name => torch.name,
-                version => version,
-                pyroot => torch.pyroot,
+                name => name,
+                version => "0.1.0",
             },
             writer,
         )
@@ -114,13 +134,13 @@ fn write_setup_py(
 
 fn write_ops_py(
     env: &Environment,
-    torch: &Torch,
+    name: &str,
     ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let mut path = PathBuf::new();
-    path.push(&torch.pyroot);
-    path.push(&torch.name);
+    path.push("torch-ext");
+    path.push(name);
     path.push("_ops.py");
     let writer = file_set.entry(path);
 
@@ -141,6 +161,7 @@ fn write_cmake(
     env: &Environment,
     build: &Build,
     torch: &Torch,
+    name: &str,
     ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
@@ -153,7 +174,7 @@ fn write_cmake(
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, torch, cmake_writer)?;
+    render_preamble(env, name, cmake_writer)?;
 
     render_deps(env, build, cmake_writer)?;
 
@@ -161,7 +182,7 @@ fn write_cmake(
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
-    render_extension(env, torch, ops_name, cmake_writer)?;
+    render_extension(env, torch, name, ops_name, cmake_writer)?;
 
     Ok(())
 }
@@ -233,7 +254,7 @@ pub fn render_kernel(
         .wrap_err("Cannot get kernel template")?
         .render_to_write(
             context! {
-                capabilities => kernel.capabilities,
+                cuda_capabilities => kernel.cuda_capabilities,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
                 sources => sources,
@@ -250,6 +271,7 @@ pub fn render_kernel(
 pub fn render_extension(
     env: &Environment,
     torch: &Torch,
+    name: &str,
     ops_name: &str,
     write: &mut impl Write,
 ) -> Result<()> {
@@ -259,7 +281,7 @@ pub fn render_extension(
             context! {
                 includes => torch.include.as_ref().map(prefix_and_join_includes),
                 ops_name => ops_name,
-                name => torch.name,
+                name => name,
                 src => torch.src
             },
             &mut *write,
@@ -271,10 +293,10 @@ pub fn render_extension(
     Ok(())
 }
 
-pub fn render_preamble(env: &Environment, torch: &Torch, write: &mut impl Write) -> Result<()> {
+pub fn render_preamble(env: &Environment, name: &str, write: &mut impl Write) -> Result<()> {
     env.get_template("preamble.cmake")
         .wrap_err("Cannot get CMake prelude template")?
-        .render_to_write(context! { name => torch.name }, &mut *write)
+        .render_to_write(context! { name => name }, &mut *write)
         .wrap_err("Cannot render CMake prelude template")?;
 
     write.write_all(b"\n")?;

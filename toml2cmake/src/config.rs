@@ -15,23 +15,21 @@ pub struct Build {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct General {
-    pub version: String,
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Torch {
-    pub name: String,
     pub include: Option<Vec<String>>,
     pub pyext: Option<Vec<String>>,
-    pub pyroot: PathBuf,
     pub src: Vec<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Kernel {
-    pub capabilities: Vec<String>,
+    pub cuda_capabilities: Vec<String>,
     pub depends: Vec<Dependencies>,
     pub include: Option<Vec<String>>,
     pub src: Vec<String>,

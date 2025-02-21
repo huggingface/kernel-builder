@@ -118,11 +118,12 @@ class CMakeBuild(build_ext):
 
 setup(
     name="{{ name }}",
-    version="{{ version }}",
+    # The version is just a stub, it's not used by the final build artefact.
+    version="0.1.0",
     ext_modules=[CMakeExtension("{{ name }}.{{ ops_name }}")],
     cmdclass={"build_ext": CMakeBuild},
-    packages=find_packages(where="{{ pyroot }}", include=["{{ name }}*"]),
-    package_dir={"": "{{ pyroot }}"},
+    packages=find_packages(where="torch-ext", include=["{{ name }}*"]),
+    package_dir={"": "torch-ext"},
 {% if data_globs %}
     package_data={"{{ name }}": [ {{ data_globs }} ]},
 {% endif %}

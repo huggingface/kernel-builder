@@ -1,8 +1,6 @@
 {
   extensionName,
-  extensionVersion,
   nvccThreads,
-  pyRoot,
 
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
@@ -23,8 +21,7 @@
 }:
 
 stdenv.mkDerivation {
-  pname = "${extensionName}-torch-ext";
-  version = extensionVersion;
+  name = "${extensionName}-torch-ext";
 
   inherit nvccThreads src;
 
@@ -75,7 +72,7 @@ stdenv.mkDerivation {
     ''
       (
         cd ..
-        cp -r ${pyRoot}/${extensionName} $out/
+        cp -r torch-ext/${extensionName} $out/
       )
       cp $out/_${extensionName}_*/* $out/${extensionName}
       rm -rf $out/_${extensionName}_*

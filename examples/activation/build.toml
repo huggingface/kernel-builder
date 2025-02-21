@@ -1,17 +1,14 @@
 [general]
-version = "0.0.1"
+name = "activation"
 
 [torch]
-name = "activation"
 src = [
-  "ext-torch/registration.h",
-  "ext-torch/torch_binding.cpp",
-  "ext-torch/torch_binding.h"
+  "torch-ext/torch_binding.cpp",
+  "torch-ext/torch_binding.h"
 ]
-pyroot = "ext-torch"
 
 [kernel.activation]
-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
+cuda-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
 src = [
   "activation/activation_kernels.cu",
   "activation/cuda_compat.h",

@@ -10,7 +10,7 @@ set_source_files_properties(
   PROPERTIES INCLUDE_DIRECTORIES "{{ includes }}")
 {% endif %}
 
-cuda_archs_loose_intersection({{kernel_name}}_ARCHS "{{ capabilities|join(";") }}" ${CUDA_ARCHS})
+cuda_archs_loose_intersection({{kernel_name}}_ARCHS "{{ cuda_capabilities|join(";") }}" ${CUDA_ARCHS})
 set_gencode_flags_for_srcs(SRCS {{'"${' + kernel_name + '_SRC}"'}} CUDA_ARCHS {{ '${' + kernel_name + '_ARCHS}'}})
 
 list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})

@@ -1,3 +1,6 @@
+// Registration macros from vLLM:
+// https://github.com/vllm-project/vllm/blob/main/csrc/core/registration.h
+
 #pragma once
 
 #include <Python.h>
