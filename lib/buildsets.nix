@@ -38,7 +38,17 @@ let
       inherit pkgs torch;
     };
 
-  pkgsForRocm = import nixpkgs { inherit system; config = { allowUnfree = true; rocmSupport = true; }; overlays = [ overlay rocm ]; };
+  pkgsForRocm = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfree = true;
+      rocmSupport = true;
+    };
+    overlays = [
+      overlay
+      rocm
+    ];
+  };
 
   # Instantiate nixpkgs for the given CUDA versions. Returns
   # an attribute set like `{ "12.4" = <nixpkgs with 12.4>; ... }`.

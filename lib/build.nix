@@ -40,40 +40,54 @@ rec {
       buildConfig = readBuildConfig path;
       extraDeps = resolveDeps {
         inherit pkgs torch;
-        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) buildConfig.kernel));
+        deps = lib.unique (
+          lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) buildConfig.kernel)
+        );
       };
       extConfig = buildConfig.torch;
-      pyExt = extConfig.pyext or [ "py" "pyi" ];
+      pyExt =
+        extConfig.pyext or [
+          "py"
+          "pyi"
+        ];
       pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
       extSrc = extConfig.src ++ [ "build.toml" ];
       pySrcSet = fileset.fileFilter pyFilter (path + "/${extConfig.pyroot}");
-      kernelsSrc = fileset.unions (lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) buildConfig.kernel));
+      kernelsSrc = fileset.unions (
+        lib.flatten (
+          lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) buildConfig.kernel
+        )
+      );
       srcSet = fileset.unions (map (nameToPath path) extSrc);
       src = fileset.toSource {
         root = path;
-        fileset = fileset.unions [ kernelsSrc srcSet pySrcSet ];
+        fileset = fileset.unions [
+          kernelsSrc
+          srcSet
+          pySrcSet
+        ];
       };
 
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
-      nvccThreads = listMax (lib.mapAttrsToList (_: buildConfig: builtins.length buildConfig.capabilities) buildConfig.kernel);
+      nvccThreads = listMax (
+        lib.mapAttrsToList (_: buildConfig: builtins.length buildConfig.capabilities) buildConfig.kernel
+      );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
     in
-    pkgs.callPackage ./torch-extension (
-      {
-        inherit
-          extraDeps
-          nvccThreads
-          src
-          stdenv
-          stripRPath
-          torch
-          ;
-        extensionName = extConfig.name;
-        extensionVersion = buildConfig.general.version;
-        pyRoot = extConfig.pyroot;
-      }
-    );
+    pkgs.callPackage ./torch-extension ({
+      inherit
+        extraDeps
+        nvccThreads
+        src
+        stdenv
+        stripRPath
+        torch
+        ;
+      extensionName = extConfig.name;
+      extensionVersion = buildConfig.general.version;
+      pyRoot = extConfig.pyroot;
+    });
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =

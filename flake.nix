@@ -23,17 +23,23 @@
       buildSetPerSystem = builtins.listToAttrs (
         builtins.map (system: {
           name = system;
-          value = import ./lib/buildsets.nix { inherit nixpkgs system; rocm = rocm-nix.overlays.default; };
+          value = import ./lib/buildsets.nix {
+            inherit nixpkgs system;
+            rocm = rocm-nix.overlays.default;
+          };
         }) systems
       );
 
       libPerSystem = builtins.mapAttrs (
         system: buildSet:
         let
-        # Remove this later, temporary workaround until the CMake bits
-        # support ROCm.
-        buildSets = builtins.filter (buildSet: buildSet.pkgs.config.cudaSupport) buildSetPerSystem.${system};
-        in import lib/build.nix {
+          # Remove this later, temporary workaround until the CMake bits
+          # support ROCm.
+          buildSets = builtins.filter (
+            buildSet: buildSet.pkgs.config.cudaSupport
+          ) buildSetPerSystem.${system};
+        in
+        import lib/build.nix {
           inherit buildSets;
           inherit (nixpkgs) lib;
         }

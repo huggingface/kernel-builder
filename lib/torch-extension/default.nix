@@ -18,7 +18,7 @@
   python3,
   toml2cmake,
 
-  extraDeps ? [],
+  extraDeps ? [ ],
   torch,
 }:
 
@@ -55,7 +55,8 @@ stdenv.mkDerivation {
       libcublas
       libcusolver
       libcusparse
-    ]) ++ extraDeps;
+    ])
+    ++ extraDeps;
 
   env = {
     CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
@@ -66,11 +67,12 @@ stdenv.mkDerivation {
   dontSetupCUDAToolkitCompilers = true;
 
   cmakeFlags = [
-      (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
-      (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
-    ];
+    (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
+    (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
+  ];
 
-  postInstall = ''
+  postInstall =
+    ''
       (
         cd ..
         cp -r ${pyRoot}/${extensionName} $out/
