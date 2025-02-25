@@ -33,6 +33,11 @@ jobs:
       - name: Copy cutlass GEMM kernel
         run: cp -rL examples/cutlass-gemm/result cutlass-gemm-kernel
 
+      - name: Build relu kernel
+        run: ( cd examples/relu && nix build .\#redistributable.torch25-cxx98-cu121-x86_64-linux )
+      - name: Copy relu kernel
+        run: cp -rL examples/relu/result relu-kernel
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker image

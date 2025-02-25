@@ -30,57 +30,55 @@ of CMake or setuptools.
 
 This page describes the directory layout of a kernel-builder project, the
 format of the `build.toml` file, and some additional Python glue that
-`kernel-builder` provides.
+`kernel-builder` provides. We will use a [simple ReLU kernel](../examples/relu)
+as the running example.
 
 ## Kernel project layout
 
 Kernel projects follow this general directory layout:
 
 ```text
-example
+relu
 ├── build.toml
-├── kernel_a
-├── kernel_b
+├── relu_kernel
+│   └── relu.cu
 └── torch-ext
     └── torch_bindings.cpp
     └── torch_bindings.h
-    └── example
+    └── relu
         └── __init__.py
 ```
 
 In this example we can find:
 
 - The build configuration in `build.toml`.
-- One or more top-level directories containing kernels (`kernel_a` and `kernel_b`).
+- One or more top-level directories containing kernels (`relu_kernel`).
 - The `torch-ext` directory, which contains:
   - `torch_bindings.h`: contains declarations for kernel entry points
     (from `kernel_a` and `kernel_b`).
   - `torch_bindings.cpp`: registers the entry points as Torch ops.
-  - `torch_ext/example`: contains any Python wrapping the kernel needs. At the
+  - `torch_ext/relu`: contains any Python wrapping the kernel needs. At the
     bare minimum, it should contain an `__init__.py` file.
 
 ## `build.toml`
 
-`build.toml` tells `kernel-builder` what to build and how. Here is an example
-for an extension named `example` containing two kernels:
+`build.toml` tells `kernel-builder` what to build and how. It looks as
+follows for the `relu` kernel:
 
 ```toml
 [general]
-name = "example"
+name = "relu"
 
 [torch]
 src = [
-  "torch-ext/torch_bindings.cpp",
-  "torch-ext/torch_bindings.h"
+  "torch-ext/torch_binding.cpp",
+  "torch-ext/torch_binding.h"
 ]
 
 [kernel.activation]
 cuda-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
 src = [
-  "kernel_a/kernel.cu",
-  "kernel_a/kernel.h",
-  "kernel_b/kernel.cu",
-  "kernel_b/kernel.h",
+  "relu_kernel/relu.cu",
 ]
 depends = [ "torch" ]
 ```
@@ -115,6 +113,10 @@ the following options:
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
 
+Multiple `kernel.<name>` sections can be defined in the same `build.toml`.
+See for example [`kernels-community/quantization`](https://huggingface.co/kernels-community/quantization/)
+for an example with multiple kernel sections.
+
 ## Torch bindings
 
 ### Defining bindings
@@ -124,7 +126,7 @@ Torch bindings are defined in C++, kernels commonly use two files:
 - `torch_bindings.h` containing function declarations.
 - `torch_bindings.cpp` registering the functions as Torch ops.
 
-For instance, a simple kernel could have the following declaration in
+For instance, the `relu` kernel has the following declaration in
 `torch_bindings.h`:
 
 ```cpp
@@ -132,20 +134,57 @@ For instance, a simple kernel could have the following declaration in
 
 #include <torch/torch.h>
 
-void silu_and_mul(torch::Tensor &out, torch::Tensor const &input);
+void relu(torch::Tensor &out, torch::Tensor const &input);
 ```
 
-This function can then be registered as a Torch op in `torch_bindings.cpp`:
+This is a declaration for the actual kernel, which is in `relu_kernel/relu.cu`:
+
+```cpp
+#include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDAGuard.h>
+#include <torch/all.h>
+
+#include <cmath>
+
+__global__ void relu_kernel(float *__restrict__ out,
+                            float const *__restrict__ input,
+                            const int d) {
+  const int64_t token_idx = blockIdx.x;
+  for (int64_t idx = threadIdx.x; idx < d; idx += blockDim.x) {
+    auto x = input[token_idx * d + idx];
+    out[token_idx * d + idx] = x > 0.0f ? x : 0.0f;
+  }
+}
+
+void relu(torch::Tensor &out,
+          torch::Tensor const &input)
+{
+  TORCH_CHECK(input.scalar_type() == at::ScalarType::Float &&
+                  input.scalar_type() == at::ScalarType::Float,
+              "relu_kernel only supports float32");
+
+  int d = input.size(-1);
+  int64_t num_tokens = input.numel() / d;
+  dim3 grid(num_tokens);
+  dim3 block(std::min(d, 1024));
+  const at::cuda::OptionalCUDAGuard device_guard(device_of(input));
+  const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  relu_kernel<<<grid, block, 0, stream>>>(out.data_ptr<float>(),
+                                          input.data_ptr<float>(), d);
+}
+```
+
+This function is then registered as a Torch op in `torch_bindings.cpp`:
 
 ```cpp
 #include <torch/library.h>
 
 #include "registration.h"
-#include "torch_bindings.h"
+#include "torch_binding.h"
 
 TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
-  ops.def("silu_and_mul(Tensor! out, Tensor input) -> ()");
-  ops.impl("silu_and_mul", torch::kCUDA, &silu_and_mul);
+  ops.def("relu(Tensor! out, Tensor input) -> ()");
+  ops.impl("relu", torch::kCUDA, &relu);
 }
 
 REGISTER_EXTENSION(TORCH_EXTENSION_NAME)
@@ -172,10 +211,13 @@ named `_ops` that contains an alias for the name. This can be used to
 refer to the correct `torch.ops` module. For example:
 
 ```python
+from typing import Optional
 import torch
 from ._ops import ops
 
-def silu_and_mul(out: torch.Tensor, x: torch.Tensor) -> None:
-    ops.silu_and_mul(out, x)
+def relu(x: torch.Tensor, out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    if out is None:
+        out = torch.empty_like(x)
+    ops.relu(out, x)
     return out
 ```
