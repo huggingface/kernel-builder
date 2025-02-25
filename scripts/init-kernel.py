@@ -27,6 +27,7 @@
 
 import os
 import argparse
+import pathlib
 
 
 class Colors:
@@ -53,7 +54,7 @@ def create_file_with_content(file_path: str, content: str):
 
 
 # Generate a tree view of the created files
-def print_tree(directory: str, prefix: str=""):
+def print_tree(directory: str, prefix: str = ""):
     entries = sorted(os.listdir(directory))
 
     # Process directories first, then files
@@ -85,6 +86,9 @@ def print_tree(directory: str, prefix: str=""):
 
 
 def main():
+    # Get the directory where this script is located
+    script_dir = pathlib.Path(__file__).parent.resolve().parent.resolve()
+
     # Create argument parser
     parser = argparse.ArgumentParser(
         description="Create ReLU example files in the specified directory"
@@ -104,144 +108,30 @@ def main():
             f"\n{Colors.CYAN}{Colors.BOLD}Created directory: {Colors.BOLD}{target_dir}{Colors.ENDC}\n"
         )
 
-    # Define the file structure with file paths and content
-    files = {
-        # build.toml
-        os.path.join(
-            target_dir, "build.toml"
-        ): """[general]
-name = "relu"
+    # get files from examples/activation
+    activation_dir = script_dir / "examples" / "activation"
+    for root, _, files in os.walk(activation_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            with open(file_path, "r") as f:
+                content = f.read()
 
-[torch]
-src = [
-  "torch-ext/torch_binding.cpp",
-  "torch-ext/torch_binding.h"
-]
+                # Replace the kernel-builder URL and inline Cachix configuration
+                if file_path.endswith("flake.nix"):
+                    kernel_builder_url_start = content.find("kernel-builder.url =")
+                    kernel_builder_url_end = content.find(";", kernel_builder_url_start)
+                    content = (
+                        content[:kernel_builder_url_start]
+                        + "kernel-builder.url = git+ssh://git@github.com/huggingface/kernel-builder"
+                        + content[kernel_builder_url_end:]
+                    )
 
-[kernel.activation]
-cuda-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
-src = [
-  "relu_kernel/relu.cu",
-]
-depends = [ "torch" ]
-""",
-        # flake.nix
-        os.path.join(
-            target_dir, "flake.nix"
-        ): """{
-  description = "Flake for ReLU kernel";
+                    nix_config = '\n\tnixConfig = {\n\t\textra-substituters = [ "https://kernel-builder.cachix.org" ];\n\t\textra-trusted-public-keys = [ "kernel-builder.cachix.org-1:JCt71vSCqW9tnmOsUigxf7tVLztjYxQ198FI/j8LrFQ=" ];\n\t};\n'
+                    last_brace = content.rfind("}")
+                    content = content[:last_brace] + nix_config + content[last_brace:]
 
-  inputs = {
-    kernel-builder.url = "git+ssh://git@github.com/huggingface/kernel-builder";
-  };
-
-  outputs =
-    {
-      self,
-      kernel-builder,
-    }:
-    kernel-builder.lib.genFlakeOutputs ./.;
-
-    nixConfig = {
-      extra-substituters = [ "https://kernel-builder.cachix.org" ];
-      extra-trusted-public-keys = [ "kernel-builder.cachix.org-1:JCt71vSCqW9tnmOsUigxf7tVLztjYxQ198FI/j8LrFQ=" ];
-    };
-}
-""",
-        # relu_kernel/relu.cu
-        os.path.join(
-            target_dir, "relu_kernel/relu.cu"
-        ): """#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
-#include <torch/all.h>
-
-#include <cmath>
-
-__global__ void relu_kernel(float *__restrict__ out,
-                            float const *__restrict__ input,
-                            const int d) {
-  const int64_t token_idx = blockIdx.x;
-  for (int64_t idx = threadIdx.x; idx < d; idx += blockDim.x) {
-    auto x = input[token_idx * d + idx];
-    out[token_idx * d + idx] = x > 0.0f ? x : 0.0f;
-  }
-}
-
-void relu(torch::Tensor &out,
-          torch::Tensor const &input)
-{
-  TORCH_CHECK(input.scalar_type() == at::ScalarType::Float &&
-                  input.scalar_type() == at::ScalarType::Float,
-              "relu_kernel only supports float32");
-
-  int d = input.size(-1);
-  int64_t num_tokens = input.numel() / d;
-  dim3 grid(num_tokens);
-  dim3 block(std::min(d, 1024));
-  const at::cuda::OptionalCUDAGuard device_guard(device_of(input));
-  const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-  relu_kernel<<<grid, block, 0, stream>>>(out.data_ptr<float>(),
-                                          input.data_ptr<float>(), d);
-}
-""",
-        # tests/__init__.py
-        os.path.join(target_dir, "tests/__init__.py"): "",
-        # tests/test_relu.py
-        os.path.join(
-            target_dir, "tests/test_relu.py"
-        ): """import torch
-import torch.nn.functional as F
-
-import relu
-
-
-def test_relu():
-    x = torch.randn(1024, 1024, dtype=torch.float32, device="cuda")
-    torch.testing.assert_allclose(F.relu(x), relu.relu(x))
-""",
-        # torch-ext/relu/__init__.py
-        os.path.join(
-            target_dir, "torch-ext/relu/__init__.py"
-        ): """from typing import Optional
-
-import torch
-
-from ._ops import ops
-
-
-def relu(x: torch.Tensor, out: Optional[torch.Tensor] = None) -> torch.Tensor:
-    if out is None:
-        out = torch.empty_like(x)
-    ops.relu(out, x)
-    return out
-""",
-        # torch-ext/torch_binding.cpp
-        os.path.join(
-            target_dir, "torch-ext/torch_binding.cpp"
-        ): """#include <torch/library.h>
-
-#include "registration.h"
-#include "torch_binding.h"
-
-TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
-  ops.def("relu(Tensor! out, Tensor input) -> ()");
-  ops.impl("relu", torch::kCUDA, &relu);
-}
-
-REGISTER_EXTENSION(TORCH_EXTENSION_NAME)
-""",
-        # torch-ext/torch_binding.h
-        os.path.join(
-            target_dir, "torch-ext/torch_binding.h"
-        ): """#pragma once
-
-#include <torch/torch.h>
-
-void relu(torch::Tensor &out, torch::Tensor const &input);""",
-    }
-
-    for file_path, content in files.items():
-        create_file_with_content(file_path, content)
+                target_file = file_path.replace(str(activation_dir), target_dir)
+                create_file_with_content(target_file, content)
 
     print(f"  {Colors.BOLD}{target_dir}/{Colors.ENDC}")
     print_tree(target_dir)
