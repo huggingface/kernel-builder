@@ -116,19 +116,15 @@ def main():
             with open(file_path, "r") as f:
                 content = f.read()
 
-                # Replace the kernel-builder URL and inline Cachix configuration
+                # Replace kernel-builder.url with path:../ in flake.nix
                 if file_path.endswith("flake.nix"):
                     kernel_builder_url_start = content.find("kernel-builder.url =")
                     kernel_builder_url_end = content.find(";", kernel_builder_url_start)
                     content = (
                         content[:kernel_builder_url_start]
-                        + "kernel-builder.url = git+ssh://git@github.com/huggingface/kernel-builder"
+                        + "kernel-builder.url = \"path:../\""
                         + content[kernel_builder_url_end:]
                     )
-
-                    nix_config = '\n\tnixConfig = {\n\t\textra-substituters = [ "https://kernel-builder.cachix.org" ];\n\t\textra-trusted-public-keys = [ "kernel-builder.cachix.org-1:JCt71vSCqW9tnmOsUigxf7tVLztjYxQ198FI/j8LrFQ=" ];\n\t};\n'
-                    last_brace = content.rfind("}")
-                    content = content[:last_brace] + nix_config + content[last_brace:]
 
                 target_file = file_path.replace(str(activation_dir), target_dir)
                 create_file_with_content(target_file, content)
