@@ -42,7 +42,7 @@ class Colors:
     GREY = "\033[90m"
 
 
-def create_file_with_content(file_path, content):
+def create_file_with_content(file_path: str, content: str):
     """Creates a file at 'file_path' with the specified content."""
     directory = os.path.dirname(file_path)
     if directory and not os.path.exists(directory):
