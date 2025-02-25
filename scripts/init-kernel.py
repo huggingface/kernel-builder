@@ -1,11 +1,11 @@
 # This script creates the necessary files for a new kernel example in the specified directory.
 #
 # Example Usage:
-# $ uv run scripts/init-kernel.py activation
+# $ uv run scripts/init-kernel.py relu
 #
-# Created directory: activation
+# Created directory: relu
 #
-#   activation/
+#   relu/
 #     ├── relu_kernel/
 #     │   └── relu.cu
 #     ├── tests/
@@ -22,7 +22,7 @@
 # ✓ Success! All files for the ReLU example have been created successfully.
 #
 # Next steps:
-#   1. Build the kernel: cd activation && git add . && nix develop -L
+#   1. Build the kernel: cd relu && git add . && nix develop -L
 #   2. Run the tests: pytest -vv tests/
 
 import os
@@ -107,10 +107,14 @@ def main():
         print(
             f"\n{Colors.CYAN}{Colors.BOLD}Created directory: {Colors.BOLD}{target_dir}{Colors.ENDC}\n"
         )
+    else:
+        print(
+            f"\n{Colors.CYAN}{Colors.BOLD}Directory already exists: {Colors.BOLD}{target_dir}{Colors.ENDC}\n"
+        )
 
-    # get files from examples/activation
-    activation_dir = script_dir / "examples" / "activation"
-    for root, _, files in os.walk(activation_dir):
+    # get files from examples/relu
+    relu_dir = script_dir / "examples" / "relu"
+    for root, _, files in os.walk(relu_dir):
         for file in files:
             file_path = os.path.join(root, file)
             with open(file_path, "r") as f:
@@ -122,11 +126,11 @@ def main():
                     kernel_builder_url_end = content.find(";", kernel_builder_url_start)
                     content = (
                         content[:kernel_builder_url_start]
-                        + "kernel-builder.url = \"path:../\""
+                        + 'kernel-builder.url = "path:../"'
                         + content[kernel_builder_url_end:]
                     )
 
-                target_file = file_path.replace(str(activation_dir), target_dir)
+                target_file = file_path.replace(str(relu_dir), target_dir)
                 create_file_with_content(target_file, content)
 
     print(f"  {Colors.BOLD}{target_dir}/{Colors.ENDC}")
@@ -137,12 +141,28 @@ def main():
     )
 
     print(f"\n{Colors.CYAN}{Colors.BOLD}Next steps:{Colors.ENDC}")
+
+    commands = [
+        "nix run nixpkgs#cachix -- use kernel-builder",
+        f"cd {target_dir}",
+        "git add .",
+        "nix develop -L",
+    ]
+
+    for index, command in enumerate(commands, start=1):
+        print(
+            f"  {Colors.YELLOW}{index}.{Colors.ENDC} {Colors.BOLD}{command}{Colors.ENDC}"
+        )
+
     print(
-        f"  {Colors.YELLOW}1.{Colors.ENDC} Build the kernel: {Colors.BOLD}cd {target_dir} && git add . && nix develop -L{Colors.ENDC}"
+        f"\none line build:\n{Colors.GREY}{Colors.BOLD}{' && '.join(commands)}{Colors.ENDC}{Colors.ENDC}"
     )
+
+    print(f"\n{Colors.CYAN}{Colors.BOLD}Run the tests{Colors.ENDC}")
     print(
-        f"  {Colors.YELLOW}2.{Colors.ENDC} Run the tests: {Colors.BOLD}pytest -vv tests/{Colors.ENDC}"
+        f"  {Colors.YELLOW}{1}.{Colors.ENDC} {Colors.BOLD}pytest -vv tests/{Colors.ENDC}"
     )
+
     print("")
 
 
