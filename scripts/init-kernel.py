@@ -53,7 +53,7 @@ def create_file_with_content(file_path, content):
 
 
 # Generate a tree view of the created files
-def print_tree(directory, prefix=""):
+def print_tree(directory: str, prefix: str=""):
     entries = sorted(os.listdir(directory))
 
     # Process directories first, then files
