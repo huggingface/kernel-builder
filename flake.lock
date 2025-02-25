@@ -35,27 +35,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1738247409,
-        "narHash": "sha256-F72dKl9Na6/2N+garOm9qCXPa92GzR8eYSuDra6kbjY=",
-        "owner": "danieldk",
-        "repo": "nixpkgs",
-        "rev": "358f57074b70e3ee9e1dc118151a4f6f81fcd3bb",
-        "type": "github"
-      },
-      "original": {
-        "owner": "danieldk",
-        "ref": "cuda-12.6-for-kernel-builder",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1739184465,
-        "narHash": "sha256-7Z9kNbr6qZwPG1z/6Hn/re4SS9nu1krxyknyNeCBh/o=",
+        "lastModified": 1740344854,
+        "narHash": "sha256-+TiHtSOo+RPUNrcfkcGXmapJ40O3gt6yOe2nA8y0KPw=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "58edd1e2acbc9be9fe29964344c6419db013141e",
+        "rev": "0b3aa63c013cf9302afc0ba5dbd81f8fab7bd94f",
         "type": "github"
       },
       "original": {
@@ -67,14 +51,16 @@
     },
     "rocm-nix": {
       "inputs": {
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1739274763,
-        "narHash": "sha256-qyvbbSmkdvyoOrp1ll6psU0SeH4W+8+bZO9vKPe/vvU=",
+        "lastModified": 1740473629,
+        "narHash": "sha256-xW5RfZScKmFymmwdBSZvNZxvFzQSJu8lgF0cQKomT2E=",
         "owner": "huggingface",
         "repo": "rocm-nix",
-        "rev": "08477e42d6c1bdddc7e33acf549a10645f894253",
+        "rev": "e4b51d092caf52c693c330c177369adbf6a153ba",
         "type": "github"
       },
       "original": {

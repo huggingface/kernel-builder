@@ -3,9 +3,12 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:danieldk/nixpkgs/cuda-12.6-for-kernel-builder";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
     flake-compat.url = "github:edolstra/flake-compat";
-    rocm-nix.url = "github:huggingface/rocm-nix";
+    rocm-nix = {
+      url = "github:huggingface/rocm-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
