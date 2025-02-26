@@ -263,6 +263,7 @@ pub fn render_kernel(
         .render_to_write(
             context! {
                 cuda_capabilities => kernel.cuda_capabilities,
+                rocm_archs => kernel.rocm_archs,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
                 sources => sources,
