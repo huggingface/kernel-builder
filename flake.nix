@@ -93,7 +93,7 @@
         formatter = pkgs.nixfmt-rfc-style;
 
         packages = rec {
-          toml2cmake = pkgs.callPackage ./pkgs/toml2cmake { };
+          build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
 
           # This package set is exposed so that we can prebuild the Torch versions.
           torch = builtins.listToAttrs (

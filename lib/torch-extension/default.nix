@@ -14,7 +14,7 @@
   cmakeNvccThreadsHook,
   ninja,
   python3,
-  toml2cmake,
+  build2cmake,
 
   extraDeps ? [ ],
   torch,
@@ -27,7 +27,7 @@ stdenv.mkDerivation {
 
   # Generate build files.
   postPatch = ''
-    toml2cmake generate-torch build.toml
+    build2cmake generate-torch build.toml
   '';
 
   nativeBuildInputs = [
@@ -35,7 +35,7 @@ stdenv.mkDerivation {
     cmakeNvccThreadsHook
     ninja
     cudaPackages.cuda_nvcc
-    toml2cmake
+    build2cmake
   ];
 
   buildInputs =

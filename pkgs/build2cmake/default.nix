@@ -4,7 +4,7 @@
 }:
 
 rustPlatform.buildRustPackage {
-  pname = "toml2cmake";
+  pname = "build2cmake";
   version = "0.0.1";
 
   src =
@@ -22,12 +22,12 @@ rustPlatform.buildRustPackage {
         ]);
     in
     lib.fileset.toSource {
-      root = ../../toml2cmake;
-      fileset = lib.fileset.fileFilter sourceFiles ../../toml2cmake;
+      root = ../../build2cmake;
+      fileset = lib.fileset.fileFilter sourceFiles ../../build2cmake;
     };
 
   cargoLock = {
-    lockFile = ../../toml2cmake/Cargo.lock;
+    lockFile = ../../build2cmake/Cargo.lock;
   };
 
   meta = {
