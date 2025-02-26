@@ -6,7 +6,8 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
     flake-compat.url = "github:edolstra/flake-compat";
     rocm-nix = {
-      url = "github:huggingface/rocm-nix";
+      #url = "github:huggingface/rocm-nix";
+      url = "path:/home/daniel/rocm/rocm-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -35,16 +36,9 @@
 
       libPerSystem = builtins.mapAttrs (
         system: buildSet:
-        let
-          # Remove this later, temporary workaround until the CMake bits
-          # support ROCm.
-          buildSets = builtins.filter (
-            buildSet: buildSet.pkgs.config.cudaSupport
-          ) buildSetPerSystem.${system};
-        in
         import lib/build.nix {
-          inherit buildSets;
           inherit (nixpkgs) lib;
+          buildSets = buildSetPerSystem.${system};
         }
       ) buildSetPerSystem;
 

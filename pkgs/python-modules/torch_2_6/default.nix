@@ -132,6 +132,19 @@ let
     in
     real ++ ptx;
 
+    supportedTorchRocmArchs = [
+        # rocmPackages.clr.gpuTargets
+        # https://github.com/pytorch/pytorch/blob/374b762bbf3d8e00015de14b1ede47089d0b2fda/.ci/docker/manywheel/build.sh#L100
+        "gfx900"
+        "gfx906"
+        "gfx908"
+        "gfx90a"
+        "gfx942"
+        "gfx1030"
+        "gfx1100"
+        "gfx1101"
+    ];
+
   # NOTE: The lists.subtractLists function is perhaps a bit unintuitive. It subtracts the elements
   #   of the first list *from* the second list. That means:
   #   lists.subtractLists a b = b - a
@@ -155,19 +168,7 @@ let
       gpuTargets
     else if cudaSupport then
       gpuArchWarner supportedCudaCapabilities unsupportedCudaCapabilities
-    else if rocmSupport then
-      # rocmPackages.clr.gpuTargets
-      # https://github.com/pytorch/pytorch/blob/374b762bbf3d8e00015de14b1ede47089d0b2fda/.ci/docker/manywheel/build.sh#L100
-      [
-        "gfx900"
-        "gfx906"
-        "gfx908"
-        "gfx90a"
-        "gfx942"
-        "gfx1030"
-        "gfx1100"
-        "gfx1101"
-      ]
+    else if rocmSupport then supportedTorchRocmArchs
     else
       throw "No GPU targets specified"
   );
@@ -200,9 +201,15 @@ let
       roctracer
     ];
 
-    # Fix `setuptools` not being found
     postBuild = ''
+      # Fix `setuptools` not being found
       rm -rf $out/nix-support
+
+      # Variables that we want to pass through to downstream derivations.
+      mkdir -p $out/nix-support
+      echo 'export ROCM_PATH="${placeholder "out"}"' >> $out/nix-support/setup-hook
+      echo 'export ROCM_SOURCE_DIR="${placeholder "out"}"' >> $out/nix-support/setup-hook
+      echo 'export CMAKE_CXX_FLAGS="-I${placeholder "out"}/include -I${placeholder "out"}/include/rocblas"' >> $out/nix-support/setup-hook
     '';
   };
 
@@ -239,6 +246,7 @@ buildPythonPackage rec {
     "cxxdev" # propagated deps for the cmake consumers of torch
   ];
   cudaPropagateToOutput = "cxxdev";
+  rocmPropagateToOutput = "cxxdev";
 
   src = fetchFromGitHub {
     owner = "pytorch";
@@ -339,10 +347,7 @@ buildPythonPackage rec {
       export CUDNN_LIB_DIR=${cudnn.lib}/lib
     ''
     + lib.optionalString rocmSupport ''
-      export ROCM_PATH=${rocmtoolkit_joined}
-      export ROCM_SOURCE_DIR=${rocmtoolkit_joined}
       export PYTORCH_ROCM_ARCH="${gpuTargetString}"
-      export CMAKE_CXX_FLAGS="-I${rocmtoolkit_joined}/include -I${rocmtoolkit_joined}/include/rocblas"
       python tools/amd_build/build_amd.py
     '';
 
@@ -461,7 +466,7 @@ buildPythonPackage rec {
         cuda_nvcc
       ]
     )
-    ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
+    ++ lib.optionals rocmSupport [ rocmtoolkit_joined rocmPackages.setupRocmHook ];
 
   buildInputs =
     [
@@ -662,6 +667,7 @@ buildPythonPackage rec {
       rocmPackages
       ;
     cudaCapabilities = if cudaSupport then supportedCudaCapabilities else [ ];
+    rocmArchs = if rocmSupport then supportedTorchRocmArchs else [ ];
     # At least for 1.10.2 `torch.fft` is unavailable unless BLAS provider is MKL. This attribute allows for easy detection of its availability.
     blasProvider = blas.provider;
     # To help debug when a package is broken due to CUDA support
