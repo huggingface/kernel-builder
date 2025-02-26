@@ -27,6 +27,7 @@ the activation folder.
 - [Writing Hub kernels](./docs/writing-kernels.md)
 - [Building kernels with Docker](./docs/docker.md)
 - [Building kernels with Nix](./docs/nix.md)
+- [Local kernel development](docs/local-dev.md) (IDE integration)
 
 ## Credits
 
