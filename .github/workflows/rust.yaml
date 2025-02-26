@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: ( cd toml2cmake && cargo fmt --all -- --check )
+      - run: ( cd build2cmake && cargo fmt --all -- --check )
 
   clippy:
     name: Clippy
@@ -28,4 +28,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: ( cd toml2cmake && cargo clippy -- -D warnings )
+      - run: ( cd build2cmake && cargo clippy -- -D warnings )
