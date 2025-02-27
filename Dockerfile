@@ -17,8 +17,8 @@ ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
 ENTRYPOINT ["/bin/sh", "-c", "\
     nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle /kernelcode' -L && \
-    rm -rf /kernelcode/result && mkdir -p /kernelcode/result && \
-    cp -r --dereference ./result/* /kernelcode/result/ && \
-    chmod -R 777 /kernelcode/result && \
-    echo 'Build completed. Results copied to /kernelcode/result/'\
+    mkdir -p /kernelcode/build-output && \
+    cp -r --dereference ./result/* /kernelcode/build-output/ && \
+    chmod -R 777 /kernelcode/build-output && \
+    echo 'Build completed. Results copied to /kernelcode/build-output/'\
 "]
