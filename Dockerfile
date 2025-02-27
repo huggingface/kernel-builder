@@ -15,4 +15,10 @@ COPY . /etc/kernel-builder/
 
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
-ENTRYPOINT ["/bin/sh", "-c", "nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle /kernelcode' -L"]
+ENTRYPOINT ["/bin/sh", "-c", "\
+    nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle /kernelcode' -L && \
+    rm -rf /kernelcode/result && mkdir -p /kernelcode/result && \
+    cp -r --dereference ./result/* /kernelcode/result/ && \
+    chmod -R 777 /kernelcode/result && \
+    echo 'Build completed. Results copied to /kernelcode/result/'\
+"]
