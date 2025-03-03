@@ -27,7 +27,7 @@
 
 let
   effectiveStdenv = if cudaSupport then cudaPackages.backendStdenv else stdenv;
-in effectiveStdenv.mkDerivation {
+in effectiveStdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
   inherit nvccThreads src;
@@ -35,6 +35,13 @@ in effectiveStdenv.mkDerivation {
   # Generate build files.
   postPatch = ''
     build2cmake generate-torch build.toml
+  '';
+
+  # hipify copies files, but its target is run in the CMake build and install
+  # phases. Since some of the files come from the Nix store, this fails the
+  # second time around.
+  preInstall = ''
+    chmod -R u+w .
   '';
 
   nativeBuildInputs = [
@@ -101,4 +108,4 @@ in effectiveStdenv.mkDerivation {
   passthru = {
     inherit torch;
   };
-}
+})
