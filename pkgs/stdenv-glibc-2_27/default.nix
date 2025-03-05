@@ -1,9 +1,12 @@
 {
+  config,
+  cudaSupport ? config.cudaSupport,
   fetchFromGitHub,
   overrideCC,
   system,
   wrapBintoolsWith,
   wrapCCWith,
+  gcc12Stdenv,
   stdenv,
   bintools-unwrapped,
   cudaPackages,
@@ -69,4 +72,4 @@ let
     overrideCC stdenv compilerWrapped;
 
 in
-stdenvWith glibc_2_27 cudaPackages.backendStdenv.cc.cc stdenv
+stdenvWith glibc_2_27 (if cudaSupport then cudaPackages.backendStdenv else gcc12Stdenv).cc.cc stdenv

@@ -30,6 +30,7 @@ pub struct Torch {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Kernel {
     pub cuda_capabilities: Vec<String>,
+    pub rocm_archs: Option<Vec<String>>,
     pub depends: Vec<Dependencies>,
     pub include: Option<Vec<String>>,
     pub src: Vec<String>,

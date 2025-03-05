@@ -1,7 +1,5 @@
-get_torch_gpu_compiler_flags(TORCH_GPU_FLAGS ${GPU_LANGUAGE})
+get_torch_gpu_compiler_flags(GPU_FLAGS ${GPU_LANG})
 list(APPEND GPU_FLAGS ${TORCH_GPU_FLAGS})
-
-
 
 set(TORCH_{{name}}_SRC
   {{ src|join(' ') }}
@@ -20,10 +18,10 @@ list(APPEND SRC {{'"${TORCH_' + name + '_SRC}"'}})
 define_gpu_extension_target(
   {{ ops_name }}
   DESTINATION {{ ops_name }}
-  LANGUAGE ${GPU_LANGUAGE}
+  LANGUAGE ${GPU_LANG}
   SOURCES ${SRC}
   COMPILE_FLAGS ${GPU_FLAGS}
-  ARCHITECTURES ${GPU_ARCHITECTURES}
+  ARCHITECTURES ${GPU_ARCHES}
   #INCLUDE_DIRECTORIES ${CUTLASS_INCLUDE_DIR}
   USE_SABI 3
   WITH_SOABI)

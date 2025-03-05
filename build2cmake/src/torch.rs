@@ -12,6 +12,7 @@ use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
 static REGISTRATION_H: &str = include_str!("templates/registration.h");
+static HIPIFY: &str = include_str!("cmake/hipify.py");
 
 fn kernel_ops_identifier(name: &str) -> String {
     let mut rng = rand::thread_rng();
@@ -172,6 +173,13 @@ fn write_cmake(
         .entry(utils_path.clone())
         .extend_from_slice(CMAKE_UTILS.as_bytes());
 
+    let mut hipify_path = PathBuf::new();
+    hipify_path.push("cmake");
+    hipify_path.push("hipify.py");
+    file_set
+        .entry(hipify_path.clone())
+        .extend_from_slice(HIPIFY.as_bytes());
+
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
     render_preamble(env, name, cmake_writer)?;
@@ -255,6 +263,7 @@ pub fn render_kernel(
         .render_to_write(
             context! {
                 cuda_capabilities => kernel.cuda_capabilities,
+                rocm_archs => kernel.rocm_archs,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
                 sources => sources,
