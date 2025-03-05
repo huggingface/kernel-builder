@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 
+# From vLLM: https://github.com/vllm-project/vllm/blob/main/cmake/hipify.py
+
 #
 # A command line tool for running pytorch's hipify preprocessor on CUDA
 # source files.
