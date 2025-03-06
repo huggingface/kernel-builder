@@ -99,23 +99,7 @@ fn write_setup_py(
 ) -> Result<()> {
     let writer = file_set.entry("setup.py");
 
-    // Globs for files that are not Python files.
-    let data_globs = match torch.pyext.as_ref() {
-        Some(exts) => {
-            let globs = exts
-                .iter()
-                .filter(|&ext| ext != "py" && ext != "pyi")
-                .map(|ext| format!("\"**/*.{}\"", ext))
-                .collect_vec();
-            if globs.is_empty() {
-                None
-            } else {
-                Some(globs.join(", "))
-            }
-        }
-
-        None => None,
-    };
+    let data_globs = torch.data_globs().map(|globs| globs.join(", "));
 
     env.get_template("setup.py")
         .wrap_err("Cannot get setup.py template")?

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use itertools::Itertools;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -8,7 +9,7 @@ pub struct Build {
     pub general: General,
     pub torch: Option<Torch>,
 
-    #[serde(rename = "kernel")]
+    #[serde(rename = "kernel", default)]
     pub kernels: HashMap<String, Kernel>,
 }
 
@@ -23,7 +24,30 @@ pub struct General {
 pub struct Torch {
     pub include: Option<Vec<String>>,
     pub pyext: Option<Vec<String>>,
+
+    #[serde(default)]
     pub src: Vec<PathBuf>,
+}
+
+impl Torch {
+    pub fn data_globs(&self) -> Option<Vec<String>> {
+        match self.pyext.as_ref() {
+            Some(exts) => {
+                let globs = exts
+                    .iter()
+                    .filter(|&ext| ext != "py" && ext != "pyi")
+                    .map(|ext| format!("\"**/*.{}\"", ext))
+                    .collect_vec();
+                if globs.is_empty() {
+                    None
+                } else {
+                    Some(globs)
+                }
+            }
+
+            None => None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

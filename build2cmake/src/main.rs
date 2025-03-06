@@ -11,11 +11,14 @@ use minijinja::Environment;
 mod torch;
 use torch::write_torch_ext;
 
+mod torch_noarch;
+
 mod config;
 use config::Build;
 
 mod fileset;
 use fileset::FileSet;
+use torch_noarch::write_torch_noarch_ext;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -76,7 +79,15 @@ fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>, force: bool)
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    write_torch_ext(&env, &build, target_dir, force)?;
+    if let Some(torch_ext) = build.torch.as_ref() {
+        if torch_ext.src.is_empty() {
+            write_torch_noarch_ext(&env, &build, target_dir, force)?;
+        } else {
+            write_torch_ext(&env, &build, target_dir, force)?;
+        }
+    } else {
+        bail!("Build configuration does not have `torch` section");
+    }
 
     Ok(())
 }
