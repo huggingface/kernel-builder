@@ -38,11 +38,10 @@ rec {
     let
       inherit (lib) fileset;
       buildConfig = readBuildConfig path;
+      kernels = buildConfig.kernel or { };
       extraDeps = resolveDeps {
         inherit pkgs torch;
-        deps = lib.unique (
-          lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) buildConfig.kernel)
-        );
+        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) kernels));
       };
       extConfig = buildConfig.torch;
       pyExt =
@@ -51,12 +50,10 @@ rec {
           "pyi"
         ];
       pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
-      extSrc = extConfig.src ++ [ "build.toml" ];
+      extSrc = extConfig.src or [ ] ++ [ "build.toml" ];
       pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
       kernelsSrc = fileset.unions (
-        lib.flatten (
-          lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) buildConfig.kernel
-        )
+        lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) kernels)
       );
       srcSet = fileset.unions (map (nameToPath path) extSrc);
       src = fileset.toSource {
@@ -76,18 +73,26 @@ rec {
         ) buildConfig.kernel
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
+      torchSrc = buildConfig.torch.src or [ ];
     in
-    pkgs.callPackage ./torch-extension ({
-      inherit
-        extraDeps
-        nvccThreads
-        src
-        stdenv
-        stripRPath
-        torch
-        ;
-      extensionName = buildConfig.general.name;
-    });
+    if torchSrc == [ ] then
+      # No torch extension sources? Treat it as a noarch package.
+      pkgs.callPackage ./torch-extension-noarch ({
+        inherit src;
+        extensionName = buildConfig.general.name;
+      })
+    else
+      pkgs.callPackage ./torch-extension ({
+        inherit
+          extraDeps
+          nvccThreads
+          src
+          stdenv
+          stripRPath
+          torch
+          ;
+        extensionName = buildConfig.general.name;
+      });
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =
@@ -122,7 +127,14 @@ rec {
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
       extensions = buildDistTorchExtensions path;
-      namePaths = lib.mapAttrs (name: pkg: toString pkg) extensions;
+      buildConfig = readBuildConfig path;
+      torchSrc = buildConfig.torch.src or [ ];
+      namePaths =
+        if torchSrc == [ ] then
+          # Noarch, just get the first extension.
+          { "torch-noarch" = builtins.head (builtins.attrValues extensions); }
+        else
+          lib.mapAttrs (name: pkg: toString pkg) extensions;
     in
     import ./join-paths {
       inherit pkgs namePaths;
