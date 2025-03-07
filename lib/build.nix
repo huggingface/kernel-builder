@@ -74,7 +74,7 @@ rec {
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
     in
-    if buildConfig.torch.universal then
+    if buildConfig.torch.universal or false then
       # No torch extension sources? Treat it as a noarch package.
       pkgs.callPackage ./torch-extension-noarch ({
         inherit src;
@@ -128,7 +128,7 @@ rec {
       extensions = buildDistTorchExtensions path;
       buildConfig = readBuildConfig path;
       namePaths =
-        if buildConfig.torch.universal then
+        if buildConfig.torch.universal or false then
           # Noarch, just get the first extension.
           { "torch-universal" = builtins.head (builtins.attrValues extensions); }
         else
