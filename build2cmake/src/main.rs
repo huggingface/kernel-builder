@@ -11,14 +11,14 @@ use minijinja::Environment;
 mod torch;
 use torch::write_torch_ext;
 
-mod torch_noarch;
+mod torch_universal;
 
 mod config;
 use config::Build;
 
 mod fileset;
 use fileset::FileSet;
-use torch_noarch::write_torch_noarch_ext;
+use torch_universal::write_torch_universal_ext;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -80,8 +80,8 @@ fn generate_torch(build_toml: PathBuf, target_dir: Option<PathBuf>, force: bool)
     minijinja_embed::load_templates!(&mut env);
 
     if let Some(torch_ext) = build.torch.as_ref() {
-        if torch_ext.src.is_empty() {
-            write_torch_noarch_ext(&env, &build, target_dir, force)?;
+        if torch_ext.universal {
+            write_torch_universal_ext(&env, &build, target_dir, force)?;
         } else {
             write_torch_ext(&env, &build, target_dir, force)?;
         }

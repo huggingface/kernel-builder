@@ -8,7 +8,7 @@ use crate::{
     fileset::FileSet,
 };
 
-pub fn write_torch_noarch_ext(
+pub fn write_torch_universal_ext(
     env: &Environment,
     build: &Build,
     target_dir: PathBuf,
@@ -38,8 +38,8 @@ fn write_pyproject_toml(
 
     let data_globs = torch.data_globs().map(|globs| globs.join(", "));
 
-    env.get_template("pyproject_noarch.toml")
-        .wrap_err("Cannot get noarch pyproject.toml template")?
+    env.get_template("pyproject_universal.toml")
+        .wrap_err("Cannot get universal pyproject.toml template")?
         .render_to_write(
             context! {
                 data_globs => data_globs,

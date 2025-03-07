@@ -27,6 +27,9 @@ pub struct Torch {
 
     #[serde(default)]
     pub src: Vec<PathBuf>,
+
+    #[serde(default)]
+    pub universal: bool,
 }
 
 impl Torch {
