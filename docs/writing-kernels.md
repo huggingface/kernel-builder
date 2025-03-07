@@ -95,6 +95,8 @@ similar sections for other frameworks. This section can contain the
 following options:
 
 - `src` (required): a list of source files and headers.
+- `universal` (optional): set to `true` when the extension is a pure
+  Python extension, such as a Triton kernel. Default: `false`.
 - `pyext` (optional): the list of extensions for Python files. Default:
   `["py", "pyi"]`.
 - `include` (optional): include directories relative to the project root.
