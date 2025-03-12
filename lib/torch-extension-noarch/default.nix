@@ -11,7 +11,6 @@ stdenv.mkDerivation (prevAttrs: {
   inherit src;
 
   installPhase = ''
-    ls -l 
     mkdir -p $out
     cp -r torch-ext/${extensionName} $out/
   '';
