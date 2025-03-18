@@ -25,6 +25,82 @@ rec {
   srcFilter =
     src: name: type:
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
+    
+  hashSrcs =
+    srcs:
+    let
+      # Convert fileset to a list of paths
+      filesList = lib.filesystem.listFilesRecursive srcs;
+      hashSrc = file: builtins.readFile file;
+    in
+    builtins.hashString "sha256" (builtins.concatStringsSep "" (map hashSrc filesList));
+
+  languages =
+    buildConfig:
+    let
+      kernels = lib.attrValues (buildConfig.kernel or { });
+      kernelLang = kernel: kernel.language or "cuda";
+      init = {
+        cuda = false;
+        cuda-hipify = false;
+      };
+    in
+    lib.foldl (langs: kernel: langs // { ${kernelLang kernel} = true; }) init kernels;
+
+  applicableBuildSets =
+    buildConfig: buildSets:
+    let
+      languages' = languages buildConfig;
+      supportedBuildSet =
+        buildSet:
+        (buildSet.gpu == "cuda" && (languages'.cuda || languages'.cuda-hipify))
+        || (buildSet.gpu == "rocm" && languages'.cuda-hipify);
+    in
+    builtins.filter supportedBuildSet buildSets;
+
+    getSourceHash = 
+      path:
+      let
+        # Use the first buildSet configuration for hashing
+        buildSet = builtins.head buildSets;
+        inherit (lib) fileset;
+        buildConfig = readBuildConfig path;
+        kernels = buildConfig.kernel or { };
+        extraDeps = resolveDeps {
+          pkgs = buildSet.pkgs;
+          torch = buildSet.torch;
+          deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) kernels));
+        };
+        extConfig = buildConfig.torch;
+        pyExt =
+          extConfig.pyext or [
+            "py"
+            "pyi"
+          ];
+        pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
+        extSrc = extConfig.src or [ ] ++ [ "build.toml" ];
+        pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
+        kernelsSrc = fileset.unions (
+          lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) kernels)
+        );
+        srcSet = fileset.unions (map (nameToPath path) extSrc);
+        src = fileset.toSource {
+          root = path;
+          fileset = fileset.unions [
+            kernelsSrc
+            srcSet
+            pySrcSet
+          ];
+        };
+        srcHash = builtins.substring 0 7 (hashSrcs src);
+      in
+        # Print the hash and create a derivation with the hash
+        builtins.trace "Source Hash = ${srcHash}" (
+          buildSet.pkgs.writeTextFile {
+            name = "source-hash";
+            text = srcHash;
+          }
+        );
 
   languages =
     buildConfig:
@@ -90,6 +166,7 @@ rec {
           pySrcSet
         ];
       };
+      srcHash = builtins.substring 0 7 (hashSrcs src);
 
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
@@ -105,6 +182,7 @@ rec {
       pkgs.callPackage ./torch-extension-noarch ({
         inherit src;
         extensionName = buildConfig.general.name;
+        srcHash = srcHash;
       })
     else
       pkgs.callPackage ./torch-extension ({
@@ -117,6 +195,7 @@ rec {
           torch
           ;
         extensionName = buildConfig.general.name;
+        srcHash = srcHash;
       });
 
   # Build multiple Torch extensions.
