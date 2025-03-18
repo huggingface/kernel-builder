@@ -2,17 +2,6 @@
 
 rec {
   torchCudaVersions = {
-    "2.5" = {
-      cudaVersions = [
-        "11.8"
-        "12.1"
-        "12.4"
-      ];
-      cxx11Abi = [
-        true
-        false
-      ];
-    };
     "2.6" = {
       cudaVersions = [
         "11.8"
@@ -22,6 +11,16 @@ rec {
       cxx11Abi = [
         true
         false
+      ];
+    };
+    "2.7" = {
+      cudaVersions = [
+        "11.8"
+        "12.6"
+        "12.8"
+      ];
+      cxx11Abi = [
+        true
       ];
     };
   };
@@ -53,8 +52,8 @@ rec {
             cxx11Abi = true;
           })
           [
-            "2.5"
             "2.6"
+            "2.7"
           ];
     in
     cuda ++ rocm;
