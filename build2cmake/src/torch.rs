@@ -250,6 +250,7 @@ pub fn render_kernel(
                 rocm_archs => kernel.rocm_archs,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
+                language => kernel.language.to_string(),
                 sources => sources,
             },
             &mut *write,

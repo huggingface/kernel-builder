@@ -109,11 +109,18 @@ the following options:
 
 - `cuda-capabilities` (required): a list of CUDA capabilities that the
   kernel should be compiled for.
+- `rocm-archs` (required): a list of ROCm architectures that the kernel
+  should be compiled for.
 - `depends` (required): a list of dependencies. The supported dependencies
   are listed in [`deps.nix`](../lib/deps.nix].
 - `src` (required): a list of source files and headers.
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
+- `language` (optional): the language used for the kernel. Must be `cuda`
+  or `cuda-hipify`. `cuda-hipify` is for CUDA kernels that can also be
+  compiled for ROCm using hipify. **Warning:** `cuda-hipify` is currently
+  experimental and does not produce conforming kernels yet.
+  Default: `"cuda"`
 
 Multiple `kernel.<name>` sections can be defined in the same `build.toml`.
 See for example [`kernels-community/quantization`](https://huggingface.co/kernels-community/quantization/)

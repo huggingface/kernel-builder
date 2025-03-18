@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use itertools::Itertools;
 use serde::Deserialize;
@@ -58,9 +58,28 @@ impl Torch {
 pub struct Kernel {
     pub cuda_capabilities: Vec<String>,
     pub rocm_archs: Option<Vec<String>>,
+    #[serde(default)]
+    pub language: Language,
     pub depends: Vec<Dependencies>,
     pub include: Option<Vec<String>>,
     pub src: Vec<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum Language {
+    #[default]
+    Cuda,
+    CudaHipify,
+}
+
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::Cuda => f.write_str("cuda"),
+            Language::CudaHipify => f.write_str("cuda-hipify"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq)]

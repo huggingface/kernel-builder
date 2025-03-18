@@ -26,12 +26,38 @@ rec {
     src: name: type:
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
 
+  languages =
+    buildConfig:
+    let
+      kernels = lib.attrValues (buildConfig.kernel or { });
+      kernelLang = kernel: kernel.language or "cuda";
+      init = {
+        cuda = false;
+        cuda-hipify = false;
+      };
+    in
+    lib.foldl (langs: kernel: langs // { ${kernelLang kernel} = true; }) init kernels;
+
+  applicableBuildSets =
+    buildConfig: buildSets:
+    let
+      languages' = languages buildConfig;
+      supportedBuildSet =
+        buildSet:
+        (buildSet.gpu == "cuda" && (languages'.cuda || languages'.cuda-hipify))
+        || (buildSet.gpu == "rocm" && languages'.cuda-hipify);
+    in
+    builtins.filter supportedBuildSet buildSets;
+
   # Build a single Torch extension.
   buildTorchExtension =
     {
-      path,
+      gpu,
       pkgs,
       torch,
+    }:
+    {
+      path,
       stripRPath ? false,
       oldLinuxCompat ? false,
     }:
@@ -95,30 +121,31 @@ rec {
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =
+    path:
     let
       extensionForTorch = path: buildSet: {
         name = torchBuildVersion buildSet;
-        value = buildTorchExtension ({ inherit path; } // buildSet);
+        value = buildTorchExtension buildSet { inherit path; };
       };
+      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    path: builtins.listToAttrs (lib.map (extensionForTorch path) buildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch path) filteredBuildSets);
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
+    path:
     let
       extensionForTorch = path: buildSet: {
         name = torchBuildVersion buildSet;
-        value = buildTorchExtension (
-          {
-            inherit path;
-            stripRPath = true;
-            oldLinuxCompat = true;
-          }
-          // buildSet
-        );
+        value = buildTorchExtension buildSet {
+          inherit path;
+          stripRPath = true;
+          oldLinuxCompat = true;
+        };
       };
+      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    path: builtins.listToAttrs (lib.map (extensionForTorch path) buildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch path) filteredBuildSets);
 
   buildTorchExtensionBundle =
     path:
@@ -142,6 +169,7 @@ rec {
   # Get a development shell with the extension in PYTHONPATH. Handy
   # for running tests.
   torchExtensionShells =
+    path:
     let
       shellForBuildSet = path: buildSet: {
         name = torchBuildVersion buildSet;
@@ -157,10 +185,11 @@ rec {
               ))
             ];
             shellHook = ''
-              export PYTHONPATH=${buildTorchExtension ({ inherit path; } // buildSet)}
+              export PYTHONPATH=${buildTorchExtension buildSet { inherit path; }}
             '';
           };
       };
+      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    path: builtins.listToAttrs (lib.map (shellForBuildSet path) buildSets);
+    builtins.listToAttrs (lib.map (shellForBuildSet path) filteredBuildSets);
 }

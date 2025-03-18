@@ -1,4 +1,8 @@
-{ pkgs, torch }:
+{
+  gpu,
+  pkgs,
+  torch,
+}:
 let
   inherit (pkgs) lib;
   flattenVersion = version: lib.replaceStrings [ "." ] [ "" ] (lib.versions.pad 2 version);

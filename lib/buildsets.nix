@@ -35,7 +35,7 @@ let
       };
     in
     {
-      inherit pkgs torch;
+      inherit gpu pkgs torch;
     };
 
   pkgsForRocm = import nixpkgs {

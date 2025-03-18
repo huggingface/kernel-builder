@@ -14,7 +14,7 @@ if(GPU_LANG STREQUAL "CUDA")
   cuda_archs_loose_intersection({{kernel_name}}_ARCHS "{{ cuda_capabilities|join(";") }}" ${CUDA_ARCHS})
   set_gencode_flags_for_srcs(SRCS {{'"${' + kernel_name + '_SRC}"'}} CUDA_ARCHS {{ '${' + kernel_name + '_ARCHS}'}})
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
-{% if rocm_archs %}
+{% if language == "cuda-hipify" %}
 elseif(GPU_LANG STREQUAL "HIP")
   # We currently don't use the archs yet.
   # set({{kernel_name}}_ARCHS "{{ rocm_archs|join(";") }}")
