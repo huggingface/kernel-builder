@@ -67,7 +67,7 @@
     if cudaSupport then
       triton-cuda
     else if rocmSupport then
-      rocmPackages.aotriton
+      rocmPackages.aotriton_0_8
     else
       triton,
   triton-cuda,
@@ -449,7 +449,7 @@ buildPythonPackage rec {
       );
     }
     // lib.optionalAttrs rocmSupport {
-      AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton;
+      AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton_0_8;
     };
 
   nativeBuildInputs =
