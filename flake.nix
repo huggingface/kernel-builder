@@ -48,7 +48,7 @@
       #   standardized outputs (for all supported systems).
       lib = {
         genFlakeOutputs =
-          path:
+          {path, rev}:
           flake-utils.lib.eachSystem systems (
             system:
             let
@@ -60,9 +60,8 @@
                 shells = build.torchExtensionShells path;
               };
               packages = {
-                hash = build.getSourceHash path;
-                bundle = build.buildTorchExtensionBundle path;
-                redistributable = build.buildDistTorchExtensions path;
+                bundle = build.buildTorchExtensionBundle { inherit path rev; };
+                redistributable = build.buildDistTorchExtensions { inherit path rev; };
               };
             }
           );

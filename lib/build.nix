@@ -59,7 +59,7 @@ rec {
     builtins.filter supportedBuildSet buildSets;
 
     getSourceHash = 
-      path:
+      {path, rev}:
       let
         # Use the first buildSet configuration for hashing
         buildSet = builtins.head buildSets;
@@ -111,6 +111,7 @@ rec {
     }:
     {
       path,
+      rev,
       stripRPath ? false,
       oldLinuxCompat ? false,
     }:
@@ -143,7 +144,6 @@ rec {
           pySrcSet
         ];
       };
-      srcHash = builtins.substring 0 7 (hashSrcs src);
 
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
@@ -159,7 +159,6 @@ rec {
       pkgs.callPackage ./torch-extension-noarch ({
         inherit src;
         extensionName = buildConfig.general.name;
-        srcHash = srcHash;
       })
     else
       pkgs.callPackage ./torch-extension ({
@@ -172,7 +171,7 @@ rec {
           torch
           ;
         extensionName = buildConfig.general.name;
-        srcHash = srcHash;
+        rev = rev;
       });
 
   # Build multiple Torch extensions.
@@ -189,12 +188,12 @@ rec {
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
-    path:
+    {path, rev}:
     let
       extensionForTorch = path: buildSet: {
         name = torchBuildVersion buildSet;
         value = buildTorchExtension buildSet {
-          inherit path;
+          inherit path rev;
           stripRPath = true;
           oldLinuxCompat = true;
         };
@@ -204,11 +203,11 @@ rec {
     builtins.listToAttrs (lib.map (extensionForTorch path) filteredBuildSets);
 
   buildTorchExtensionBundle =
-    path:
+    {path, rev}:
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
-      extensions = buildDistTorchExtensions path;
+      extensions = buildDistTorchExtensions { inherit path rev; };
       buildConfig = readBuildConfig path;
       namePaths =
         if buildConfig.torch.universal or false then

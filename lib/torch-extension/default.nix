@@ -1,7 +1,7 @@
 {
   extensionName,
   nvccThreads,
-  srcHash,
+  rev,
 
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
@@ -33,7 +33,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   # Generate build files.
   postPatch = ''
-    build2cmake generate-torch --ops-id ${srcHash} build.toml
+    build2cmake generate-torch --ops-id ${rev} build.toml
   '';
 
   # hipify copies files, but its target is run in the CMake build and install
