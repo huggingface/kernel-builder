@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
 
 use eyre::{bail, Context, Result};
 use itertools::Itertools;
