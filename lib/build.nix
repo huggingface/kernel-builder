@@ -116,28 +116,28 @@ rec {
           stdenv
           stripRPath
           torch
+          rev
           ;
         extensionName = buildConfig.general.name;
-        rev = rev;
       });
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =
-    path:
+    {path, rev}:
     let
-      extensionForTorch = path: buildSet: {
+      extensionForTorch = {path, rev}: buildSet: {
         name = torchBuildVersion buildSet;
-        value = buildTorchExtension buildSet { inherit path; };
+        value = buildTorchExtension buildSet { inherit path rev; };
       };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map (extensionForTorch path) filteredBuildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
     {path, rev}:
     let
-      extensionForTorch = path: buildSet: {
+      extensionForTorch = {path, rev}: buildSet: {
         name = torchBuildVersion buildSet;
         value = buildTorchExtension buildSet {
           inherit path rev;
@@ -147,7 +147,7 @@ rec {
       };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map (extensionForTorch path) filteredBuildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
 
   buildTorchExtensionBundle =
     {path, rev}:
@@ -171,9 +171,9 @@ rec {
   # Get a development shell with the extension in PYTHONPATH. Handy
   # for running tests.
   torchExtensionShells =
-    path:
+    {path, rev}:
     let
-      shellForBuildSet = path: buildSet: {
+      shellForBuildSet = {path, rev}: buildSet: {
         name = torchBuildVersion buildSet;
         value =
           with buildSet.pkgs;
@@ -187,7 +187,7 @@ rec {
               ))
             ];
             shellHook = ''
-              export PYTHONPATH=${buildTorchExtension buildSet { inherit path; }}
+              export PYTHONPATH=${buildTorchExtension buildSet { inherit path rev; }}
             '';
           };
       };

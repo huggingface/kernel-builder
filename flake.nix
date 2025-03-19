@@ -53,6 +53,7 @@
             system:
             let
               build = libPerSystem.${system};
+              revUnderscored = builtins.replaceStrings ["-"] ["_"] rev;
             in
             {
               devShells = rec {
@@ -60,8 +61,8 @@
                 shells = build.torchExtensionShells path;
               };
               packages = {
-                bundle = build.buildTorchExtensionBundle { inherit path rev; };
-                redistributable = build.buildDistTorchExtensions { inherit path rev; };
+                bundle = build.buildTorchExtensionBundle { inherit path; rev = revUnderscored; };
+                redistributable = build.buildDistTorchExtensions { inherit path; rev = revUnderscored; };
               };
             }
           );
