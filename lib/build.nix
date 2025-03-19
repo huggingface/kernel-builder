@@ -123,34 +123,38 @@ rec {
 
   # Build multiple Torch extensions.
   buildNixTorchExtensions =
-    {path, rev}:
+    { path, rev }:
     let
-      extensionForTorch = {path, rev}: buildSet: {
-        name = torchBuildVersion buildSet;
-        value = buildTorchExtension buildSet { inherit path rev; };
-      };
+      extensionForTorch =
+        { path, rev }:
+        buildSet: {
+          name = torchBuildVersion buildSet;
+          value = buildTorchExtension buildSet { inherit path rev; };
+        };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
     builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
-    {path, rev}:
+    { path, rev }:
     let
-      extensionForTorch = {path, rev}: buildSet: {
-        name = torchBuildVersion buildSet;
-        value = buildTorchExtension buildSet {
-          inherit path rev;
-          stripRPath = true;
-          oldLinuxCompat = true;
+      extensionForTorch =
+        { path, rev }:
+        buildSet: {
+          name = torchBuildVersion buildSet;
+          value = buildTorchExtension buildSet {
+            inherit path rev;
+            stripRPath = true;
+            oldLinuxCompat = true;
+          };
         };
-      };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
     builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
 
   buildTorchExtensionBundle =
-    {path, rev}:
+    { path, rev }:
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
@@ -171,26 +175,28 @@ rec {
   # Get a development shell with the extension in PYTHONPATH. Handy
   # for running tests.
   torchExtensionShells =
-    {path, rev}:
+    { path, rev }:
     let
-      shellForBuildSet = {path, rev}: buildSet: {
-        name = torchBuildVersion buildSet;
-        value =
-          with buildSet.pkgs;
-          mkShell {
-            buildInputs = [
-              (python3.withPackages (
-                ps: with ps; [
-                  buildSet.torch
-                  pytest
-                ]
-              ))
-            ];
-            shellHook = ''
-              export PYTHONPATH=${buildTorchExtension buildSet { inherit path rev; }}
-            '';
-          };
-      };
+      shellForBuildSet =
+        { path, rev }:
+        buildSet: {
+          name = torchBuildVersion buildSet;
+          value =
+            with buildSet.pkgs;
+            mkShell {
+              buildInputs = [
+                (python3.withPackages (
+                  ps: with ps; [
+                    buildSet.torch
+                    pytest
+                  ]
+                ))
+              ];
+              shellHook = ''
+                export PYTHONPATH=${buildTorchExtension buildSet { inherit path rev; }}
+              '';
+            };
+        };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
     builtins.listToAttrs (lib.map (shellForBuildSet path) filteredBuildSets);
