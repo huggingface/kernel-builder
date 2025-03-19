@@ -26,6 +26,29 @@ rec {
     src: name: type:
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
 
+  languages =
+    buildConfig:
+    let
+      kernels = lib.attrValues (buildConfig.kernel or { });
+      kernelLang = kernel: kernel.language or "cuda";
+      init = {
+        cuda = false;
+        cuda-hipify = false;
+      };
+    in
+    lib.foldl (langs: kernel: langs // { ${kernelLang kernel} = true; }) init kernels;
+
+  applicableBuildSets =
+    buildConfig: buildSets:
+    let
+      languages' = languages buildConfig;
+      supportedBuildSet =
+        buildSet:
+        (buildSet.gpu == "cuda" && (languages'.cuda || languages'.cuda-hipify))
+        || (buildSet.gpu == "rocm" && languages'.cuda-hipify);
+    in
+    builtins.filter supportedBuildSet buildSets;
+
   # Build a single Torch extension.
   buildTorchExtension =
     {
