@@ -199,5 +199,5 @@ rec {
         };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map (shellForBuildSet path) filteredBuildSets);
+    builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) filteredBuildSets);
 }
