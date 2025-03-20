@@ -10,5 +10,8 @@
       self,
       kernel-builder,
     }:
-    kernel-builder.lib.genFlakeOutputs ./.;
+    kernel-builder.lib.genFlakeOutputs {
+      path = ./.;
+      rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
+    };
 }
