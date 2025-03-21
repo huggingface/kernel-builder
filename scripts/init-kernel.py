@@ -163,6 +163,11 @@ def main():
         f"  {Colors.YELLOW}{1}.{Colors.ENDC} {Colors.BOLD}pytest -vv tests/{Colors.ENDC}"
     )
 
+    print(f"\n{Colors.CYAN}{Colors.BOLD}Generate documentation{Colors.ENDC}")
+    print(
+        f"  {Colors.YELLOW}{1}.{Colors.ENDC} {Colors.BOLD}uv run scripts/gen-docs.py ./{Colors.ENDC}"
+    )
+
     print("")
 
 

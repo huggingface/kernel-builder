@@ -29,6 +29,7 @@ the activation folder.
 - [Building kernels with Nix](./docs/nix.md)
 - [Local kernel development](docs/local-dev.md) (IDE integration)
 - [Why Nix?](./docs/why-nix.md)
+- [Documentation Generator](./docs/documentation-generator.md)
 
 ## Credits
 
