@@ -58,7 +58,10 @@
             {
               devShells = rec {
                 default = shells.torch26-cxx98-cu126-x86_64-linux;
-                shells = build.torchExtensionShells path;
+                shells = build.torchExtensionShells {
+                  inherit path;
+                  rev = revUnderscored;
+                };
               };
               packages = {
                 bundle = build.buildTorchExtensionBundle {
