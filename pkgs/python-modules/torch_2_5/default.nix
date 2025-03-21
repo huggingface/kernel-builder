@@ -115,16 +115,13 @@ let
   supportedTorchCudaCapabilities =
     let
       real = [
-        # In contrast to nixpkgs, we don't care about old capabilities for development.
+        "5.0"
+        "6.0"
+        "7.0"
         "7.5"
         "8.0"
         "8.6"
-        # This capability seems to be Jetson-only, which we don't care about,
-        # at least for now.
-        # "8.7"
-        "8.9"
         "9.0"
-        "9.0a"
       ];
       ptx = lists.map (x: "${x}+PTX") real;
     in

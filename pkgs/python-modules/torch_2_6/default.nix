@@ -126,18 +126,47 @@ let
   # https://github.com/pytorch/pytorch/blob/v2.4.0/torch/utils/cpp_extension.py#L1953
   supportedTorchCudaCapabilities =
     let
-      real = [
-        # In contrast to nixpkgs, we don't care about old capabilities for development.
-        "7.5"
-        "8.0"
-        "8.6"
-        # This capability seems to be Jetson-only, which we don't care about,
-        # at least for now.
-        # "8.7"
-        "8.9"
-        "9.0"
-        "9.0a"
-      ];
+      # https://github.com/pytorch/pytorch/blob/release/2.6/.ci/manywheel/build_cuda.sh
+      capsPerCudaVersion = {
+        "12.6" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "12.4" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "12.1" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "11.8" = [
+          "3.7"
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+      };
+      real = capsPerCudaVersion."${lib.versions.majorMinor cudaPackages.cudaVersion}";
       ptx = lists.map (x: "${x}+PTX") real;
     in
     real ++ ptx;
