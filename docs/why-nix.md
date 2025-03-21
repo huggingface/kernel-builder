@@ -6,7 +6,7 @@ Here’s why we chose Nix and why it's particularly suited to our workflow:
 
 ## 1. Consistent and Reproducible Builds
 
-Nix guarantees deterministic builds, ensuring that every kernel is built identically, regardless of the host environment. This consistency prevents "it works on my machine" problems, making debugging and deployment straightforward.
+Nix guarantees deterministic evaluation, ensuring that every kernel is built identically, regardless of the host environment. This consistency prevents "it works on my machine" problems, making debugging and deployment straightforward.
 
 ## 2. Simplified Dependency Management
 
