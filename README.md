@@ -28,6 +28,7 @@ the activation folder.
 - [Building kernels with Docker](./docs/docker.md)
 - [Building kernels with Nix](./docs/nix.md)
 - [Local kernel development](docs/local-dev.md) (IDE integration)
+- [Why Nix?](./docs/why-nix.md)
 
 ## Credits
 
