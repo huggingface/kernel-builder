@@ -1,6 +1,6 @@
 import logging
 import os
-from shutil import which
+from shutil import which, move
 import subprocess
 import sys
 from pathlib import Path
@@ -101,6 +101,9 @@ class CMakeBuild(build_ext):
         num_jobs = max(1, num_jobs // nvcc_threads)
 
         build_args += [f"-j{num_jobs}"]
+        if sys.platform == "win32":
+            build_args += ["--config", cfg]
+
         if nvcc_threads:
             cmake_args += ["-DNVCC_THREADS={}".format(nvcc_threads)]
 
@@ -114,6 +117,11 @@ class CMakeBuild(build_ext):
         subprocess.run(
             ["cmake", "--build", ".", *build_args], cwd=build_temp, check=True
         )
+        if sys.platform == "win32":
+            # Move the dylib one folder up for discovery.
+            for filename in os.listdir(extdir / cfg):
+                move(extdir / cfg / filename, extdir / filename)
+
 
 
 setup(
