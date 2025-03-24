@@ -20,6 +20,9 @@ mod fileset;
 use fileset::FileSet;
 use torch_universal::write_torch_universal_ext;
 
+#[cfg(test)]
+mod e2e_test;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
