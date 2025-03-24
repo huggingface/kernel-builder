@@ -16,8 +16,7 @@ if(GPU_LANG STREQUAL "CUDA")
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% if language == "cuda-hipify" %}
 elseif(GPU_LANG STREQUAL "HIP")
-  # We currently don't use the archs yet.
-  # set({{kernel_name}}_ARCHS "{{ rocm_archs|join(";") }}")
+  hip_archs_loose_intersection({{kernel_name}}_ARCHS "{{ rocm_archs|join(";") }}" ${ROCM_ARCHS})
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% endif %}
 endif()

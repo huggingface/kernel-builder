@@ -19,7 +19,7 @@ pub struct General {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Torch {
     pub include: Option<Vec<String>>,

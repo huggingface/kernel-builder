@@ -310,6 +310,43 @@ function(cuda_archs_loose_intersection OUT_CUDA_ARCHS SRC_CUDA_ARCHS TGT_CUDA_AR
   set(${OUT_CUDA_ARCHS} ${_CUDA_ARCHS} PARENT_SCOPE)
 endfunction()
 
+
+#
+# For the given `SRC_ROCM_ARCHS` list of architecture versions in the form 
+# `<name>` compute the "loose intersection" with the `TGT_ROCM_ARCHS` list. 
+# The loose intersection is defined as:
+#   { max{ x \in tgt | x <= y } | y \in src, { x \in tgt | x <= y } != {} }
+#  where `<=` is the version comparison operator.
+# In other words, for each version in `TGT_ROCM_ARCHS` find the highest version
+#  in `SRC_ROCM_ARCHS` that is less or equal to the version in `TGT_ROCM_ARCHS`.
+# The result is stored in `OUT_ROCM_ARCHS`.
+#
+# Example:
+#   SRC_ROCM_ARCHS="gfx900;gfx906;gfx908;gfx90a"
+#   TGT_ROCM_ARCHS="gfx906;gfx908;gfx1030"
+#   hip_archs_loose_intersection(OUT_ROCM_ARCHS SRC_ROCM_ARCHS TGT_ROCM_ARCHS)
+#   OUT_ROCM_ARCHS="gfx906;gfx908"
+#
+function(hip_archs_loose_intersection OUT_ROCM_ARCHS SRC_ROCM_ARCHS TGT_ROCM_ARCHS)
+  list(REMOVE_DUPLICATES SRC_ROCM_ARCHS)
+  
+  # ROCm architectures are typically in format gfxNNN or gfxNNNx where N is a digit
+  # and x is a letter. We can sort them by string comparison which works for this format.
+  list(SORT SRC_ROCM_ARCHS COMPARE STRING ORDER ASCENDING)
+  
+  set(_ROCM_ARCHS)
+  
+  # Find the intersection of supported architectures
+  foreach(_SRC_ARCH ${SRC_ROCM_ARCHS})
+    if(_SRC_ARCH IN_LIST TGT_ROCM_ARCHS)
+      list(APPEND _ROCM_ARCHS ${_SRC_ARCH})
+    endif()
+  endforeach()
+  
+  list(REMOVE_DUPLICATES _ROCM_ARCHS)
+  set(${OUT_ROCM_ARCHS} ${_ROCM_ARCHS} PARENT_SCOPE)
+endfunction()
+
 #
 # Override the GPU architectures detected by cmake/torch and filter them by
 # `GPU_SUPPORTED_ARCHES`. Sets the final set of architectures in
