@@ -20,7 +20,10 @@
       rocm-nix,
     }:
     let
-      systems = [ flake-utils.lib.system.x86_64-linux ];
+      systems = with flake-utils.lib.system; [
+        aarch64-linux
+        x86_64-linux
+      ];
 
       # Create an attrset { "<system>" = [ <buildset> ...]; ... }.
       buildSetPerSystem = builtins.listToAttrs (
