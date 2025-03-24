@@ -153,6 +153,9 @@ let
   supportedCudaCapabilities = lists.intersectLists cudaFlags.cudaCapabilities supportedTorchCudaCapabilities;
   unsupportedCudaCapabilities = lists.subtractLists supportedCudaCapabilities cudaFlags.cudaCapabilities;
 
+  supportedRocmArchs = lists.intersectLists rocmPackages.clr.gpuTargets supportedTorchRocmArchs;
+  unsupportedRocmArchs = lists.subtractLists supportedRocmArchs rocmPackages.clr.gpuTargets;
+
   # Use trivial.warnIf to print a warning if any unsupported GPU targets are specified.
   gpuArchWarner =
     supported: unsupported:
@@ -169,7 +172,7 @@ let
     else if cudaSupport then
       gpuArchWarner supportedCudaCapabilities unsupportedCudaCapabilities
     else if rocmSupport then
-      supportedTorchRocmArchs
+      gpuArchWarner supportedRocmArchs unsupportedRocmArchs
     else
       throw "No GPU targets specified"
   );
@@ -671,7 +674,7 @@ buildPythonPackage rec {
       rocmPackages
       ;
     cudaCapabilities = if cudaSupport then supportedCudaCapabilities else [ ];
-    rocmArchs = if rocmSupport then supportedTorchRocmArchs else [ ];
+    rocmArchs = if rocmSupport then supportedRocmArchs else [ ];
     # At least for 1.10.2 `torch.fft` is unavailable unless BLAS provider is MKL. This attribute allows for easy detection of its availability.
     blasProvider = blas.provider;
     # To help debug when a package is broken due to CUDA support
