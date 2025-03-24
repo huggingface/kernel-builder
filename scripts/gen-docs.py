@@ -1,124 +1,95 @@
 # /// script
 # dependencies = [
 #   "toml",
+#   "clang",
 # ]
 # ///
-import os
-import re
-import toml
-import argparse
-from pathlib import Path
-from datetime import datetime
+from clang.cindex import Config
+import clang.cindex
+from clang.cindex import CursorKind
 from typing import Dict, List, Optional, Any, Tuple
+import os
+from pathlib import Path
+import argparse
+from datetime import datetime
+import toml
 
 
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Generate documentation for kernel projects"
-    )
-    parser.add_argument("project_path", help="Path to the kernel project root")
-    parser.add_argument("--output", "-o", help="Output directory", default="docs")
-    parser.add_argument(
-        "--toc",
-        "-t",
-        help="Include table of contents",
-        action="store_true",
-        default=True,
-    )
-    return parser.parse_args()
+Config.set_library_file("/Library/Developer/CommandLineTools/usr/lib/libclang.dylib")
+Config.set_compatibility_check(False)
 
 
-def parse_build_config(project_path: str) -> Optional[Dict[str, Any]]:
-    """Parse the build.toml configuration file."""
-    build_config_path = os.path.join(project_path, "build.toml")
-    if not os.path.exists(build_config_path):
-        print(f"Error: build.toml not found at {build_config_path}")
-        return None
+def get_function_declarations(file_path):
+    """
+    Extract all function declarations from a C++ file.
 
-    try:
-        config = toml.load(build_config_path)
-        print(f"Successfully parsed build configuration from {build_config_path}")
-        return config
-    except Exception as e:
-        print(f"Error parsing build.toml: {e}")
-        return None
+    Args:
+        file_path (str): Path to the C++ file
 
+    Returns:
+        list: List of dictionaries containing function information
+    """
+    # Initialize clang index
+    index = clang.cindex.Index.create()
 
-def extract_function_signature(content: str, func_name: str) -> str:
-    """Extract the full function signature for better documentation."""
-    # Look for the function definition
-    pattern = rf"(?:__global__ void|void|template\s*<.*?>\s*__global__ void|template\s*<.*?>\s*void)\s+{func_name}\s*\([^\)]*\)"
-    match = re.search(pattern, content, re.DOTALL)
-    if match:
-        signature = match.group(0).strip()
-        # Remove trailing comments on each line
-        signature_lines = signature.split("\n")
-        signature_lines = [line.split("//")[0].strip() for line in signature_lines]
-        signature = "\n".join(signature_lines)
-        # Clean up the signature
-        signature = re.sub(r"\s+", " ", signature)
-        return signature
-    return func_name
+    # Parse the file
+    translation_unit = index.parse(file_path)
 
+    # Check for parsing errors
+    if not translation_unit:
+        print(f"Error parsing {file_path}")
+        return []
 
-def extract_function_params(content: str, func_name: str) -> List[Dict[str, str]]:
-    """Extract function parameters with their types."""
-    pattern = rf"(?:__global__ void|void|template\s*<.*?>\s*__global__ void|template\s*<.*?>\s*void)\s+{func_name}\s*\(([^\)]*)\)"
-    match = re.search(pattern, content, re.DOTALL)
-    params = []
+    functions = []
 
-    if match:
-        param_str = match.group(1).strip()
-        # Remove trailing comments on each line
-        param_str_lines = param_str.split("\n")
-        param_str_lines = [line.split("//")[0].strip() for line in param_str_lines]
-        param_str = "\n".join(param_str_lines)
+    # Helper function to recursively traverse the AST
+    def traverse_ast(cursor, parent=None):
+        # Check if the cursor represents a function declaration
+        if cursor.kind == CursorKind.FUNCTION_DECL:
+            # Get function return type
+            return_type = cursor.type.get_result().spelling
 
-        if param_str:
-            # Split by commas, but handle nested template parameters
-            param_parts = []
-            current_part = ""
-            template_depth = 0
+            # Get function name
+            func_name = cursor.spelling
 
-            for char in param_str:
-                if char == "," and template_depth == 0:
-                    param_parts.append(current_part.strip())
-                    current_part = ""
-                else:
-                    if char == "<":
-                        template_depth += 1
-                    elif char == ">":
-                        template_depth -= 1
-                    current_part += char
+            # Get function parameters
+            params = []
+            for param in cursor.get_arguments():
+                params.append({"name": param.spelling, "type": param.type.spelling})
 
-            if current_part:
-                param_parts.append(current_part.strip())
+            # Get function location
+            location = cursor.location
+            file_path = location.file.name if location.file else "Unknown"
+            line = location.line
+            column = location.column
 
-            for part in param_parts:
-                # Extract type and name
-                parts = part.split()
-                if len(parts) >= 2:
-                    param_type = " ".join(parts[:-1])
-                    param_name = parts[-1].rstrip(",")
-                    # Clean param name (remove pointers/references from name)
-                    param_name = param_name.lstrip("*&")
-                    params.append({"type": param_type, "name": param_name})
+            # Check if the function has a body
+            has_body = any(
+                c.kind == CursorKind.COMPOUND_STMT for c in cursor.get_children()
+            )
 
-    return params
+            # Determine if it's a declaration or definition
+            func_type = "definition" if has_body else "declaration"
 
+            # Add function info to our list
+            functions.append(
+                {
+                    "name": func_name,
+                    "return_type": return_type,
+                    "parameters": params,
+                    "location": {"file": file_path, "line": line, "column": column},
+                    "type": func_type,
+                }
+            )
 
-def parse_kernel_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract kernel configuration from the build.toml."""
-    kernel_config = {}
+        # Recursively process children
+        for child in cursor.get_children():
+            traverse_ast(child, cursor)
 
-    # Extract kernels section
-    for key, value in config.items():
-        if key == "kernel":
-            kernel_config = value
-            break
+    # Start traversing from the translation unit cursor
+    traverse_ast(translation_unit.cursor)
 
-    return kernel_config
+    return functions
 
 
 def extract_kernel_docs(
@@ -138,9 +109,14 @@ def extract_kernel_docs(
 
     # Also collect all other source files
     for ext in [".cu", ".h", ".cpp", ".cuh"]:
-        extra_files = [
-            p for p in Path(project_path).glob(f"**/*{ext}") if p not in source_files
-        ]
+        extra_files = []
+        for p in Path(project_path).glob(f"**/*{ext}"):
+            # avoid adding `torch-ext` files
+            if "torch-ext" in str(p):
+                continue
+            if p not in source_files:
+                extra_files.append(p)
+
         source_files.extend(extra_files)
 
     source_files = sorted(set(source_files))
@@ -149,101 +125,76 @@ def extract_kernel_docs(
         rel_path = os.path.relpath(source_file, project_path)
         file_info = {"file": rel_path, "functions": []}
 
-        try:
-            with open(source_file, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            # Extract kernel declarations with comments
-            kernel_pattern = r"/\*\*\s*(.*?)\s*\*/\s*(?:__global__ void|template\s*<.*?>\s*__global__ void)\s+(\w+)"
-            function_pattern = r"/\*\*\s*(.*?)\s*\*/\s*(?:template\s*<.*?>\s*)?(?:inline\s+)?(?:__host__\s+)?(?:__device__\s+)?(?:\w+\s+)+(\w+)\s*\("
-
-            # Extract kernels without comments too
-            simple_kernel_pattern = r"__global__\s+void\s+(\w+)\s*\("
-            simple_function_pattern = r"(?:__host__|__device__|__host__\s+__device__|__device__\s+__host__|void)\s+(\w+)\s*\("
-
-            # Process kernels with comments
-            for match in re.finditer(kernel_pattern, content, re.DOTALL):
-                comment = match.group(1).strip().replace("*", "").strip()
-                name = match.group(2)
-                signature = extract_function_signature(content, name)
-                params = extract_function_params(content, name)
-
-                file_info["functions"].append(
-                    {
-                        "name": name,
-                        "type": "kernel",
-                        "doc": comment,
-                        "signature": signature,
-                        "params": params,
-                    }
+        functions = get_function_declarations(source_file)
+        for func in functions:
+            signature = f"{func['return_type']} {func['name']}("
+            signature += (
+                ", ".join([f"{p['type']} {p['name']}" for p in func["parameters"]])
+                + ")"
+            )
+            file_info["functions"].append(
+                dict(
+                    name=func["name"],
+                    type=func["type"],
+                    doc="",
+                    signature=signature,
+                    params=[
+                        dict(name=p["name"], type=p["type"], doc="")
+                        for p in func["parameters"]
+                    ],
                 )
+            )
 
-            # Process regular functions with comments
-            for match in re.finditer(function_pattern, content, re.DOTALL):
-                comment = match.group(1).strip().replace("*", "").strip()
-                name = match.group(2)
-                # Skip if already processed as kernel
-                if any(f["name"] == name for f in file_info["functions"]):
-                    continue
-                signature = extract_function_signature(content, name)
-                params = extract_function_params(content, name)
-
-                file_info["functions"].append(
-                    {
-                        "name": name,
-                        "type": "function",
-                        "doc": comment,
-                        "signature": signature,
-                        "params": params,
-                    }
-                )
-
-            # Process kernels without comments
-            for match in re.finditer(simple_kernel_pattern, content):
-                name = match.group(1)
-                # Skip if already processed
-                if any(f["name"] == name for f in file_info["functions"]):
-                    continue
-                signature = extract_function_signature(content, name)
-                params = extract_function_params(content, name)
-
-                file_info["functions"].append(
-                    {
-                        "name": name,
-                        "type": "kernel",
-                        "doc": "",
-                        "signature": signature,
-                        "params": params,
-                    }
-                )
-
-            # Process simple functions without comments
-            for match in re.finditer(simple_function_pattern, content):
-                name = match.group(1)
-                # Skip if already processed
-                if any(f["name"] == name for f in file_info["functions"]):
-                    continue
-                signature = extract_function_signature(content, name)
-                params = extract_function_params(content, name)
-
-                file_info["functions"].append(
-                    {
-                        "name": name,
-                        "type": "function",
-                        "doc": "",
-                        "signature": signature,
-                        "params": params,
-                    }
-                )
-
-            # Only add files that have documented functions
-            if file_info["functions"]:
-                kernel_info.append(file_info)
-
-        except Exception as e:
-            print(f"Error processing {source_file}: {e}")
+        if len(file_info["functions"]) > 0:
+            kernel_info.append(file_info)
 
     return kernel_info
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Generate documentation for kernel projects"
+    )
+    parser.add_argument("project_path", help="Path to the kernel project root")
+    parser.add_argument("--output", "-o", help="Output directory", default="docs")
+    parser.add_argument(
+        "--toc",
+        "-t",
+        help="Include table of contents",
+        action="store_true",
+        default=True,
+    )
+    return parser.parse_args()
+
+
+def parse_kernel_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract kernel configuration from the build.toml."""
+    kernel_config = {}
+
+    # Extract kernels section
+    for key, value in config.items():
+        if key == "kernel":
+            kernel_config = value
+            break
+
+    return kernel_config
+
+
+def parse_build_config(project_path: str) -> Optional[Dict[str, Any]]:
+    """Parse the build.toml configuration file."""
+    build_config_path = os.path.join(project_path, "build.toml")
+    if not os.path.exists(build_config_path):
+        print(f"Error: build.toml not found at {build_config_path}")
+        return None
+
+    try:
+        config = toml.load(build_config_path)
+        print(f"Successfully parsed build configuration from {build_config_path}")
+        return config
+    except Exception as e:
+        print(f"Error parsing build.toml: {e}")
+        return None
 
 
 def generate_toc(sections):
