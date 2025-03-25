@@ -57,7 +57,7 @@
             in
             {
               devShells = rec {
-                default = shells.torch26-cxx98-cu126-x86_64-linux;
+                default = shells."torch26-cxx98-cu126-${system}";
                 shells = build.torchExtensionShells {
                   inherit path;
                   rev = revUnderscored;
