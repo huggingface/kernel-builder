@@ -60,6 +60,8 @@ if(GPU_LANG STREQUAL "CUDA")
   if(NVCC_THREADS AND GPU_LANG STREQUAL "CUDA")
     list(APPEND GPU_FLAGS "--threads=${NVCC_THREADS}")
   endif()
+elseif(GPU_LANG STREQUAL "HIP")
+  set(ROCM_ARCHS "${HIP_SUPPORTED_ARCHS}")
 else()
   override_gpu_arches(GPU_ARCHES
     ${GPU_LANG}
