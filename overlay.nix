@@ -1,8 +1,9 @@
 final: prev:
 {
-  blas = prev.blas.override { blasProvider = prev.mkl; };
+  blas = if final.stdenv.isx86_64 then prev.blas.override { blasProvider = prev.mkl; } else prev.blas;
 
-  lapack = prev.lapack.override { lapackProvider = prev.mkl; };
+  lapack =
+    if final.stdenv.isx86_64 then prev.lapack.override { lapackProvider = prev.mkl; } else prev.blas;
 
   magma-cuda-static = prev.magma-cuda-static.overrideAttrs (
     _: prevAttrs: { buildInputs = prevAttrs.buildInputs ++ [ (prev.lib.getLib prev.gfortran.cc) ]; }

@@ -26,18 +26,25 @@ rec {
     };
   };
 
+  # Upstream only builds aarch64 for CUDA >= 12.6.
+  cudaSupported =
+    system: cudaVersion:
+    system == "x86_64-linux"
+    || (system == "aarch64-linux" && lib.strings.versionAtLeast cudaVersion "12.6");
+
   cudaVersions = lib.flatten (
     builtins.map (versionInfo: versionInfo.cudaVersions) (builtins.attrValues torchCudaVersions)
   );
 
   # All build configurations supported by Torch.
   buildConfigs =
+    system:
     let
       cuda = lib.flatten (
         lib.mapAttrsToList (
           torchVersion: versionInfo:
           lib.cartesianProduct {
-            cudaVersion = versionInfo.cudaVersions;
+            cudaVersion = builtins.filter (cudaSupported system) versionInfo.cudaVersions;
             cxx11Abi = versionInfo.cxx11Abi;
             gpu = [ "cuda" ];
             torchVersion = [ torchVersion ];
@@ -57,5 +64,5 @@ rec {
             "2.6"
           ];
     in
-    cuda ++ rocm;
+    cuda ++ (lib.optionals (system == "x86_64-linux") rocm);
 }
