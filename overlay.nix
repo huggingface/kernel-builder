@@ -1,8 +1,9 @@
 final: prev:
 {
-  blas = prev.blas.override { blasProvider = prev.mkl; };
+  blas = if final.stdenv.isx86_64 then prev.blas.override { blasProvider = prev.mkl; } else prev.blas;
 
-  lapack = prev.lapack.override { lapackProvider = prev.mkl; };
+  lapack =
+    if final.stdenv.isx86_64 then prev.lapack.override { lapackProvider = prev.mkl; } else prev.blas;
 
   magma-cuda-static = prev.magma-cuda-static.overrideAttrs (
     _: prevAttrs: { buildInputs = prevAttrs.buildInputs ++ [ (prev.lib.getLib prev.gfortran.cc) ]; }
@@ -19,9 +20,9 @@ final: prev:
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {
-        torch_2_5 = callPackage ./pkgs/python-modules/torch_2_5 { };
-
         torch_2_6 = callPackage ./pkgs/python-modules/torch_2_6 { rocmPackages = final.rocmPackages; };
+
+        torch_2_7 = callPackage ./pkgs/python-modules/torch_2_7 { rocmPackages = final.rocmPackages; };
       }
     )
   ];

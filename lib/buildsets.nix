@@ -73,4 +73,4 @@ let
 
   pkgsByCudaVer = pkgsForCudaVersions cudaVersions;
 in
-map (pkgsForVersions pkgsByCudaVer) buildConfigs
+map (pkgsForVersions pkgsByCudaVer) (buildConfigs system)

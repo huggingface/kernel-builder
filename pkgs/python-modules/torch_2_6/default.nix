@@ -1,5 +1,7 @@
 {
   stdenv,
+  stdenvAdapters,
+  gcc11Stdenv,
   lib,
   fetchFromGitHub,
   buildPythonPackage,
@@ -15,6 +17,15 @@
       magma-hip
     else
       magma,
+  effectiveStdenv ?
+    if cudaSupport then
+      # XNNPACK fails on gcc > 11 on AArch64: https://github.com/pytorch/pytorch/issues/141083
+      if stdenv.isAarch64 then
+        stdenvAdapters.useLibsFrom stdenv gcc11Stdenv
+      else
+        cudaPackages.backendStdenv
+    else
+      stdenv,
   magma,
   magma-hip,
   magma-cuda-static,
@@ -116,18 +127,47 @@ let
   # https://github.com/pytorch/pytorch/blob/v2.4.0/torch/utils/cpp_extension.py#L1953
   supportedTorchCudaCapabilities =
     let
-      real = [
-        # In contrast to nixpkgs, we don't care about old capabilities for development.
-        "7.5"
-        "8.0"
-        "8.6"
-        # This capability seems to be Jetson-only, which we don't care about,
-        # at least for now.
-        # "8.7"
-        "8.9"
-        "9.0"
-        "9.0a"
-      ];
+      # https://github.com/pytorch/pytorch/blob/release/2.6/.ci/manywheel/build_cuda.sh
+      capsPerCudaVersion = {
+        "12.6" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "12.4" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "12.1" = [
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+        "11.8" = [
+          "3.7"
+          "5.0"
+          "6.0"
+          "7.0"
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+        ];
+      };
+      real = capsPerCudaVersion."${lib.versions.majorMinor cudaPackages.cudaVersion}";
       ptx = lists.map (x: "${x}+PTX") real;
     in
     real ++ ptx;
@@ -242,6 +282,8 @@ buildPythonPackage rec {
   # Don't forget to update torch-bin to the same version.
   version = "2.6.0";
   pyproject = true;
+
+  stdenv = effectiveStdenv;
 
   outputs = [
     "out" # output standard python package
@@ -598,7 +640,7 @@ buildPythonPackage rec {
 
   postInstall =
     ''
-      find "$out/${python.sitePackages}/torch/include" "$out/${python.sitePackages}/torch/lib" -type f -exec remove-references-to -t ${stdenv.cc} '{}' +
+      find "$out/${python.sitePackages}/torch/include" "$out/${python.sitePackages}/torch/lib" -type f -exec remove-references-to -t ${effectiveStdenv.cc} '{}' +
 
       mkdir $dev
       cp -r $out/${python.sitePackages}/torch/include $dev/include
