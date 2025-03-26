@@ -45,7 +45,8 @@ rec {
       supportedBuildSet =
         buildSet:
         (buildSet.gpu == "cuda" && (languages'.cuda || languages'.cuda-hipify))
-        || (buildSet.gpu == "rocm" && languages'.cuda-hipify);
+        || (buildSet.gpu == "rocm" && languages'.cuda-hipify)
+        || (buildConfig.torch.universal or false);
     in
     builtins.filter supportedBuildSet buildSets;
 
