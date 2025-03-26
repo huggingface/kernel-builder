@@ -16,8 +16,8 @@ COPY . /etc/kernel-builder/
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
 ENTRYPOINT ["/bin/sh", "-c", "\
-    nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle /kernelcode' -L && \
-    mkdir -p /kernelcode/build-output && \
+    GIT_REV=$(cd /kernelcode && git rev-parse HEAD 2>/dev/null || echo \"unknown\") && \
+    nix build --impure --max-jobs $MAX_JOBS -j $CORES --expr 'with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle { path = /kernelcode; rev = \"'\"$GIT_REV\"'\"; }' -L && \    mkdir -p /kernelcode/build-output && \
     cp -r --dereference ./result/* /kernelcode/build-output/ && \
     chmod -R u+w /kernelcode/build-output && \
     echo 'Build completed. Results copied to /kernelcode/build-output/'\
