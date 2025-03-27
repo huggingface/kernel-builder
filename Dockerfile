@@ -47,11 +47,11 @@ nix build \
     --expr "with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle { path = /kernelcode; rev = \"$REV\"; }" \
     -L
 
-echo "Build completed. Copying results to /kernelcode/build-output/"
+echo "Build completed. Copying results to /kernelcode/build/"
 
-mkdir -p /kernelcode/build-output
-cp -r --dereference ./result/* /kernelcode/build-output/
-chmod -R u+w /kernelcode/build-output
+mkdir -p /kernelcode/build
+cp -r --dereference ./result/* /kernelcode/build/
+chmod -R u+w /kernelcode/build
 
 echo 'Done'
 EOF
