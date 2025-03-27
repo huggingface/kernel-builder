@@ -224,7 +224,6 @@ let
       clr
       comgr
       hipblas
-      hipblas-common-dev
       hipblaslt
       hipfft
       hipify-clang
