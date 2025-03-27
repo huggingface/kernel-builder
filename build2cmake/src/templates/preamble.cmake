@@ -62,6 +62,10 @@ if(GPU_LANG STREQUAL "CUDA")
   endif()
 elseif(GPU_LANG STREQUAL "HIP")
   set(ROCM_ARCHS "${HIP_SUPPORTED_ARCHS}")
+  # TODO: remove this once we can set specific archs per source file set.
+  override_gpu_arches(GPU_ARCHES
+    ${GPU_LANG}
+    "${${GPU_LANG}_SUPPORTED_ARCHS}")
 else()
   override_gpu_arches(GPU_ARCHES
     ${GPU_LANG}
