@@ -26,7 +26,17 @@
   torch,
 }:
 
-stdenv.mkDerivation (prevAttrs: {
+let
+  clr =
+      (rocmPackages.clr.override {
+        clang = rocmPackages.llvm.clang.override {
+          inherit stdenv;
+          bintools = rocmPackages.llvm.bintools.override { libc = stdenv.cc.libc; };
+          glibc = stdenv.cc.libc;
+        };
+      });
+
+in stdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
   inherit nvccThreads src;
@@ -54,7 +64,7 @@ stdenv.mkDerivation (prevAttrs: {
       cudaPackages.cuda_nvcc
     ]
     ++ lib.optionals rocmSupport [
-      rocmPackages.clr
+      clr
     ];
 
   buildInputs =
@@ -98,7 +108,10 @@ stdenv.mkDerivation (prevAttrs: {
       (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
     ]
     ++ lib.optionals rocmSupport [
-      (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${rocmPackages.clr}")
+      # Ensure sure that we use HIP with old glibc and not HIP from the
+      # merged ROCm toolkit.
+      (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
+      (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
     ];
 
   postInstall =
