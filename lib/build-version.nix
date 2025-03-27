@@ -9,7 +9,8 @@ let
   abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
   targetPlatform = pkgs.stdenv.targetPlatform.system;
   cudaVersion = torch: "cu${flattenVersion torch.cudaPackages.cudaMajorMinorVersion}";
-  rocmVersion = torch: "rocm${flattenVersion torch.rocmPackages.hipcc.version}";
+  rocmVersion =
+    torch: "rocm${flattenVersion (lib.versions.majorMinor torch.rocmPackages.rocm.version)}";
   gpuVersion = torch: (if torch.cudaSupport then cudaVersion else rocmVersion) torch;
   torchVersion = torch: flattenVersion torch.version;
 in
