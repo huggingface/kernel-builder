@@ -75,21 +75,21 @@
                   inherit path;
                   rev = revUnderscored;
                 };
-              dumpCmake = 
-                let 
-                  build2cmake = self.packages.${system}.build2cmake;
-                in
-                nixpkgs.legacyPackages.${system}.writeShellScriptBin "dumpCmake" ''
-                  echo "Generating cmake for torch extension..."
+                dumpCmake =
+                  let
+                    build2cmake = self.packages.${system}.build2cmake;
+                  in
+                  nixpkgs.legacyPackages.${system}.writeShellScriptBin "dumpCmake" ''
+                    echo "Generating cmake for torch extension..."
 
-                  # Create a directory to store the cmake file
-                  mkdir -p ./cmake-result
+                    # Create a directory to store the cmake file
+                    mkdir -p ./cmake-result
 
-                  # Run the command and capture the output
-                  ${build2cmake}/bin/build2cmake generate-torch --ops-id "${revUnderscored}" ${path}/build.toml ./cmake-result --force
+                    # Run the command and capture the output
+                    ${build2cmake}/bin/build2cmake generate-torch --ops-id "${revUnderscored}" ${path}/build.toml ./cmake-result --force
 
-                  echo "CMake files generated at ./cmake-result"
-                '';
+                    echo "CMake files generated at ./cmake-result"
+                  '';
               };
             }
           );
