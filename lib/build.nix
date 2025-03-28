@@ -12,7 +12,6 @@
 
 let
   abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
-  nameToPath = path: name: path + "/${name}";
   torchBuildVersion = import ./build-version.nix;
 in
 rec {
@@ -27,34 +26,7 @@ rec {
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
 
   # Source set function to create a fileset for a path
-  mkSourceSet =
-    path:
-    let
-      inherit (lib) fileset;
-      buildConfig = readBuildConfig path;
-      kernels = buildConfig.kernel or { };
-      extConfig = buildConfig.torch;
-      pyExt =
-        extConfig.pyext or [
-          "py"
-          "pyi"
-        ];
-      pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
-      extSrc = extConfig.src or [ ] ++ [ "build.toml" ];
-      pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
-      kernelsSrc = fileset.unions (
-        lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) kernels)
-      );
-      srcSet = fileset.unions (map (nameToPath path) extSrc);
-    in
-    fileset.toSource {
-      root = path;
-      fileset = fileset.unions [
-        kernelsSrc
-        srcSet
-        pySrcSet
-      ];
-    };
+  mkSourceSet = import ./source-set.nix { inherit lib; };
 
   languages =
     buildConfig:
