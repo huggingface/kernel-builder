@@ -1,5 +1,7 @@
 final: prev:
 {
+  # Overrides
+
   blas = if final.stdenv.isx86_64 then prev.blas.override { blasProvider = prev.mkl; } else prev.blas;
 
   lapack =
@@ -27,8 +29,12 @@ final: prev:
     )
   ];
 
-  stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
+  # Local packages
+
+  kernel-abi-check = prev.callPackage ./pkgs/kernel-abi-check { };
 
   build2cmake = prev.callPackage ./pkgs/build2cmake { };
+
+  stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 }
 // (import ./pkgs/cutlass { pkgs = final; })

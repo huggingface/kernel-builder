@@ -19,11 +19,14 @@
   cmakeNvccThreadsHook,
   ninja,
   python3,
+  kernel-abi-check,
   build2cmake,
   rocmPackages,
 
   extraDeps ? [ ],
   torch,
+
+  abiVersion,
 }:
 
 let
@@ -43,7 +46,7 @@ in
 stdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
-  inherit nvccThreads src;
+  inherit abiVersion nvccThreads src;
 
   # Generate build files.
   postPatch = ''
@@ -59,6 +62,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   nativeBuildInputs =
     [
+      kernel-abi-check
       cmake
       ninja
       build2cmake
@@ -131,6 +135,8 @@ stdenv.mkDerivation (prevAttrs: {
       find $out/${extensionName} -name '*.so' \
         -exec patchelf --set-rpath "" {} \;
     '';
+
+  doInstallCheck = true;
 
   passthru = {
     inherit torch;
