@@ -26,6 +26,36 @@ rec {
     src: name: type:
     type == "directory" || lib.any (suffix: lib.hasSuffix suffix name) src;
 
+  # Source set function to create a fileset for a path
+  mkSourceSet =
+    path:
+    let
+      inherit (lib) fileset;
+      buildConfig = readBuildConfig path;
+      kernels = buildConfig.kernel or { };
+      extConfig = buildConfig.torch;
+      pyExt =
+        extConfig.pyext or [
+          "py"
+          "pyi"
+        ];
+      pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
+      extSrc = extConfig.src or [ ] ++ [ "build.toml" ];
+      pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
+      kernelsSrc = fileset.unions (
+        lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) kernels)
+      );
+      srcSet = fileset.unions (map (nameToPath path) extSrc);
+    in
+    fileset.toSource {
+      root = path;
+      fileset = fileset.unions [
+        kernelsSrc
+        srcSet
+        pySrcSet
+      ];
+    };
+
   languages =
     buildConfig:
     let
@@ -71,27 +101,9 @@ rec {
         inherit pkgs torch;
         deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) kernels));
       };
-      extConfig = buildConfig.torch;
-      pyExt =
-        extConfig.pyext or [
-          "py"
-          "pyi"
-        ];
-      pyFilter = file: builtins.any (ext: file.hasExt ext) pyExt;
-      extSrc = extConfig.src or [ ] ++ [ "build.toml" ];
-      pySrcSet = fileset.fileFilter pyFilter (path + "/torch-ext");
-      kernelsSrc = fileset.unions (
-        lib.flatten (lib.mapAttrsToList (name: buildConfig: map (nameToPath path) buildConfig.src) kernels)
-      );
-      srcSet = fileset.unions (map (nameToPath path) extSrc);
-      src = fileset.toSource {
-        root = path;
-        fileset = fileset.unions [
-          kernelsSrc
-          srcSet
-          pySrcSet
-        ];
-      };
+
+      # Use the mkSourceSet function to get the source
+      src = mkSourceSet path;
 
       # Set number of threads to the largest number of capabilities.
       listMax = lib.foldl' lib.max 1;
