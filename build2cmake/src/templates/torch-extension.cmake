@@ -1,6 +1,11 @@
 get_torch_gpu_compiler_flags(GPU_FLAGS ${GPU_LANG})
 list(APPEND GPU_FLAGS ${TORCH_GPU_FLAGS})
 
+# Optimization flags for CUDA compilation
+if(GPU_LANG STREQUAL "CUDA")
+  list(APPEND GPU_FLAGS "--use_fast_math" "--ptxas-options=-O3" "--disable-warnings")
+endif()
+
 set(TORCH_{{name}}_SRC
   {{ src|join(' ') }}
 )

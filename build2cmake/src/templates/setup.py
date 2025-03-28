@@ -59,6 +59,8 @@ class CMakeBuild(build_ext):
                 cmake_args += [
                     "-GNinja",
                     f"-DCMAKE_MAKE_PROGRAM:FILEPATH={ninja_executable_path}",
+                    "-DCMAKE_JOB_POOL_COMPILE=cuda_compile_pool",
+                    "-DCMAKE_JOB_POOL_LINK=link_pool",
                 ]
             except ImportError:
                 pass
@@ -97,10 +99,23 @@ class CMakeBuild(build_ext):
                 "Using NVCC_THREADS=%d as the number of nvcc threads.", nvcc_threads
             )
         else:
-            nvcc_threads = 1
-        num_jobs = max(1, num_jobs // nvcc_threads)
+            # Use a reasonable default number of threads per NVCC process
+            nvcc_threads = max(2, num_jobs // 4)
+            logger.info(
+                "NVCC_THREADS not set, using %d as the number of nvcc threads.", nvcc_threads
+            )
+            
+        # Calculate number of parallel jobs for better resource utilization
+        # When using nvcc_threads, we need fewer parallel jobs
+        parallel_jobs = max(2, num_jobs // nvcc_threads)
+        
+        # Setup job pools for better resource management
+        if not cmake_generator or cmake_generator == "Ninja":
+            cmake_args += [
+                f"-DCMAKE_JOB_POOLS=cuda_compile_pool={parallel_jobs};link_pool={max(1, parallel_jobs // 2)}",
+            ]
 
-        build_args += [f"-j{num_jobs}"]
+        build_args += [f"-j{parallel_jobs}"]
         if sys.platform == "win32":
             build_args += ["--config", cfg]
 
