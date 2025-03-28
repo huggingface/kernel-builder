@@ -211,7 +211,7 @@ macro(set_gencode_flag_for_srcs)
     COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CUDA>:${_FLAG}>"
   )
 
-  message(🔥 DEBUG "Setting gencode flag for ${arg_SRCS}: ${_FLAG}")
+  message(DEBUG "Setting gencode flag for ${arg_SRCS}: ${_FLAG}")
 endmacro(set_gencode_flag_for_srcs)
 
 #
@@ -414,7 +414,7 @@ endmacro()
 # WITH_SOABI                 - Generate library with python SOABI suffix name.
 # USE_SABI <version>         - Use python stable api <version>
 #
-# Note: optimization level/🔥 debug info is set via cmake build type.
+# Note: optimization level/debug info is set via cmake build type.
 #
 function (define_gpu_extension_target GPU_MOD_NAME)
   cmake_parse_arguments(PARSE_ARGV 1
