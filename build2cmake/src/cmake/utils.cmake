@@ -73,6 +73,10 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
   #
   set(HIP_SRCS)
   foreach (SRC ${SRCS})
+    get_source_file_property(include_dirs "${SRC}" INCLUDE_DIRECTORIES) 
+    if (NOT include_dirs)
+      set(include_dirs "")
+    endif()
     string(REGEX REPLACE "\.cu$" "\.hip" SRC ${SRC})
     string(REGEX REPLACE "cuda" "hip" SRC ${SRC})
     list(APPEND HIP_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${SRC}")
@@ -84,9 +88,6 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
     DEPENDS ${CMAKE_SOURCE_DIR}/cmake/hipify.py ${SRCS}
     BYPRODUCTS ${HIP_SRCS}
     COMMENT "Running hipify on ${NAME} extension source files.")
-
-  # Include the source directory and the current directory in the include path.
-  include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
   # Swap out original extension sources with hipified sources.
   list(APPEND HIP_SRCS ${CXX_SRCS})
