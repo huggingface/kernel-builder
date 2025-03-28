@@ -73,7 +73,6 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
   #
   set(HIP_SRCS)
   foreach (SRC ${SRCS})
-    get_source_file_property(include_dirs "${SRC}" INCLUDE_DIRECTORIES)
     string(REGEX REPLACE "\.cu$" "\.hip" SRC ${SRC})
     string(REGEX REPLACE "cuda" "hip" SRC ${SRC})
     list(APPEND HIP_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${SRC}")
@@ -86,9 +85,8 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
     BYPRODUCTS ${HIP_SRCS}
     COMMENT "Running hipify on ${NAME} extension source files.")
 
-  set_source_files_properties(
-    ${HIP_SRCS}
-    PROPERTIES INCLUDE_DIRECTORIES ${include_dirs})
+  # Include the source directory and the current directory in the include path.
+  include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
   # Swap out original extension sources with hipified sources.
   list(APPEND HIP_SRCS ${CXX_SRCS})
@@ -213,7 +211,7 @@ macro(set_gencode_flag_for_srcs)
     COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CUDA>:${_FLAG}>"
   )
 
-  message(DEBUG "Setting gencode flag for ${arg_SRCS}: ${_FLAG}")
+  message(🔥 DEBUG "Setting gencode flag for ${arg_SRCS}: ${_FLAG}")
 endmacro(set_gencode_flag_for_srcs)
 
 #
@@ -416,7 +414,7 @@ endmacro()
 # WITH_SOABI                 - Generate library with python SOABI suffix name.
 # USE_SABI <version>         - Use python stable api <version>
 #
-# Note: optimization level/debug info is set via cmake build type.
+# Note: optimization level/🔥 debug info is set via cmake build type.
 #
 function (define_gpu_extension_target GPU_MOD_NAME)
   cmake_parse_arguments(PARSE_ARGV 1
