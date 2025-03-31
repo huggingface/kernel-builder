@@ -3,9 +3,12 @@
   rustPlatform,
 }:
 
+let
+  version = (builtins.fromTOML (builtins.readFile ../../build2cmake/Cargo.toml)).package.version;
+in
 rustPlatform.buildRustPackage {
+  inherit version;
   pname = "build2cmake";
-  version = "0.0.1";
 
   src =
     let
