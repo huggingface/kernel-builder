@@ -109,7 +109,7 @@ fn main() -> Result<()> {
             "✅"
         };
         eprintln!(
-            "{} glibc symbol version max {}, found {}",
+            "{} glibc symbol version max: {}, found: {}",
             status, max_glibc_version, glibc_version,
         );
     }
@@ -122,8 +122,13 @@ fn main() -> Result<()> {
             "✅"
         };
         eprintln!(
-            "{} libstdc++ symbol version max {}, found {}",
+            "{} libstdc++ symbol version max: {}, found: {}",
             status, max_libstdcxx_version, libcxx_version
+        );
+    } else {
+        eprintln!(
+            "✅ libstdc++ symbol version max: {}, found: none",
+            max_libstdcxx_version
         );
     }
 
