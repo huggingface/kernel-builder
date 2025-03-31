@@ -174,11 +174,36 @@ fn write_cmake(
 
     render_deps(env, build, cmake_writer)?;
 
+    render_binding(env, torch, name, cmake_writer)?;
+
     for (kernel_name, kernel) in &build.kernels {
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
-    render_extension(env, torch, name, ops_name, cmake_writer)?;
+    render_extension(env, ops_name, cmake_writer)?;
+
+    Ok(())
+}
+
+pub fn render_binding(
+    env: &Environment,
+    torch: &Torch,
+    name: &str,
+    write: &mut impl Write,
+) -> Result<()> {
+    env.get_template("torch-binding.cmake")
+        .wrap_err("Cannot get Torch binding template")?
+        .render_to_write(
+            context! {
+                includes => torch.include.as_ref().map(prefix_and_join_includes),
+                name => name,
+                src => torch.src
+            },
+            &mut *write,
+        )
+        .wrap_err("Cannot render Torch binding template")?;
+
+    write.write_all(b"\n")?;
 
     Ok(())
 }
@@ -266,21 +291,12 @@ pub fn render_kernel(
     Ok(())
 }
 
-pub fn render_extension(
-    env: &Environment,
-    torch: &Torch,
-    name: &str,
-    ops_name: &str,
-    write: &mut impl Write,
-) -> Result<()> {
+pub fn render_extension(env: &Environment, ops_name: &str, write: &mut impl Write) -> Result<()> {
     env.get_template("torch-extension.cmake")
         .wrap_err("Cannot get Torch extension template")?
         .render_to_write(
             context! {
-                includes => torch.include.as_ref().map(prefix_and_join_includes),
                 ops_name => ops_name,
-                name => name,
-                src => torch.src
             },
             &mut *write,
         )
