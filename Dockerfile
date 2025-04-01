@@ -43,6 +43,31 @@ function show_usage {
   echo "  docker run kernel-builder:dev fetch https://huggingface.co/user/repo.git"
 }
 
+# Function to generate a basic flake.nix if it doesn't exist
+function ensure_flake_exists {
+  if [ ! -f "/kernelcode/flake.nix" ]; then
+    echo "No flake.nix found, creating a basic one..."
+    cat <<'FLAKE_EOF' > /kernelcode/flake.nix
+{
+  description = "Flake for Torch kernel extension";
+
+  inputs = {
+    kernel-builder.url = "github:huggingface/kernel-builder";
+  };
+
+  outputs = { self, kernel-builder, }:
+    kernel-builder.lib.genFlakeOutputs {
+      path = ./.;
+      rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
+    };
+}
+FLAKE_EOF
+    echo "flake.nix created. You can customize it as needed."
+  else
+    echo "flake.nix already exists, skipping creation."
+  fi
+}
+
 # Function to build the extension
 function build_extension {
   echo "Building Torch Extension Bundle"
@@ -62,12 +87,18 @@ function build_extension {
     REV=$(dd if=/dev/urandom status=none bs=1 count=10 2>/dev/null | base32 | tr '[:upper:]' '[:lower:]' | head -c 10)
   fi
   echo "Building with rev $REV"
+  
+  # Check for flake.nix or create one
+  ensure_flake_exists
+  
+  # Pure bundle build
+  echo "Building with Nix..."
   nix build \
-      --impure \
-      --max-jobs $MAX_JOBS \
-      -j $CORES \
-      --expr "with import /etc/kernel-builder; lib.x86_64-linux.buildTorchExtensionBundle { path = /kernelcode; rev = \"$REV\"; }" \
-      -L
+    .\#bundle \
+    --max-jobs $MAX_JOBS \
+    -j $CORES \
+    -L
+  
   echo "Build completed. Copying results to /kernelcode/build/"
   mkdir -p /kernelcode/build
   cp -r --dereference ./result/* /kernelcode/build/
@@ -78,6 +109,8 @@ function build_extension {
 # Function to start a dev shell
 function start_dev_shell {
   echo "Starting development shell..."
+  # Check for flake.nix or create one
+  ensure_flake_exists
   /root/.nix-profile/bin/nix develop -v --show-trace
 }
 
