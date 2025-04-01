@@ -111,7 +111,7 @@ function start_dev_shell {
   echo "Starting development shell..."
   # Check for flake.nix or create one
   ensure_flake_exists
-  /root/.nix-profile/bin/nix develop -v --show-trace
+  /root/.nix-profile/bin/nix develop
 }
 
 # Function to fetch and build from URL
