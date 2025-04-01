@@ -28,7 +28,7 @@ cd examples/activation
 # then run the following command to build the kernel
 docker run --rm \
     -v $(pwd):/kernelcode \
-    kernel-builder:dev
+    ghcr.io/huggingface/kernel-builder:latest
 ```
 
 This will build the kernel and save the output in the `build` directory in
@@ -49,16 +49,16 @@ The kernel builder now includes a command-line interface for easier interaction.
 
 ```bash
 # Build the kernel (same as the Quick Start example)
-docker run --rm -v $(pwd):/kernelcode kernel-builder:dev build
+docker run --rm -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest build
 
 # Start an ephemeral development shell
-docker run --rm -it -v $(pwd):/kernelcode kernel-builder:dev dev
+docker run --rm -it -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
 
 # Build from a Git URL
-docker run --rm kernel-builder:dev fetch https://huggingface.co/kernels-community/activation.git
+docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
 
 # Show help information
-docker run --rm kernel-builder:dev help
+docker run --rm ghcr.io/huggingface/kernel-builder:latest help
 ```
 
 ## Configuration
@@ -77,7 +77,7 @@ docker run --rm \
     -v $(pwd):/kernelcode \
     -e MAX_JOBS=8 \
     -e CORES=8 \
-    kernel-builder:dev
+    ghcr.io/huggingface/kernel-builder:latest
 ```
 
 ### 2. Command-line Options
@@ -92,7 +92,7 @@ You can also specify these parameters using command-line options:
 ```bash
 docker run --rm \
     -v $(pwd):/kernelcode \
-    kernel-builder:dev build --jobs 8 --cores 4
+    ghcr.io/huggingface/kernel-builder:latest build --jobs 8 --cores 4
 ```
 
 ## Development Shell
@@ -104,7 +104,7 @@ docker run -it \
   --name my-dev-env \
   -v "$(pwd)":/kernelcode \
   -w /kernelcode \
-  kernel-builder:dev dev
+  ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
 This will drop you into a Nix development shell with all the necessary tools installed.
@@ -119,7 +119,7 @@ docker run -it \
   --name my-persistent-dev-env \
   -v "$(pwd)":/kernelcode \
   -w /kernelcode \
-  kernel-builder:dev dev
+  ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
 You can restart and attach to this container in subsequent sessions without losing the Nix store cache or the kernel build:
@@ -176,7 +176,7 @@ cd activation
 # then run the build command
 docker run --rm \
     -v $(pwd):/kernelcode \
-    kernel-builder:dev
+    ghcr.io/huggingface/kernel-builder:latest
 # we should now have the built kernels on our host
 ls result
 # torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
@@ -190,7 +190,7 @@ ls result
 You can also directly build kernels from a Git repository URL:
 
 ```bash
-docker run --rm kernel-builder:dev fetch https://github.com/huggingface/kernel-examples.git
+docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
 ```
 
 This will clone the repository into the container, build the kernels, and save the output in the container's `/kernelcode/build` directory. You can mount a volume to access the results:
@@ -198,7 +198,7 @@ This will clone the repository into the container, build the kernels, and save t
 ```bash
 docker run --rm \
     -v /path/to/output:/kernelcode/build \
-    kernel-builder:dev fetch https://github.com/huggingface/kernel-examples.git
+    ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
 ```
 
 ## Development
@@ -207,11 +207,11 @@ The Docker image can be built locally when making changes to the kernel builder
 using the provided [Dockerfile](../Dockerfile):
 
 ```bash
-docker build -t kernel-builder:dev .
+docker build -t ghcr.io/huggingface/kernel-builder:latest .
 
 # You can build a kernel using this development container:
 cd examples/activation
-docker run --rm -v $(pwd):/kernelcode kernel-builder:dev
+docker run --rm -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest
 
 # copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
 # trace: evaluation warning: CUDA versions older than 12.0 will be removed in Nixpkgs 25.05; see the 24.11 release notes for more information
