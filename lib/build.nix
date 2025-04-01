@@ -187,4 +187,34 @@ rec {
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
     builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) filteredBuildSets);
+
+  torchDevShells =
+    { path, rev }:
+    let
+      shellForBuildSet =
+        buildSet:
+        let
+          pkgs = buildSet.pkgs;
+          rocmSupport = pkgs.config.rocmSupport or false;
+          stdenv = if rocmSupport then pkgs.stdenv else pkgs.cudaPackages.backendStdenv;
+          mkShell = pkgs.mkShell.override { inherit stdenv; };
+        in
+        {
+          name = torchBuildVersion buildSet;
+          value = mkShell {
+            nativeBuildInputs = with pkgs; [
+              build2cmake
+              kernel-abi-check
+            ];
+            buildInputs = with pkgs; [ python3.pkgs.pytest ];
+            inputsFrom = [ (buildTorchExtension buildSet { inherit path rev; }) ];
+            env = lib.optionalAttrs rocmSupport {
+              PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
+              HIP_PATH = pkgs.rocmPackages.clr;
+            };
+          };
+        };
+      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
+    in
+    builtins.listToAttrs (lib.map shellForBuildSet filteredBuildSets);
 }
