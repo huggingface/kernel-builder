@@ -104,3 +104,34 @@ ls result
 # torch24-cxx11-cu124-x86_64-linux  torch25-cxx11-cu118-x86_64-linux  torch25-cxx98-cu121-x86_64-linux
 # torch24-cxx98-cu118-x86_64-linux  torch25-cxx11-cu121-x86_64-linux  torch25-cxx98-cu124-x86_64-linux
 ```
+
+### Persistent Development Environment
+
+For iterative development, you can create a persistent container to maintain the Nix store cache across sessions:
+
+```bash
+# Create a persistent container and build the kernel for the first time
+docker run -it \
+  --name my-persistent-dev-env \
+  --entrypoint /bin/sh \
+  -v "$(pwd)":/kernelcode \
+  -w /kernelcode \
+  kernel-builder:dev \
+  -c "/root/.nix-profile/bin/nix develop -v --show-trace"
+```
+
+You can restart and attach to this container in subsequent session without losing the Nix store cache or the kernel build:
+
+```bash
+# Start the container in detached mode
+docker start -ai my-persistent-dev-env
+
+# Attach to the container
+docker exec -it my-persistent-dev-env \
+  -w /kernelcode \
+  --entrypoint /bin/sh \
+  kernel-builder:dev \
+  -c "/root/.nix-profile/bin/nix develop -v --show-trace"
+```
+
+This approach preserves the Nix store cache between sessions, making subsequent builds much faster.
