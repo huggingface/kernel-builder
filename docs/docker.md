@@ -103,7 +103,6 @@ For development purposes, you can start an interactive shell with:
 docker run -it \
   --name my-dev-env \
   -v "$(pwd)":/kernelcode \
-  -w /kernelcode \
   ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
@@ -118,7 +117,6 @@ For iterative development, you can create a persistent container to maintain the
 docker run -it \
   --name my-persistent-dev-env \
   -v "$(pwd)":/kernelcode \
-  -w /kernelcode \
   ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
