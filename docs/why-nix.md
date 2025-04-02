@@ -28,7 +28,6 @@ Kernel compilation can be resource-intensive. Nix leverages efficient caching of
 
 Nix allows you to experiment with different kernel configurations, PyTorch versions, or CUDA toolkits easily. If a change introduces an issue, reverting to a previous state is quick and effortless.
 
-
 Overall, Nix streamlines the Kernel Builder workflow, allowing us to efficiently and reliably manage complex machine learning kernel builds.
 
 ---
@@ -37,15 +36,16 @@ If you want to learn more about Nix, check out the following resources:
 
 ## References
 
-* **The Official Nix Manual:**
-  * The definitive source for all things Nix, providing comprehensive coverage of its features, commands, and ecosystem.
-  * Link: [Nix Manual (nixos.org)](https://nixos.org/manual/nix/stable/)
-* **Nix Pills:**
-  * A series of blog posts breaking down complex Nix concepts into digestible pieces, ideal for a structured, tutorial-style approach.
-  * Link: [Nix Pills (nixos.org)](https://nixos.org/learn#nix-pills)
-* **Nix by Example:**
-  * A collection of practical examples for various Nix use cases, offering a hands-on learning experience.
-  * Link: [Nix by Example](https://nixbyexample.com/)
-* **NixOS Wiki:**
-  * A community-driven wiki with a wealth of information, including tips, tricks, and tutorials, covering a wide range of topics, including NixOS-specific information.
-  * Link: [NixOS Wiki](https://nixos.wiki/wiki/Main_Page)
+- **The Official Nix Manual:**
+  - The definitive source for all things Nix, providing comprehensive coverage of its features, commands, and ecosystem.
+  - Link: [Nix Manual (nixos.org)](https://nixos.org/manual/nix/stable/)
+- **Nix Pills:**
+  - A series of blog posts breaking down complex Nix concepts into digestible pieces, ideal for a structured, tutorial-style approach.
+  - Link: [Nix Pills (nixos.org)](https://nixos.org/guides/nix-pills/)
+- **nix.dev**:
+  - Home of official documentation for the Nix ecosystem.
+  - Link [nix.dev](https://nix.dev/)
+- **NixOS Wiki:**
+  - A community-driven wiki with a wealth of information, including tips, tricks, and tutorials, covering a wide range of topics, including NixOS-specific information.
+  - Link: [NixOS Wiki](https://nixos.wiki/wiki/Main_Page)
+
