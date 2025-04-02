@@ -32,7 +32,7 @@ For example:
 
 ```bash
 cd examples/activation
-nix build .#bundle -L
+nix build . -L
 ```
 
 You can put this `flake.nix` in your own kernel's root directory to

@@ -72,7 +72,8 @@
                   rev = revUnderscored;
                 };
               };
-              packages = {
+              packages = rec {
+                default = bundle;
                 bundle = build.buildTorchExtensionBundle {
                   inherit path;
                   rev = revUnderscored;

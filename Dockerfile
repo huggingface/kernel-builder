@@ -94,7 +94,7 @@ function build_extension {
   # Pure bundle build
   echo "Building with Nix..."
   nix build \
-    .\#bundle \
+    . \
     --max-jobs $MAX_JOBS \
     -j $CORES \
     -L
