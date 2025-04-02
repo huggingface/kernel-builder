@@ -18,4 +18,9 @@ in
     version = "3.6.0";
     hash = "sha256-FbMVqR4eZyum5w4Dj5qJgBPOS66sTem/qKZjYIK/7sg=";
   };
+
+  cutlass_3_8 = builder {
+    version = "3.8.0";
+    hash = "sha256-oIzlbKRdOh6gp6nRZ8udLSqleBFoFtgM7liCBlHZLOk=";
+  };
 }

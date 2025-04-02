@@ -249,6 +249,17 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
                     )
                     .wrap_err("Cannot render CUTLASS dependency template")?;
             }
+            Dependencies::Cutlass3_8 => {
+                env.get_template("dep-cutlass.cmake")
+                    .wrap_err("Cannot get CUTLASS dependency template")?
+                    .render_to_write(
+                        context! {
+                            version => "3.8.0",
+                        },
+                        &mut *write,
+                    )
+                    .wrap_err("Cannot render CUTLASS dependency template")?;
+            }
             Dependencies::Torch => (),
         };
         write.write_all(b"\n")?;
