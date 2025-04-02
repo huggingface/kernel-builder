@@ -1,18 +1,41 @@
 FROM nixos/nix:2.18.8
+
 # default build args
 ARG MAX_JOBS=4
 ARG CORES=4
+
+# Set up Nix configuration and user
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
-    && nix profile install nixpkgs#cachix nixpkgs#git-lfs \
-    && cachix use kernel-builder
-WORKDIR /kernelcode
-COPY . /etc/kernel-builder/
+    && echo "trusted-users = root nixuser" >> /etc/nix/nix.conf \
+    # Create user entries directly in password and group files
+    && echo "nixuser:x:1000:1000:NixOS User:/home/nixuser:/bin/bash" >> /etc/passwd \
+    && echo "nixuser:x:1000:" >> /etc/group \
+    && mkdir -p /home/nixuser/kernelcode \
+    # Create Nix directories with proper permissions
+    && mkdir -p /nix/var/nix/profiles/per-user/nixuser \
+    && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
+    && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
+    # Install necessary packages
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#sshx \
+    && cachix use kernel-builder 
+
+# Set permissions for Nix directories
+RUN chown -R nixuser:nixuser /nix
+
+# Set working directory and copy files
+WORKDIR /home/nixuser/kernelcode
+COPY --chown=nixuser:nixuser . /home/nixuser/kernel-builder/
+
+# Set environment variables
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
-RUN mkdir -p /etc/kernelcode && \
-    cat <<'EOF' > /etc/kernelcode/cli.sh
+ENV HOME=/home/nixuser
+
+# Set up CLI script in nixuser's home
+RUN mkdir -p /home/nixuser/bin && \
+    cat <<'EOF' > /home/nixuser/bin/cli.sh
 #!/bin/sh
 set -e
 
@@ -38,23 +61,23 @@ function show_usage {
   echo "  --cores, -c NUMBER  Set number of cores per job (default: $CORES)"
   echo ""
   echo "Examples:"
-  echo "  docker run -v \$(pwd):/kernelcode kernel-builder:dev build"
-  echo "  docker run -it -v \$(pwd):/kernelcode kernel-builder:dev dev"
+  echo "  docker run -v \$(pwd):/home/nixuser/kernelcode kernel-builder:dev build"
+  echo "  docker run -it -v \$(pwd):/home/nixuser/kernelcode kernel-builder:dev dev"
   echo "  docker run kernel-builder:dev fetch https://huggingface.co/user/repo.git"
 }
 
 # Function to generate a basic flake.nix if it doesn't exist
 function ensure_flake_exists {
-  if [ ! -f "/kernelcode/flake.nix" ]; then
+  if [ ! -f "/home/nixuser/kernelcode/flake.nix" ]; then
     echo "No flake.nix found, creating a basic one..."
-    cat <<'FLAKE_EOF' > /kernelcode/flake.nix
+    cat <<'FLAKE_EOF' > /home/nixuser/kernelcode/flake.nix
 {
   description = "Flake for Torch kernel extension";
 
   inputs = {
     kernel-builder.url = "github:huggingface/kernel-builder";
   };
-
+  
   outputs = { self, kernel-builder, }:
     kernel-builder.lib.genFlakeOutputs {
       path = ./.;
@@ -72,9 +95,9 @@ FLAKE_EOF
 function build_extension {
   echo "Building Torch Extension Bundle"
   # Check if kernelcode is a git repo and get hash if possible
-  if [ -d "/kernelcode/.git" ]; then
+  if [ -d "/home/nixuser/kernelcode/.git" ]; then
     # Mark git as safe to allow commands
-    git config --global --add safe.directory /kernelcode
+    git config --global --add safe.directory /home/nixuser/kernelcode
     # Try to get git revision
     REV=$(git rev-parse --short=8 HEAD)
     
@@ -92,17 +115,18 @@ function build_extension {
   ensure_flake_exists
   
   # Pure bundle build
+  # TODO: remove the "bundle" after resolving
   echo "Building with Nix..."
   nix build \
-    . \
+    .\#bundle \
     --max-jobs $MAX_JOBS \
     -j $CORES \
     -L
   
-  echo "Build completed. Copying results to /kernelcode/build/"
-  mkdir -p /kernelcode/build
-  cp -r --dereference ./result/* /kernelcode/build/
-  chmod -R u+w /kernelcode/build
+  echo "Build completed. Copying results to /home/nixuser/kernelcode/build/"
+  mkdir -p /home/nixuser/kernelcode/build
+  cp -r --dereference ./result/* /home/nixuser/kernelcode/build/
+  chmod -R u+w /home/nixuser/kernelcode/build
   echo 'Done'
 }
 
@@ -111,7 +135,7 @@ function start_dev_shell {
   echo "Starting development shell..."
   # Check for flake.nix or create one
   ensure_flake_exists
-  /root/.nix-profile/bin/nix develop
+  nix develop
 }
 
 # Function to fetch and build from URL
@@ -123,10 +147,10 @@ function fetch_and_build {
   fi
   
   echo "Fetching code from $1"
-  rm -rf /kernelcode/* /kernelcode/.* 2>/dev/null || true
+  rm -rf /home/nixuser/kernelcode/* /home/nixuser/kernelcode/.* 2>/dev/null || true
   git lfs install
-  git clone "$1" /kernelcode
-  cd /kernelcode
+  git clone "$1" /home/nixuser/kernelcode
+  cd /home/nixuser/kernelcode
   build_extension
 }
 
@@ -182,5 +206,12 @@ case $COMMAND in
 esac
 EOF
 
-RUN chmod +x /etc/kernelcode/cli.sh
-ENTRYPOINT ["/etc/kernelcode/cli.sh"]
+# Set permissions and make the script executable
+RUN chmod +x /home/nixuser/bin/cli.sh && \
+    chown -R nixuser:nixuser /home/nixuser
+
+# Switch to nixuser
+USER nixuser
+
+# Use the cli.sh script directly
+ENTRYPOINT ["/home/nixuser/bin/cli.sh"]
