@@ -41,15 +41,18 @@
 
   # dependencies
   astunparse,
-  fsspec,
+  expecttest,
   filelock,
+  fsspec,
+  hypothesis,
   jinja2,
   networkx,
-  sympy,
-  numpy,
+  packaging,
+  psutil,
   pyyaml,
-  cffi,
-  click,
+  requests,
+  sympy,
+  types-dataclasses,
   typing-extensions,
   # ROCm build and `torch.compile` requires `triton`
   tritonSupport ? (!stdenv.hostPlatform.isDarwin),
@@ -72,10 +75,6 @@
       triton,
   triton-cuda,
 
-  # Unit tests
-  hypothesis,
-  psutil,
-
   # Disable MKLDNN on aarch64-darwin, it negatively impacts performance,
   # this is also what official pytorch build does
   mklDnnSupport ? !(stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64),
@@ -90,7 +89,6 @@
   # dependencies for torch.utils.tensorboard
   pillow,
   six,
-  future,
   tensorboard,
   protobuf,
 
@@ -534,23 +532,24 @@ buildPythonPackage rec {
   ];
   dependencies = [
     astunparse
-    cffi
-    click
-    numpy
-    pyyaml
-
-    # From install_requires:
-    fsspec
+    expecttest
     filelock
-    typing-extensions
-    sympy
-    networkx
+    fsspec
+    hypothesis
     jinja2
+    networkx
+    ninja
+    packaging
+    psutil
+    pyyaml
+    requests
+    sympy
+    types-dataclasses
+    typing-extensions
 
     # the following are required for tensorboard support
     pillow
     six
-    future
     tensorboard
     protobuf
 

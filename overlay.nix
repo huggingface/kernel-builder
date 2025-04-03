@@ -7,10 +7,6 @@ final: prev:
   lapack =
     if final.stdenv.isx86_64 then prev.lapack.override { lapackProvider = prev.mkl; } else prev.blas;
 
-  magma-cuda-static = prev.magma-cuda-static.overrideAttrs (
-    _: prevAttrs: { buildInputs = prevAttrs.buildInputs ++ [ (prev.lib.getLib prev.gfortran.cc) ]; }
-  );
-
   cmakeNvccThreadsHook = prev.callPackage ./pkgs/cmake-nvcc-threads-hook { };
 
   magma-hip =
