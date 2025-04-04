@@ -9,7 +9,13 @@ rustPlatform.buildRustPackage {
 
   src =
     let
-      sourceFiles = file: file.name == "Cargo.toml" || file.name == "Cargo.lock" || file.hasExt "rs";
+      sourceFiles =
+        file:
+        file.name == "Cargo.toml"
+        || file.name == "Cargo.lock"
+        || file.name == "manylinux-policy.json"
+        || file.hasExt "rs"
+        || file.name == "stable_abi.toml";
     in
     lib.fileset.toSource {
       root = ../../kernel-abi-check;

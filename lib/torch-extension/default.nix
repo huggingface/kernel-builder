@@ -26,7 +26,7 @@
   extraDeps ? [ ],
   torch,
 
-  abiVersion,
+  doAbiCheck,
 }:
 
 let
@@ -46,7 +46,7 @@ in
 stdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
-  inherit abiVersion nvccThreads src;
+  inherit doAbiCheck nvccThreads src;
 
   # Generate build files.
   postPatch = ''

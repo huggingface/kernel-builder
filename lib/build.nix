@@ -85,7 +85,6 @@ rec {
         ) buildConfig.kernel
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
-      abiVersion = if oldLinuxCompat then "ubuntu-20.04" else null;
     in
     if buildConfig.torch.universal or false then
       # No torch extension sources? Treat it as a noarch package.
@@ -96,7 +95,6 @@ rec {
     else
       pkgs.callPackage ./torch-extension ({
         inherit
-          abiVersion
           extraDeps
           nvccThreads
           src
@@ -106,6 +104,7 @@ rec {
           rev
           ;
         extensionName = buildConfig.general.name;
+        doAbiCheck = oldLinuxCompat;
       });
 
   # Build multiple Torch extensions.
