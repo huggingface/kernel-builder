@@ -108,7 +108,9 @@ Specification of a kernel with the name `<name>`. This section can contain
 the following options:
 
 - `cuda-capabilities` (required): a list of CUDA capabilities that the
-  kernel should be compiled for.
+  kernel should be compiled for. The effective capabilities are the
+  intersection of this list and the capabilities a given Torch version
+  is compiled with.
 - `rocm-archs` (required): a list of ROCm architectures that the kernel
   should be compiled for.
 - `depends` (required): a list of dependencies. The supported dependencies
