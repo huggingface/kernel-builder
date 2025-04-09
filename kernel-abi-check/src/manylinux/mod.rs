@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::env::consts;
 use std::str;
 use std::{collections::HashMap, str::FromStr};
@@ -34,10 +34,21 @@ static MANYLINUX_VERSIONS: Lazy<HashMap<String, ManyLinux>> = Lazy::new(|| {
         .collect()
 });
 
-pub fn check_manylinux_symbols<'a>(
+/// A violation of the manylinux policy.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ManylinuxViolation {
+    /// A symbol is not allowed in the manylinux version.
+    Symbol {
+        name: String,
+        dep: String,
+        version: String,
+    },
+}
+
+pub fn check_manylinux<'a>(
     manylinux_version: &str,
     symbols: impl IntoIterator<Item = Symbol<'a, 'a>>,
-) -> Result<bool> {
+) -> Result<BTreeSet<ManylinuxViolation>> {
     let symbol_versions = MANYLINUX_VERSIONS
         .get(manylinux_version)
         .context(format!("Unknown manylinux version: {}", manylinux_version))?
@@ -49,7 +60,7 @@ pub fn check_manylinux_symbols<'a>(
             manylinux_version
         ))?;
 
-    let mut violations = HashMap::new();
+    let mut violations = BTreeSet::new();
 
     for symbol in symbols {
         if symbol.is_undefined() {
@@ -78,21 +89,15 @@ pub fn check_manylinux_symbols<'a>(
 
             if let Some(versions) = symbol_versions.get(dep) {
                 if !versions.contains(&version.to_string()) {
-                    violations.insert(symbol_name, format!("{}_{}", dep, version));
+                    violations.insert(ManylinuxViolation::Symbol {
+                        name: symbol_name.to_string(),
+                        dep: dep.to_string(),
+                        version: version.to_string(),
+                    });
                 }
             }
         }
     }
 
-    if !violations.is_empty() {
-        eprintln!(
-            "\n⛔ Symbols incompatible with `{}` found:\n",
-            manylinux_version
-        );
-        for (name, version) in &violations {
-            eprintln!("{}: {}", name, version);
-        }
-    }
-
-    Ok(!violations.is_empty())
+    Ok(violations)
 }

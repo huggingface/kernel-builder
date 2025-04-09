@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 
 use eyre::Result;
 use object::{ObjectSymbol, Symbol};
@@ -57,13 +57,22 @@ pub static PYTHON_STABLE_ABI: Lazy<HashMap<String, AbiInfo>> = Lazy::new(|| {
     symbols
 });
 
+/// Python ABI violation.
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+pub enum PythonAbiViolation {
+    /// Symbol is newer than the specified Python ABI version.
+    NewerSymbol { name: String, added: Version },
+
+    /// Symbol is not part of ABI3.
+    NonAbi3Symbol { name: String },
+}
+
+/// Check for violations of the Python ABI policy.
 pub fn check_python_abi<'a>(
     python_abi: &Version,
     symbols: impl IntoIterator<Item = Symbol<'a, 'a>>,
-) -> Result<bool> {
-    let mut newer_abi3_symbols = BTreeMap::new();
-    let mut non_abi3_symbols = BTreeSet::new();
-
+) -> Result<BTreeSet<PythonAbiViolation>> {
+    let mut violations = BTreeSet::new();
     for symbol in symbols {
         if !symbol.is_undefined() {
             continue;
@@ -74,30 +83,21 @@ pub fn check_python_abi<'a>(
         match PYTHON_STABLE_ABI.get(symbol_name) {
             Some(abi_info) => {
                 if &abi_info.added > python_abi {
-                    newer_abi3_symbols.insert(symbol_name, abi_info);
+                    violations.insert(PythonAbiViolation::NewerSymbol {
+                        name: symbol_name.to_string(),
+                        added: abi_info.added.clone(),
+                    });
                 }
             }
             None => {
                 if symbol_name.starts_with("Py") || symbol_name.starts_with("_Py") {
-                    non_abi3_symbols.insert(symbol_name);
+                    violations.insert(PythonAbiViolation::NonAbi3Symbol {
+                        name: symbol_name.to_string(),
+                    });
                 }
             }
         }
     }
 
-    if !newer_abi3_symbols.is_empty() {
-        eprintln!("\n⛔ Symbols >= Python ABI {} found:\n", python_abi);
-        for (name, abi_info) in &newer_abi3_symbols {
-            eprintln!("{}: {}", name, abi_info.added);
-        }
-    }
-
-    if !non_abi3_symbols.is_empty() {
-        eprintln!("\n⛔ Non-ABI3 symbols found:\n");
-        for name in &non_abi3_symbols {
-            eprintln!("{}", name);
-        }
-    }
-
-    Ok(!newer_abi3_symbols.is_empty() || !non_abi3_symbols.is_empty())
+    Ok(violations)
 }

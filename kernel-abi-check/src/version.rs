@@ -3,6 +3,7 @@ use std::{fmt::Display, str::FromStr};
 use eyre::{ensure, Context, Result};
 use serde::{de, Deserialize, Deserializer};
 
+/// Symbol version.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Version(pub Vec<usize>);
 
