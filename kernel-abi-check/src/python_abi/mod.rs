@@ -61,7 +61,7 @@ pub static PYTHON_STABLE_ABI: Lazy<HashMap<String, AbiInfo>> = Lazy::new(|| {
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum PythonAbiViolation {
     /// Symbol is newer than the specified Python ABI version.
-    NewerSymbol { name: String, added: Version },
+    IncompatibleAbi3Symbol { name: String, added: Version },
 
     /// Symbol is not part of ABI3.
     NonAbi3Symbol { name: String },
@@ -83,7 +83,7 @@ pub fn check_python_abi<'a>(
         match PYTHON_STABLE_ABI.get(symbol_name) {
             Some(abi_info) => {
                 if &abi_info.added > python_abi {
-                    violations.insert(PythonAbiViolation::NewerSymbol {
+                    violations.insert(PythonAbiViolation::IncompatibleAbi3Symbol {
                         name: symbol_name.to_string(),
                         added: abi_info.added.clone(),
                     });

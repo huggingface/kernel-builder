@@ -79,7 +79,7 @@ fn print_python_abi_violations(violations: &BTreeSet<PythonAbiViolation>, python
     if !violations.is_empty() {
         let newer_abi3_symbols = violations
             .iter()
-            .filter(|v| matches!(v, PythonAbiViolation::NewerSymbol { .. }))
+            .filter(|v| matches!(v, PythonAbiViolation::IncompatibleAbi3Symbol { .. }))
             .collect::<BTreeSet<_>>();
         let non_abi3_symbols = violations
             .iter()
@@ -89,7 +89,7 @@ fn print_python_abi_violations(violations: &BTreeSet<PythonAbiViolation>, python
         if !newer_abi3_symbols.is_empty() {
             eprintln!("\n⛔ Symbols >= Python ABI {} found:\n", python_abi);
             for violation in newer_abi3_symbols {
-                if let PythonAbiViolation::NewerSymbol { name, added } = violation {
+                if let PythonAbiViolation::IncompatibleAbi3Symbol { name, added } = violation {
                     eprintln!("{}: {}", name, added);
                 }
             }
