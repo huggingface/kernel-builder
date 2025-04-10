@@ -3,9 +3,12 @@
   rustPlatform,
 }:
 
+let
+  version = (builtins.fromTOML (builtins.readFile ../../kernel-abi-check/Cargo.toml)).package.version;
+in
 rustPlatform.buildRustPackage {
+  inherit version;
   pname = "kernel-abi-check";
-  version = "0.0.1";
 
   src =
     let
