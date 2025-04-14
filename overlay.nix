@@ -1,9 +1,6 @@
 final: prev:
 {
-  # Overrides
-
   blas = if final.stdenv.isx86_64 then prev.blas.override { blasProvider = prev.mkl; } else prev.blas;
-
   lapack =
     if final.stdenv.isx86_64 then prev.lapack.override { lapackProvider = prev.mkl; } else prev.blas;
 
@@ -21,6 +18,8 @@ final: prev:
         torch_2_5 = callPackage ./pkgs/python-modules/torch_2_5 { };
 
         torch_2_6 = callPackage ./pkgs/python-modules/torch_2_6 { rocmPackages = final.rocmPackages; };
+
+        torch_2_7 = callPackage ./pkgs/python-modules/torch_2_7 { rocmPackages = final.rocmPackages; };
       }
     )
   ];

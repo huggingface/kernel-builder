@@ -24,12 +24,30 @@ rec {
         false
       ];
     };
+    "2.7" = {
+      cudaVersions = [
+        "11.8"
+        "12.6"
+        "12.8"
+      ];
+      cxx11Abi = [
+        true
+      ];
+    };
   };
 
   torchRocmVersions = {
     "2.6" = {
       rocmVersions = [
         "6.2.4"
+      ];
+      cxx11Abi = [
+        true
+      ];
+    };
+    "2.7" = {
+      rocmVersions = [
+        "6.3.4"
       ];
       cxx11Abi = [
         true
