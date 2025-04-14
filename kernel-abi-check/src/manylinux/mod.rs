@@ -1,10 +1,9 @@
 use std::collections::{BTreeSet, HashSet};
-use std::env::consts;
 use std::str;
 use std::{collections::HashMap, str::FromStr};
 
-use eyre::{Context, ContextCompat, OptionExt, Result};
-use object::{ObjectSymbol, Symbol};
+use eyre::{bail, Context, ContextCompat, OptionExt, Result};
+use object::{Architecture, Endianness, ObjectSymbol, Symbol};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
@@ -47,17 +46,19 @@ pub enum ManylinuxViolation {
 
 pub fn check_manylinux<'a>(
     manylinux_version: &str,
+    architecture: Architecture,
+    endianness: Endianness,
     symbols: impl IntoIterator<Item = Symbol<'a, 'a>>,
 ) -> Result<BTreeSet<ManylinuxViolation>> {
+    let arch_str = architecture.arch_str(endianness)?;
     let symbol_versions = MANYLINUX_VERSIONS
         .get(manylinux_version)
         .context(format!("Unknown manylinux version: {}", manylinux_version))?
         .symbol_versions
-        .get(consts::ARCH)
+        .get(&arch_str)
         .context(format!(
             "Cannot find arch `{}` for: {}`",
-            consts::ARCH,
-            manylinux_version
+            arch_str, manylinux_version
         ))?;
 
     let mut violations = BTreeSet::new();
@@ -100,4 +101,23 @@ pub fn check_manylinux<'a>(
     }
 
     Ok(violations)
+}
+
+pub trait ArchStr {
+    fn arch_str(&self, endiannes: Endianness) -> Result<String>;
+}
+
+impl ArchStr for Architecture {
+    fn arch_str(&self, endiannes: Endianness) -> Result<String> {
+        Ok(match self {
+            Architecture::Aarch64 => "aarch64",
+            Architecture::I386 => "i686",
+            Architecture::PowerPc64 if matches!(endiannes, Endianness::Big) => "ppc64",
+            Architecture::PowerPc64 if matches!(endiannes, Endianness::Little) => "ppc64le",
+            Architecture::S390x => "s390x",
+            Architecture::X86_64 => "x86_64",
+            _ => bail!("Unsupported architecture: {:?}", self),
+        }
+        .to_string())
+    }
 }

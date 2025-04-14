@@ -40,7 +40,12 @@ fn main() -> Result<()> {
     let binary_data = fs::read(args.object).context("Cannot open object file")?;
     let file = object::File::parse(&*binary_data).context("Cannot parse object")?;
 
-    let many_linux_violations = check_manylinux(&args.manylinux, file.symbols())?;
+    let many_linux_violations = check_manylinux(
+        &args.manylinux,
+        file.architecture(),
+        file.endianness(),
+        file.symbols(),
+    )?;
     print_manylinux_violations(&many_linux_violations, &args.manylinux)?;
 
     let python_abi_violations = check_python_abi(&args.python_abi, file.symbols())?;
