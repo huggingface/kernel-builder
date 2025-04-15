@@ -234,10 +234,12 @@ dependencies = [
  "clap",
  "colored",
  "dirs 6.0.0",
+ "futures",
  "hf-hub",
  "kernel-abi-check",
  "object 0.36.7",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

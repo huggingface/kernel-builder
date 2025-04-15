@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use hf_hub::api::sync::Api;
+use hf_hub::api::tokio::ApiBuilder;
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
@@ -616,13 +618,71 @@ fn get_repo_path(repo_id: &str, base_dir: &Path) -> PathBuf {
     base_dir.join(repo.folder_name())
 }
 
-fn fetch_repository(
+fn fetch_repository_parallel(
+    repo_id: &str,
+    _cache_dir: &Path,
+    revision: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("fetching: {} (revision: {})", repo_id, revision);
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        let api = ApiBuilder::new().high().build().unwrap();
+        let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
+        let api_repo = api.repo(repo);
+        let info = api_repo.info().await.unwrap();
+        let file_names = info
+            .siblings
+            .iter()
+            .map(|f| f.rfilename.clone())
+            .collect::<Vec<_>>();
+
+        // Create a stream of tasks and process them concurrently with bounded parallelism
+        use futures::stream::{self, StreamExt};
+
+        let download_results = stream::iter(file_names)
+            .map(|file_name| {
+                // Create a new API instance for each download
+                let api = ApiBuilder::new().high().build().unwrap();
+                let repo_clone =
+                    Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
+                let download_repo = api.repo(repo_clone);
+
+                async move {
+                    match download_repo.download(&file_name).await {
+                        Ok(_) => Ok(file_name),
+                        Err(e) => Err((file_name, e)),
+                    }
+                }
+            })
+            .buffer_unordered(10) // Process up to 10 downloads concurrently
+            .collect::<Vec<_>>()
+            .await;
+
+        // Count successful downloads
+        let successful = download_results.iter().filter(|r| r.is_ok()).count();
+        let failed = download_results.len() - successful;
+
+        println!(
+            "Downloaded {} files successfully ({} failed)",
+            successful, failed
+        );
+
+        // Print any errors
+        for result in download_results {
+            if let Err((file, error)) = result {
+                eprintln!("Failed to download {}: {}", file, error);
+            }
+        }
+    });
+
+    Ok(())
+}
+
+fn fetch_with_hub_cli(
     repo_id: &str,
     cache_dir: &Path,
     revision: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("fetching: {} (revision: {})", repo_id, revision);
-
     // TODO: revisit with slower manual download
     let mut cmd = std::process::Command::new("huggingface-cli");
     cmd.arg("download")
@@ -640,6 +700,55 @@ fn fetch_repository(
         )));
     }
 
+    Ok(())
+}
+
+fn fetch_repository_sync(
+    repo_id: &str,
+    _cache_dir: &Path,
+    revision: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("fetching: {} (revision: {})", repo_id, revision);
+    let api = Api::new()?;
+
+    // Download the repository using the huggingface_hub API
+    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
+    let api_repo = api.repo(repo);
+    let info = api_repo.info()?;
+
+    let file_names = info
+        .siblings
+        .iter()
+        .map(|f| f.rfilename.clone())
+        .collect::<Vec<_>>();
+
+    for file_name in file_names {
+        api_repo.download(&file_name).unwrap();
+    }
+
+    Ok(())
+}
+
+// TODO: remove this - only for testing
+#[allow(dead_code)]
+enum Method {
+    HubCli,
+    Sync,
+    Async,
+}
+
+// fetch should try the cli first then sync
+fn fetch_repository(
+    repo_id: &str,
+    cache_dir: &Path,
+    revision: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let use_method = Method::Async;
+    match use_method {
+        Method::HubCli => fetch_with_hub_cli(repo_id, cache_dir, revision)?,
+        Method::Sync => fetch_repository_sync(repo_id, cache_dir, revision)?,
+        Method::Async => fetch_repository_parallel(repo_id, cache_dir, revision)?,
+    }
     Ok(())
 }
 
