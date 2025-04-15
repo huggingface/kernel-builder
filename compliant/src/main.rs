@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
@@ -15,10 +16,20 @@ struct Cli {
     command: Commands,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum Format {
+    Console,
+    Json,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// List fetched repositories with build variants
-    List,
+    List {
+        /// Format of the output. Default is console
+        #[arg(long, default_value = "console")]
+        format: Format,
+    },
 
     /// Check repository compliance and ABI compatibility
     Check {
@@ -33,10 +44,6 @@ enum Commands {
         /// Python ABI version to check against
         #[arg(short, long, default_value = "3.9")]
         python_abi: String,
-
-        /// Skip ABI compatibility check
-        #[arg(long)]
-        skip_abi: bool,
 
         /// Automatically fetch repositories if not found locally
         #[arg(short, long, default_value = "true")]
@@ -53,6 +60,10 @@ enum Commands {
         /// Show ABI violations in the output. Default is to only show compatibility status.
         #[arg(long, default_value = "false")]
         show_violations: bool,
+
+        /// Format of the output. Default is console
+        #[arg(long, default_value = "console")]
+        format: Format,
     },
 }
 
@@ -71,13 +82,14 @@ const CUDA_COMPLIANT_VARIANTS: [&str; 12] = [
     "torch26-cxx98-cu126-x86_64-linux",
 ];
 
-const ROCM_COMPLIANT_VARIANTS: [&str; 6] = [
+const ROCM_COMPLIANT_VARIANTS: [&str; 7] = [
     "torch25-cxx11-rocm5.4-x86_64-linux",
     "torch25-cxx11-rocm5.6-x86_64-linux",
     "torch25-cxx98-rocm5.4-x86_64-linux",
     "torch25-cxx98-rocm5.6-x86_64-linux",
     "torch26-cxx11-rocm5.4-x86_64-linux",
     "torch26-cxx11-rocm5.6-x86_64-linux",
+    "torch26-cxx11-rocm62-x86_64-linux", // MAY NEED TO BE REMOVED
 ];
 
 #[derive(Debug, Clone)]
@@ -121,12 +133,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cache_dir = get_cache_dir()?;
 
     match cli.command {
-        Commands::List => {
+        Commands::List { format } => {
             let entries = fs::read_dir(&cache_dir)?;
             let mut found_repos = 0;
-
-            println!("repositories with build variants");
-            println!("-------------------------------");
+            let mut repo_list = Vec::new();
 
             for entry in entries {
                 let entry = entry?;
@@ -141,15 +151,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 // Check if this repo has a build directory with variants
                 if has_build_variants(&path)? {
-                    println!("{}", repo_id);
+                    repo_list.push(repo_id);
                     found_repos += 1;
                 }
             }
 
-            if found_repos == 0 {
-                println!("no repositories with build variants found");
+            // Sort repositories for consistent display
+            repo_list.sort();
+
+            if format == Format::Json {
+                // Create JSON response
+                let json_output = serde_json::json!({
+                    "repositories": repo_list,
+                    "count": found_repos
+                });
+
+                println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
             } else {
-                println!("\ntotal: {} repositories", found_repos);
+                println!(".");
+                for repo_id in repo_list {
+                    println!("├── {}", repo_id);
+                }
+                println!("╰── {} kernel repositories found\n", found_repos);
             }
         }
 
@@ -157,11 +180,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             repos,
             manylinux,
             python_abi,
-            skip_abi,
             auto_fetch,
             revision,
             long,
             show_violations,
+            format,
         } => {
             let repositories: Vec<String> = repos
                 .split(',')
@@ -170,7 +193,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .collect();
 
             if repositories.is_empty() {
-                eprintln!("no repository ids provided");
+                if format == Format::Json {
+                    let json_output = serde_json::json!({
+                        "status": "error",
+                        "error": "no repository ids provided"
+                    });
+                    println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+                } else {
+                    eprintln!("no repository ids provided");
+                }
                 return Ok(());
             }
 
@@ -189,9 +220,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     auto_fetch,
                     &manylinux,
                     &python_version,
-                    skip_abi,
                     !long,
                     show_violations,
+                    format,
                 )?;
             }
         }
@@ -262,38 +293,87 @@ fn process_repository(
     auto_fetch: bool,
     manylinux: &str,
     python_version: &Version,
-    skip_abi: bool,
     compact_output: bool,
     show_violations: bool,
+    format: Format,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let repo_path = get_repo_path(repo_id, cache_dir);
 
     // Check if repository exists locally
     if !repo_path.exists() || !repo_path.join("refs/main").exists() {
         if auto_fetch {
-            println!("repository: {}", repo_id);
-            println!("status: not found locally, fetching...");
+            if format == Format::Console {
+                println!("repository: {}", repo_id);
+                println!("status: not found locally, fetching...");
+            }
 
             // Fetch the repository
             match fetch_repository(repo_id, cache_dir, revision) {
-                Ok(_) => println!("status: fetch successful"),
+                Ok(_) => {
+                    if format == Format::Console {
+                        println!("status: fetch successful");
+                    }
+                }
                 Err(e) => {
-                    println!("status: fetch failed - {}", e);
-                    println!("---");
+                    if format == Format::Console {
+                        println!("status: fetch failed - {}", e);
+                        println!("---");
+                    } else {
+                        let json_output = serde_json::json!({
+                            "repository": repo_id,
+                            "status": "fetch_failed",
+                            "error": e.to_string()
+                        });
+                        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+                    }
                     return Ok(());
                 }
             }
         } else {
-            print_repo_status(repo_id, "missing", "n/a", "n/a", "n/a");
-            return Ok(());
+            // Print a message indicating the repository is missing
+            if format == Format::Console {
+                println!(".");
+                println!("├── {}", repo_id.on_bright_white().black().bold());
+                println!("├── build: missing");
+                println!("╰── abi: missing");
+            } else {
+                let json_output = serde_json::json!({
+                    "repository": repo_id,
+                    "status": "not_found",
+                    "error": "repository not found locally"
+                });
+                println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+            }
+
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "repository not found locally",
+            )));
         }
     }
 
     // Re-check after potential fetch
     let ref_file = repo_path.join("refs/main");
     if !ref_file.exists() {
-        print_repo_status(repo_id, "missing", "n/a", "n/a", "n/a");
-        return Ok(());
+        // Print a message indicating the repository is missing
+        if format == Format::Console {
+            println!(".");
+            println!("├── {}", repo_id.on_bright_white().black().bold());
+            println!("├── build: missing");
+            println!("╰── abi: missing");
+        } else {
+            let json_output = serde_json::json!({
+                "repository": repo_id,
+                "status": "not_found",
+                "error": "repository not found locally"
+            });
+            println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        }
+
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "repository not found locally",
+        )));
     }
 
     let content = fs::read_to_string(ref_file)?;
@@ -301,14 +381,48 @@ fn process_repository(
     let snapshot_dir = repo_path.join(format!("snapshots/{}", hash));
 
     if !snapshot_dir.exists() {
-        print_repo_status(repo_id, "present", "missing", "n/a", "n/a");
-        return Ok(());
+        // Print a message indicating the snapshot is missing
+        if format == Format::Console {
+            println!(".");
+            println!("├── {}", repo_id.on_bright_white().black().bold());
+            println!("├── build: missing");
+            println!("╰── abi: missing");
+        } else {
+            let json_output = serde_json::json!({
+                "repository": repo_id,
+                "status": "missing_snapshot",
+                "error": "snapshot not found"
+            });
+            println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        }
+
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "snapshot not found",
+        )));
     }
 
     let build_dir = snapshot_dir.join("build");
     if !build_dir.exists() {
-        print_repo_status(repo_id, "present", "present", "missing", "n/a");
-        return Ok(());
+        // Print a message indicating the build directory is missing
+        if format == Format::Console {
+            println!(".");
+            println!("├── {}", repo_id.on_bright_white().black().bold());
+            println!("├── build: missing");
+            println!("╰── abi: missing");
+        } else {
+            let json_output = serde_json::json!({
+                "repository": repo_id,
+                "status": "missing_build_dir",
+                "error": "build directory not found"
+            });
+            println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        }
+
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "build directory not found",
+        )));
     }
 
     let variants = get_build_variants(&snapshot_dir)?;
@@ -323,75 +437,140 @@ fn process_repository(
         &ROCM_COMPLIANT_VARIANTS,
     );
 
-    let abi_status;
-    let abi_details;
+    let abi_output =
+        check_abi_for_repository(&snapshot_dir, manylinux, python_version, show_violations)?;
 
-    if skip_abi {
-        abi_status = "skipped";
-        abi_details = String::new();
+    let abi_status = if abi_output.overall_compatible {
+        "compatible"
     } else {
-        let (is_compatible, details) = check_abi_for_repository(
-            &snapshot_dir,
-            manylinux,
-            python_version,
-            compact_output,
-            show_violations,
-        )?;
+        "incompatible"
+    };
 
-        abi_status = if is_compatible {
-            "compatible"
+    // Get present CUDA and ROCM variants
+    let cuda_variants_present_set = CUDA_COMPLIANT_VARIANTS
+        .iter()
+        .filter(|v| variants.iter().any(|variant| variant.to_string() == **v))
+        .collect::<Vec<_>>();
+
+    let rocm_variants_present_set = ROCM_COMPLIANT_VARIANTS
+        .iter()
+        .filter(|v| variants.iter().any(|variant| variant.to_string() == **v))
+        .collect::<Vec<_>>();
+
+    // Check if all required variants are present
+    let cuda_compatible = cuda_variants_present_set.len() == CUDA_COMPLIANT_VARIANTS.len();
+    let rocm_compatible = rocm_variants_present_set.len() == ROCM_COMPLIANT_VARIANTS.len();
+
+    if format == Format::Json {
+        // Create JSON response
+        let json_output = serde_json::json!({
+            "repository": repo_id,
+            "status": "success",
+            "build_status": {
+                "summary": build_status,
+                "cuda": {
+                    "compatible": cuda_compatible,
+                    "present": cuda_variants_present_set.iter().map(|&v| v.to_string()).collect::<Vec<_>>(),
+                    "missing": CUDA_COMPLIANT_VARIANTS.iter()
+                        .filter(|v| !cuda_variants_present_set.contains(v))
+                        .map(|&v| v.to_string())
+                        .collect::<Vec<_>>()
+                },
+                "rocm": {
+                    "compatible": rocm_compatible,
+                    "present": rocm_variants_present_set.iter().map(|&v| v.to_string()).collect::<Vec<_>>(),
+                    "missing": ROCM_COMPLIANT_VARIANTS.iter()
+                        .filter(|v| !rocm_variants_present_set.contains(v))
+                        .map(|&v| v.to_string())
+                        .collect::<Vec<_>>()
+                }
+            },
+            "abi_status": {
+                "compatible": abi_output.overall_compatible,
+                "manylinux_version": abi_output.manylinux_version,
+                "python_abi_version": abi_output.python_abi_version.to_string(),
+                "variants": abi_output.variants.iter().map(|v| {
+                    serde_json::json!({
+                        "name": v.name,
+                        "compatible": v.is_compatible,
+                        "has_shared_objects": v.has_shared_objects,
+                        "violations": v.violations.iter().map(|viol| viol.message.clone()).collect::<Vec<_>>()
+                    })
+                }).collect::<Vec<_>>()
+            }
+        });
+
+        // Output pretty-printed JSON
+        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+    } else {
+        let abi_mark = if abi_output.overall_compatible {
+            "✓".green()
         } else {
-            "incompatible"
+            "✗".red()
         };
-        abi_details = details;
-    }
 
-    print_repo_status(repo_id, "present", "present", &build_status, abi_status);
+        let label = format!(" {} ", repo_id).black().on_bright_white().bold();
 
-    // Print ABI check details after the status box
-    if !abi_details.is_empty() {
-        println!("{}", abi_details);
+        println!("\n{}", label);
+        println!("├── build: {}", build_status);
+
+        let cuda_mark = if cuda_compatible {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
+        let rocm_mark = if rocm_compatible {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
+
+        if !compact_output {
+            println!("│  {} {}", cuda_mark, "CUDA".bold());
+
+            // conditionally print the last item with a diffent box character
+            for (i, cuda_variant) in CUDA_COMPLIANT_VARIANTS.iter().enumerate() {
+                if i == CUDA_COMPLIANT_VARIANTS.len() - 1 {
+                    if cuda_variants_present_set.contains(&cuda_variant) {
+                        println!("│    ╰── {}", cuda_variant);
+                    } else {
+                        println!("│    ╰── {}", cuda_variant.dimmed());
+                    }
+                } else if cuda_variants_present_set.contains(&cuda_variant) {
+                    println!("│    ├── {}", cuda_variant);
+                } else {
+                    println!("│    ├── {}", cuda_variant.dimmed());
+                }
+            }
+
+            println!("│  {} ROCM", rocm_mark);
+
+            for (i, rocm_variant) in ROCM_COMPLIANT_VARIANTS.iter().enumerate() {
+                if i == ROCM_COMPLIANT_VARIANTS.len() - 1 {
+                    if rocm_variants_present_set.contains(&rocm_variant) {
+                        println!("│    ╰── {}", rocm_variant);
+                    } else {
+                        println!("│    ╰── {}", rocm_variant.dimmed());
+                    }
+                } else if rocm_variants_present_set.contains(&rocm_variant) {
+                    println!("│    ├── {}", rocm_variant);
+                } else {
+                    println!("│    ├── {}", rocm_variant.dimmed());
+                }
+            }
+        } else {
+            println!("│   ├── {} CUDA", cuda_mark);
+            println!("│   ╰── {} ROCM", rocm_mark);
+        }
+        println!("╰── abi: {}", abi_status);
+        println!("    ├── {} {}", abi_mark, abi_output.manylinux_version);
+        println!(
+            "    ╰── {} python {}",
+            abi_mark, abi_output.python_abi_version
+        );
     }
 
     Ok(())
-}
-
-fn print_repo_status(
-    repo_id: &str,
-    refs_status: &str,
-    snapshot_status: &str,
-    build_status: &str,
-    abi_status: &str,
-) {
-    // Create a divider line that matches the content width
-    let divider = |ch: char, corner_left: char, corner_right: char, width: usize| {
-        format!(
-            "{}{}{}",
-            corner_left,
-            ch.to_string().repeat(width - 2),
-            corner_right
-        )
-    };
-
-    // Calculate the width of our table
-    let max_width = 60;
-
-    // Create top, middle and bottom borders with single line characters
-    let top_border = divider('─', '┌', '┐', max_width);
-    let mid_border = divider('─', '├', '┤', max_width);
-    let bottom_border = divider('─', '└', '┘', max_width);
-
-    // Print formatted box table
-    println!("{}", top_border);
-    println!("│ {:<56} │", format!("Repository: {}", repo_id));
-    println!("{}", mid_border);
-    println!(
-        "│ {:<56} │",
-        format!("Status: refs={}, snapshot={}", refs_status, snapshot_status)
-    );
-    println!("│ {:<56} │", format!("Build: {}", build_status));
-    println!("│ {:<56} │", format!("ABI: {}", abi_status));
-    println!("{}", bottom_border);
 }
 
 fn get_build_status_summary(
@@ -400,7 +579,6 @@ fn get_build_status_summary(
     cuda_variants: &[&str],
     rocm_variants: &[&str],
 ) -> String {
-    let total = variants.len();
     let built = variants
         .iter()
         .filter(|v| build_dir.join(v).exists())
@@ -414,8 +592,8 @@ fn get_build_status_summary(
         .filter(|v| rocm_variants.contains(&v.as_str()) && build_dir.join(v).exists())
         .count();
     format!(
-        "{}/{} (cuda:{}, rocm:{})",
-        built, total, cuda_built, rocm_built
+        "Total: {} (CUDA: {}, ROCM: {})",
+        built, cuda_built, rocm_built
     )
 }
 
@@ -489,17 +667,42 @@ fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>, Box<dyn std::err
     Ok(variants)
 }
 
+#[derive(Debug, Clone)]
+pub struct SharedObjectViolation {
+    pub message: String,
+    // TODO: Explore what other fields we may need
+}
+
+#[derive(Debug, Clone)]
+pub struct VariantResult {
+    pub name: String,
+    pub is_compatible: bool,
+    pub violations: Vec<SharedObjectViolation>,
+    pub has_shared_objects: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct AbiCheckResult {
+    pub overall_compatible: bool,
+    pub variants: Vec<VariantResult>,
+    pub manylinux_version: String,
+    pub python_abi_version: Version,
+}
+
 fn check_abi_for_repository(
     snapshot_dir: &Path,
     manylinux_version: &str,
     python_abi_version: &Version,
-    compact_output: bool,
     show_violations: bool,
-) -> Result<(bool, String), Box<dyn std::error::Error>> {
-    let mut output = String::new();
+) -> Result<AbiCheckResult, Box<dyn std::error::Error>> {
     let build_dir = snapshot_dir.join("build");
     if !build_dir.exists() {
-        return Ok((false, output));
+        return Ok(AbiCheckResult {
+            overall_compatible: false,
+            variants: Vec::new(),
+            manylinux_version: manylinux_version.to_string(),
+            python_abi_version: python_abi_version.clone(),
+        });
     }
 
     // Get all variant directories
@@ -509,92 +712,74 @@ fn check_abi_for_repository(
         .collect();
 
     if variant_paths.is_empty() {
-        return Ok((false, output));
+        return Ok(AbiCheckResult {
+            overall_compatible: false,
+            variants: Vec::new(),
+            manylinux_version: manylinux_version.to_string(),
+            python_abi_version: python_abi_version.clone(),
+        });
     }
 
-    let mut has_issues = false;
     let mut variant_results = Vec::new();
 
-    // Skip detailed output in compact mode
-    if !compact_output {
-        output.push_str(&format!(
-            "\nABI CHECK ( manylinux={}, python={} )\n\n",
-            manylinux_version, python_abi_version
-        ));
-        output.push_str(&format!("{:<40} | {:<15}\n", "VARIANT", "STATUS"));
-        output.push_str(&format!("{}\n", "-".repeat(48)));
-    }
-
     // Check each variant
-    for variant_path in &variant_paths {
+    for variant_path in variant_paths.iter() {
         let variant_name = variant_path
             .file_name()
             .unwrap_or_default()
-            .to_string_lossy();
+            .to_string_lossy()
+            .to_string();
 
         let so_files = find_shared_objects(variant_path)?;
-        if so_files.is_empty() {
-            if !compact_output {
-                output.push_str(&format!("{:<40} | no shared objects\n", variant_name));
-            }
+        let has_shared_objects = !so_files.is_empty();
+
+        if !has_shared_objects {
+            variant_results.push(VariantResult {
+                name: variant_name,
+                is_compatible: true,
+                violations: Vec::new(),
+                has_shared_objects: false,
+            });
             continue;
         }
 
-        let mut variant_has_issues = false;
-        let mut violations_output = String::new();
+        let mut variant_violations = Vec::new();
 
         // Check each shared object in the variant
         for so_path in &so_files {
-            let (passed, violations) = check_shared_object(
+            let (passed, violations_text) = check_shared_object(
                 so_path,
                 manylinux_version,
                 python_abi_version,
                 show_violations,
             )?;
 
-            if !passed {
-                variant_has_issues = true;
-                has_issues = true;
-
-                if show_violations {
-                    violations_output.push_str(&violations);
-                }
+            if !passed && show_violations {
+                // TODO: parse the violations_text more carefully
+                variant_violations.push(SharedObjectViolation {
+                    message: violations_text,
+                });
             }
         }
 
-        if !compact_output {
-            output.push_str(&format!(
-                "{:<40} | {:<15}\n",
-                variant_name,
-                if variant_has_issues {
-                    "incompatible"
-                } else {
-                    "compatible"
-                }
-            ));
-
-            if show_violations && !violations_output.is_empty() {
-                output.push_str(&violations_output);
-            }
-        }
-
-        variant_results.push((variant_name.to_string(), !variant_has_issues));
+        let is_compatible = variant_violations.is_empty();
+        variant_results.push(VariantResult {
+            name: variant_name,
+            is_compatible,
+            violations: variant_violations,
+            has_shared_objects: true,
+        });
     }
 
-    // Only print summary statistics in compact mode
-    if compact_output {
-        let compatible_count = variant_results
-            .iter()
-            .filter(|(_, is_compatible)| *is_compatible)
-            .count();
-        let total_count = variant_results.len();
-        output.push_str(&format!(
-            "abi compatibility: {}/{} variants compatible\n",
-            compatible_count, total_count
-        ));
-    }
+    // Determine overall compatibility
+    let overall_compatible = variant_results.iter().all(|result| result.is_compatible);
 
-    Ok((!has_issues, output))
+    Ok(AbiCheckResult {
+        overall_compatible,
+        variants: variant_results,
+        manylinux_version: manylinux_version.to_string(),
+        python_abi_version: python_abi_version.clone(),
+    })
 }
 
 fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
@@ -639,7 +824,13 @@ fn check_shared_object(
         )
     })?;
 
-    let manylinux_result = check_manylinux(manylinux_version, file.symbols()).map_err(|e| {
+    let manylinux_result = check_manylinux(
+        manylinux_version,
+        file.architecture(),
+        file.endianness(),
+        file.symbols(),
+    )
+    .map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
             format!("manylinux check error: {}", e),

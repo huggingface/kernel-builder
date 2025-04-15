@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.35", features = ["derive"] }
+colored = "3.0.0"
 dirs = "6.0.0"
 hf-hub = "0.4.2"
 kernel-abi-check = { path = "../kernel-abi-check" }
 object = "0.36.7"
+serde_json = "1.0.114"
