@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use hf_hub::api::sync::Api;
-use hf_hub::api::tokio::ApiBuilder;
+use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
@@ -618,7 +617,7 @@ fn get_repo_path(repo_id: &str, base_dir: &Path) -> PathBuf {
     base_dir.join(repo.folder_name())
 }
 
-fn fetch_repository_parallel(
+fn fetch_repository(
     repo_id: &str,
     _cache_dir: &Path,
     revision: &str,
@@ -650,7 +649,31 @@ fn fetch_repository_parallel(
                 async move {
                     match download_repo.download(&file_name).await {
                         Ok(_) => Ok(file_name),
-                        Err(e) => Err((file_name, e)),
+                        Err(e) => {
+                            match e {
+                                ApiError::RequestError(ref inner_error) => {
+                                    if file_name.contains("__init__.py") {
+                                        // allow __init__.py to be empty
+                                        return Ok(file_name);
+                                    } else {
+                                        eprintln!(
+                                            "Failed to download {}: {}",
+                                            file_name, inner_error
+                                        );
+                                    }
+                                }
+                                _ => {
+                                    eprintln!("Failed to download {}: {}", file_name, e);
+                                }
+                            }
+                            Err((
+                                file_name,
+                                Box::new(std::io::Error::new(
+                                    std::io::ErrorKind::Other,
+                                    format!("failed to download file: {}", e),
+                                )),
+                            ))
+                        }
                     }
                 }
             })
@@ -675,80 +698,6 @@ fn fetch_repository_parallel(
         }
     });
 
-    Ok(())
-}
-
-fn fetch_with_hub_cli(
-    repo_id: &str,
-    cache_dir: &Path,
-    revision: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: revisit with slower manual download
-    let mut cmd = std::process::Command::new("huggingface-cli");
-    cmd.arg("download")
-        .arg(repo_id)
-        .arg("--revision")
-        .arg(revision)
-        .arg("--cache-dir")
-        .arg(cache_dir);
-
-    let status = cmd.status()?;
-    if !status.success() {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "command failed",
-        )));
-    }
-
-    Ok(())
-}
-
-fn fetch_repository_sync(
-    repo_id: &str,
-    _cache_dir: &Path,
-    revision: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("fetching: {} (revision: {})", repo_id, revision);
-    let api = Api::new()?;
-
-    // Download the repository using the huggingface_hub API
-    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
-    let api_repo = api.repo(repo);
-    let info = api_repo.info()?;
-
-    let file_names = info
-        .siblings
-        .iter()
-        .map(|f| f.rfilename.clone())
-        .collect::<Vec<_>>();
-
-    for file_name in file_names {
-        api_repo.download(&file_name).unwrap();
-    }
-
-    Ok(())
-}
-
-// TODO: remove this - only for testing
-#[allow(dead_code)]
-enum Method {
-    HubCli,
-    Sync,
-    Async,
-}
-
-// fetch should try the cli first then sync
-fn fetch_repository(
-    repo_id: &str,
-    cache_dir: &Path,
-    revision: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let use_method = Method::Async;
-    match use_method {
-        Method::HubCli => fetch_with_hub_cli(repo_id, cache_dir, revision)?,
-        Method::Sync => fetch_repository_sync(repo_id, cache_dir, revision)?,
-        Method::Async => fetch_repository_parallel(repo_id, cache_dir, revision)?,
-    }
     Ok(())
 }
 
