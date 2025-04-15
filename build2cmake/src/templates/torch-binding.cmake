@@ -1,4 +1,4 @@
-get_torch_gpu_compiler_flags(GPU_FLAGS ${GPU_LANG})
+get_torch_gpu_compiler_flags(TORCH_GPU_FLAGS ${GPU_LANG})
 list(APPEND GPU_FLAGS ${TORCH_GPU_FLAGS})
 
 set(TORCH_{{name}}_SRC
