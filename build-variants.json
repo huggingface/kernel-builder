@@ -1,0 +1,33 @@
+{
+  "aarch64-linux": {
+    "cuda": [
+      "torch26-cxx11-cu126-aarch64-linux",
+      "torch26-cxx98-cu126-aarch64-linux",
+      "torch27-cxx11-cu126-aarch64-linux",
+      "torch27-cxx11-cu128-aarch64-linux"
+    ]
+  },
+  "x86_64-linux": {
+    "cuda": [
+      "torch25-cxx11-cu118-x86_64-linux",
+      "torch25-cxx98-cu118-x86_64-linux",
+      "torch25-cxx11-cu121-x86_64-linux",
+      "torch25-cxx98-cu121-x86_64-linux",
+      "torch25-cxx11-cu124-x86_64-linux",
+      "torch25-cxx98-cu124-x86_64-linux",
+      "torch26-cxx11-cu118-x86_64-linux",
+      "torch26-cxx98-cu118-x86_64-linux",
+      "torch26-cxx11-cu124-x86_64-linux",
+      "torch26-cxx98-cu124-x86_64-linux",
+      "torch26-cxx11-cu126-x86_64-linux",
+      "torch26-cxx98-cu126-x86_64-linux",
+      "torch27-cxx11-cu118-x86_64-linux",
+      "torch27-cxx11-cu126-x86_64-linux",
+      "torch27-cxx11-cu128-x86_64-linux"
+    ],
+    "rocm": [
+      "torch26-cxx11-rocm62-x86_64-linux",
+      "torch27-cxx11-rocm63-x86_64-linux"
+    ]
+  }
+}
