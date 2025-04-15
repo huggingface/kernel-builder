@@ -5,8 +5,8 @@
 }:
 let
   inherit (pkgs) lib;
-  flattenVersion = version: lib.replaceStrings [ "." ] [ "" ] (lib.versions.pad 2 version);
-  abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
+  inherit (import ./version-utils.nix { inherit lib; }) flattenVersion abiString;
+  abi = torch: abiString torch.passthru.cxx11Abi;
   targetPlatform = pkgs.stdenv.targetPlatform.system;
   cudaVersion = torch: "cu${flattenVersion torch.cudaPackages.cudaMajorMinorVersion}";
   rocmVersion =

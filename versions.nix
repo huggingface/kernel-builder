@@ -97,4 +97,28 @@ rec {
       );
     in
     cuda ++ (lib.optionals (system == "x86_64-linux") rocm);
+
+  buildVariants =
+    system:
+    let
+      inherit (import ./lib/version-utils.nix { inherit lib; }) abiString flattenVersion;
+      computeString =
+        buildConfig:
+        if buildConfig.gpu == "cuda" then
+          "cu${flattenVersion (lib.versions.majorMinor buildConfig.cudaVersion)}"
+        else if buildConfig.gpu == "rocm" then
+          "rocm${flattenVersion (lib.versions.majorMinor buildConfig.rocmVersion)}"
+        else
+          throw "Unknown compute framework: ${buildConfig.gpu}";
+      buildName =
+        buildConfig:
+        "torch${flattenVersion buildConfig.torchVersion}-${abiString buildConfig.cxx11Abi}-${computeString buildConfig}-${system}";
+    in
+    {
+      ${system} = lib.zipAttrs (
+        map (buildConfig: {
+          ${buildConfig.gpu} = buildName buildConfig;
+        }) (buildConfigs system)
+      );
+    };
 }

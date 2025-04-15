@@ -50,6 +50,11 @@
       # - `genFlakeOutputs`, which can be used by downstream flakes to make
       #   standardized outputs (for all supported systems).
       lib = {
+        allBuildVariantsJSON =
+          let
+            buildVariants = (import ./versions.nix { inherit (nixpkgs) lib; }).buildVariants;
+          in
+          builtins.toJSON (nixpkgs.lib.foldl' (acc: system: acc // buildVariants system) { } systems);
         genFlakeOutputs =
           { path, rev }:
           flake-utils.lib.eachSystem systems (
