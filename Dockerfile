@@ -31,6 +31,7 @@ COPY --chown=nixuser:nixuser . /home/nixuser/kernel-builder/
 # Set environment variables
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
+ENV HF_TOKEN=${HF_TOKEN}
 ENV HOME=/home/nixuser
 
 # Set up CLI script in nixuser's home
@@ -152,6 +153,19 @@ function fetch_and_build {
   git clone "$1" /home/nixuser/kernelcode
   cd /home/nixuser/kernelcode
   build_extension
+  echo "Build completed. Results are in /home/nixuser/kernelcode/build/"
+  
+  # skip login to huggingface since token is set in the env
+  # check user
+  nix shell nixpkgs#python3 nixpkgs#python3Packages.huggingface-hub -c huggingface-cli whoami
+
+  # upload the build to the repo
+  nix shell nixpkgs#python3 nixpkgs#python3Packages.huggingface-hub -c huggingface-cli \
+    upload \
+    --commit-message "Build from kernel-builder job" \
+    kernels-community/job-build-test-repo \
+    /home/nixuser/kernelcode/build/ \
+    build/
 }
 
 # Parse arguments
