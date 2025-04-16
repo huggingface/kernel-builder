@@ -3,6 +3,10 @@ name = "compliant"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+enable_rocm = []
+
 [dependencies]
 clap = { version = "4.5.35", features = ["derive"] }
 colored = "3.0.0"
@@ -13,5 +17,6 @@ kernel-abi-check = { path = "../kernel-abi-check" }
 lazy_static = "1.4.0"
 object = "0.36.7"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.114"
 tokio = "1.44.2"
