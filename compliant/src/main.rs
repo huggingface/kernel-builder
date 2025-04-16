@@ -4,6 +4,7 @@ use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
+use serde_json::{self, Value};
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -68,30 +69,74 @@ enum Commands {
     },
 }
 
-const CUDA_COMPLIANT_VARIANTS: [&str; 12] = [
-    "torch25-cxx11-cu118-x86_64-linux",
-    "torch25-cxx11-cu121-x86_64-linux",
-    "torch25-cxx11-cu124-x86_64-linux",
-    "torch25-cxx98-cu118-x86_64-linux",
-    "torch25-cxx98-cu121-x86_64-linux",
-    "torch25-cxx98-cu124-x86_64-linux",
-    "torch26-cxx11-cu118-x86_64-linux",
-    "torch26-cxx11-cu124-x86_64-linux",
-    "torch26-cxx11-cu126-x86_64-linux",
-    "torch26-cxx98-cu118-x86_64-linux",
-    "torch26-cxx98-cu124-x86_64-linux",
-    "torch26-cxx98-cu126-x86_64-linux",
-];
 
-const ROCM_COMPLIANT_VARIANTS: [&str; 7] = [
-    "torch25-cxx11-rocm5.4-x86_64-linux",
-    "torch25-cxx11-rocm5.6-x86_64-linux",
-    "torch25-cxx98-rocm5.4-x86_64-linux",
-    "torch25-cxx98-rocm5.6-x86_64-linux",
-    "torch26-cxx11-rocm5.4-x86_64-linux",
-    "torch26-cxx11-rocm5.6-x86_64-linux",
-    "torch26-cxx11-rocm62-x86_64-linux", // MAY NEED TO BE REMOVED
-];
+/// Fetches compliant variants from GitHub
+fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>), Box<dyn std::error::Error>> {
+    let url = "https://raw.githubusercontent.com/huggingface/kernel-builder/refs/heads/main/build-variants.json";
+    let response = reqwest::blocking::get(url)?;
+    
+    if !response.status().is_success() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("Failed to fetch variants: HTTP {}", response.status()),
+        )));
+    }
+    
+    let variants_json: Value = response.json()?;
+    
+    let mut cuda_variants = Vec::new();
+    let mut rocm_variants = Vec::new();
+    
+    // Extract x86_64-linux CUDA variants
+    if let Some(x86_linux) = variants_json.get("x86_64-linux") {
+        if let Some(cuda) = x86_linux.get("cuda") {
+            if let Some(cuda_array) = cuda.as_array() {
+                for variant in cuda_array {
+                    if let Some(variant_str) = variant.as_str() {
+                        cuda_variants.push(variant_str.to_string());
+                    }
+                }
+            }
+        }
+        
+        if let Some(rocm) = x86_linux.get("rocm") {
+            if let Some(rocm_array) = rocm.as_array() {
+                for variant in rocm_array {
+                    if let Some(variant_str) = variant.as_str() {
+                        rocm_variants.push(variant_str.to_string());
+                    }
+                }
+            }
+        }
+    }
+    
+    // Extract aarch64-linux CUDA variants
+    if let Some(aarch64_linux) = variants_json.get("aarch64-linux") {
+        if let Some(cuda) = aarch64_linux.get("cuda") {
+            if let Some(cuda_array) = cuda.as_array() {
+                for variant in cuda_array {
+                    if let Some(variant_str) = variant.as_str() {
+                        cuda_variants.push(variant_str.to_string());
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok((cuda_variants, rocm_variants))
+}
+
+lazy_static::lazy_static! {
+    static ref COMPLIANT_VARIANTS: (Vec<String>, Vec<String>) = {
+        match fetch_compliant_variants() {
+            Ok(variants) => variants,
+            Err(e) => {
+                eprintln!("Error: Failed to fetch compliant variants from GitHub: {}", e);
+                std::process::exit(1);
+            }
+        }
+    };
+}
 
 #[derive(Debug, Clone)]
 struct Variant {
@@ -434,8 +479,8 @@ fn process_repository(
             .map(|v| v.to_string())
             .collect::<Vec<_>>()
             .as_slice(),
-        &CUDA_COMPLIANT_VARIANTS,
-        &ROCM_COMPLIANT_VARIANTS,
+        &COMPLIANT_VARIANTS.0,
+        &COMPLIANT_VARIANTS.1,
     );
 
     let abi_output =
@@ -448,19 +493,19 @@ fn process_repository(
     };
 
     // Get present CUDA and ROCM variants
-    let cuda_variants_present_set = CUDA_COMPLIANT_VARIANTS
+    let cuda_variants_present_set = COMPLIANT_VARIANTS.0
         .iter()
         .filter(|v| variants.iter().any(|variant| variant.to_string() == **v))
         .collect::<Vec<_>>();
 
-    let rocm_variants_present_set = ROCM_COMPLIANT_VARIANTS
+    let rocm_variants_present_set = COMPLIANT_VARIANTS.1
         .iter()
         .filter(|v| variants.iter().any(|variant| variant.to_string() == **v))
         .collect::<Vec<_>>();
 
     // Check if all required variants are present
-    let cuda_compatible = cuda_variants_present_set.len() == CUDA_COMPLIANT_VARIANTS.len();
-    let rocm_compatible = rocm_variants_present_set.len() == ROCM_COMPLIANT_VARIANTS.len();
+    let cuda_compatible = cuda_variants_present_set.len() == COMPLIANT_VARIANTS.0.len();
+    let rocm_compatible = rocm_variants_present_set.len() == COMPLIANT_VARIANTS.1.len();
 
     if format == Format::Json {
         // Create JSON response
@@ -472,17 +517,15 @@ fn process_repository(
                 "cuda": {
                     "compatible": cuda_compatible,
                     "present": cuda_variants_present_set.iter().map(|&v| v.to_string()).collect::<Vec<_>>(),
-                    "missing": CUDA_COMPLIANT_VARIANTS.iter()
+                    "missing": COMPLIANT_VARIANTS.0.iter()
                         .filter(|v| !cuda_variants_present_set.contains(v))
-                        .map(|&v| v.to_string())
                         .collect::<Vec<_>>()
                 },
                 "rocm": {
                     "compatible": rocm_compatible,
-                    "present": rocm_variants_present_set.iter().map(|&v| v.to_string()).collect::<Vec<_>>(),
-                    "missing": ROCM_COMPLIANT_VARIANTS.iter()
+                    "present": rocm_variants_present_set.iter().map(|v| v.to_string()).collect::<Vec<_>>(),
+                    "missing": COMPLIANT_VARIANTS.1.iter()
                         .filter(|v| !rocm_variants_present_set.contains(v))
-                        .map(|&v| v.to_string())
                         .collect::<Vec<_>>()
                 }
             },
@@ -530,8 +573,8 @@ fn process_repository(
             println!("│  {} {}", cuda_mark, "CUDA".bold());
 
             // conditionally print the last item with a diffent box character
-            for (i, cuda_variant) in CUDA_COMPLIANT_VARIANTS.iter().enumerate() {
-                if i == CUDA_COMPLIANT_VARIANTS.len() - 1 {
+            for (i, cuda_variant) in COMPLIANT_VARIANTS.0.iter().enumerate() {
+                if i == COMPLIANT_VARIANTS.0.len() - 1 {
                     if cuda_variants_present_set.contains(&cuda_variant) {
                         println!("│    ╰── {}", cuda_variant);
                     } else {
@@ -546,8 +589,8 @@ fn process_repository(
 
             println!("│  {} ROCM", rocm_mark);
 
-            for (i, rocm_variant) in ROCM_COMPLIANT_VARIANTS.iter().enumerate() {
-                if i == ROCM_COMPLIANT_VARIANTS.len() - 1 {
+            for (i, rocm_variant) in COMPLIANT_VARIANTS.1.iter().enumerate() {
+                if i == COMPLIANT_VARIANTS.1.len() - 1 {
                     if rocm_variants_present_set.contains(&rocm_variant) {
                         println!("│    ╰── {}", rocm_variant);
                     } else {
@@ -577,8 +620,8 @@ fn process_repository(
 fn get_build_status_summary(
     build_dir: &Path,
     variants: &[String],
-    cuda_variants: &[&str],
-    rocm_variants: &[&str],
+    cuda_variants: &[String],
+    rocm_variants: &[String],
 ) -> String {
     let built = variants
         .iter()
@@ -586,11 +629,11 @@ fn get_build_status_summary(
         .count();
     let cuda_built = variants
         .iter()
-        .filter(|v| cuda_variants.contains(&v.as_str()) && build_dir.join(v).exists())
+        .filter(|v| cuda_variants.contains(v) && build_dir.join(v).exists())
         .count();
     let rocm_built = variants
         .iter()
-        .filter(|v| rocm_variants.contains(&v.as_str()) && build_dir.join(v).exists())
+        .filter(|v| rocm_variants.contains(v) && build_dir.join(v).exists())
         .count();
     format!(
         "Total: {} (CUDA: {}, ROCM: {})",
