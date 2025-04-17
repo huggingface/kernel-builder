@@ -268,9 +268,9 @@ endmacro()
 #  where `<=` is the version comparison operator.
 # In other words, for each version in `TGT_CUDA_ARCHS` find the highest version
 #  in `SRC_CUDA_ARCHS` that is less or equal to the version in `TGT_CUDA_ARCHS`.
-# We have special handling for 9.0a, if 9.0a is in `SRC_CUDA_ARCHS` and 9.0 is
-#  in `TGT_CUDA_ARCHS` then we should remove 9.0a from `SRC_CUDA_ARCHS` and add
-#  9.0a to the result. 
+# We have special handling for x.0a, if x.0a is in `SRC_CUDA_ARCHS` and x.0 is
+#  in `TGT_CUDA_ARCHS` then we should remove x.0a from `SRC_CUDA_ARCHS` and add
+#  x.0a to the result (and remove x.0 from TGT_CUDA_ARCHS). 
 # The result is stored in `OUT_CUDA_ARCHS`.
 #
 # Example:
@@ -281,39 +281,65 @@ endmacro()
 #
 function(cuda_archs_loose_intersection OUT_CUDA_ARCHS SRC_CUDA_ARCHS TGT_CUDA_ARCHS)
   list(REMOVE_DUPLICATES SRC_CUDA_ARCHS)
+  set(TGT_CUDA_ARCHS_ ${TGT_CUDA_ARCHS})
 
-  # if 9.0a is in SRC_CUDA_ARCHS and 9.0 is in CUDA_ARCHS then we should
-  # remove 9.0a from SRC_CUDA_ARCHS and add 9.0a to _CUDA_ARCHS
+  # CUDA 11.8 can compile 9.0, but not 9.0a. So we want to avoid matching
+  # SRC_CUDA_ARCHS of 9.0a against TGT_CUDA_ARGS 9.0.
+  if (CUDA_VERSION VERSION_EQUAL 11.8)
+    list(REMOVE_ITEM SRC_CUDA_ARCHS "9.0a")
+  endif()
+
+  # if x.0a is in SRC_CUDA_ARCHS and x.0 is in CUDA_ARCHS then we should
+  # remove x.0a from SRC_CUDA_ARCHS and add x.0a to _CUDA_ARCHS
   set(_CUDA_ARCHS)
   if ("9.0a" IN_LIST SRC_CUDA_ARCHS)
     list(REMOVE_ITEM SRC_CUDA_ARCHS "9.0a")
-    if ("9.0" IN_LIST TGT_CUDA_ARCHS)
+    if ("9.0" IN_LIST TGT_CUDA_ARCHS_)
+      list(REMOVE_ITEM TGT_CUDA_ARCHS_ "9.0")
       set(_CUDA_ARCHS "9.0a")
+    endif()
+  endif()
+
+  if ("10.0a" IN_LIST SRC_CUDA_ARCHS)
+    list(REMOVE_ITEM SRC_CUDA_ARCHS "10.0a")
+    if ("10.0" IN_LIST TGT_CUDA_ARCHS)
+      list(REMOVE_ITEM TGT_CUDA_ARCHS_ "10.0")
+      set(_CUDA_ARCHS "10.0a")
     endif()
   endif()
 
   list(SORT SRC_CUDA_ARCHS COMPARE NATURAL ORDER ASCENDING)
 
-  # for each ARCH in CUDA_ARCHS find the highest arch in SRC_CUDA_ARCHS that is 
-  # less or eqault to ARCH
-  foreach(_ARCH ${CUDA_ARCHS})
-  set(_TMP_ARCH)
-  foreach(_SRC_ARCH ${SRC_CUDA_ARCHS})
-    if (_SRC_ARCH VERSION_LESS_EQUAL _ARCH)
-      set(_TMP_ARCH ${_SRC_ARCH})
-    else()
-      break()
+  # for each ARCH in TGT_CUDA_ARCHS find the highest arch in SRC_CUDA_ARCHS that
+  # is less or equal to ARCH (but has the same major version since SASS binary
+  # compatibility is only forward compatible within the same major version).
+  foreach(_ARCH ${TGT_CUDA_ARCHS_})
+    set(_TMP_ARCH)
+    # Extract the major version of the target arch
+    string(REGEX REPLACE "^([0-9]+)\\..*$" "\\1" TGT_ARCH_MAJOR "${_ARCH}")
+    foreach(_SRC_ARCH ${SRC_CUDA_ARCHS})
+      # Extract the major version of the source arch
+      string(REGEX REPLACE "^([0-9]+)\\..*$" "\\1" SRC_ARCH_MAJOR "${_SRC_ARCH}")
+      # Check major-version match AND version-less-or-equal
+      if (_SRC_ARCH VERSION_LESS_EQUAL _ARCH)
+        if (SRC_ARCH_MAJOR STREQUAL TGT_ARCH_MAJOR)
+          set(_TMP_ARCH "${_SRC_ARCH}")
+        endif()
+      else()
+        # If we hit a version greater than the target, we can break
+        break()
+      endif()
+    endforeach()
+
+    # If we found a matching _TMP_ARCH, append it to _CUDA_ARCHS
+    if (_TMP_ARCH)
+      list(APPEND _CUDA_ARCHS "${_TMP_ARCH}")
     endif()
-  endforeach()
-  if (_TMP_ARCH)
-    list(APPEND _CUDA_ARCHS ${_TMP_ARCH})
-  endif()
   endforeach()
 
   list(REMOVE_DUPLICATES _CUDA_ARCHS)
   set(${OUT_CUDA_ARCHS} ${_CUDA_ARCHS} PARENT_SCOPE)
 endfunction()
-
 
 #
 # For the given `SRC_ROCM_ARCHS` list of architecture versions in the form 

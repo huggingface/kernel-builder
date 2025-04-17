@@ -99,7 +99,11 @@ stdenv.mkDerivation (prevAttrs: {
   env =
     lib.optionalAttrs cudaSupport {
       CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
-      TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" torch.cudaCapabilities;
+      TORCH_CUDA_ARCH_LIST =
+        if cudaPackages.cudaOlder "12.8" then
+          "7.0;7.5;8.0;8.6;8.9;9.0+PTX"
+        else
+          "7.0;7.5;8.0;8.6;8.9;9.0;10.0;10.1;12.0+PTX";
     }
     // lib.optionalAttrs rocmSupport {
       PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
