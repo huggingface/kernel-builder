@@ -13,6 +13,9 @@
 let
   abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
   torchBuildVersion = import ./build-version.nix;
+  supportedCudaCapabilities = builtins.fromJSON (
+    builtins.readFile ../build2cmake/src/cuda_supported_archs.json
+  );
 in
 rec {
   resolveDeps = import ./deps.nix { inherit lib; };
@@ -81,7 +84,7 @@ rec {
       listMax = lib.foldl' lib.max 1;
       nvccThreads = listMax (
         lib.mapAttrsToList (
-          _: buildConfig: builtins.length buildConfig.cuda-capabilities
+          _: buildConfig: builtins.length (buildConfig.cuda-capabilities or supportedCudaCapabilities)
         ) buildConfig.kernel
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;

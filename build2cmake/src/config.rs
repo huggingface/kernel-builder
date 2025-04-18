@@ -56,7 +56,7 @@ impl Torch {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Kernel {
-    pub cuda_capabilities: Vec<String>,
+    pub cuda_capabilities: Option<Vec<String>>,
     pub rocm_archs: Option<Vec<String>>,
     #[serde(default)]
     pub language: Language,

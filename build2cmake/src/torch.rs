@@ -13,6 +13,7 @@ use crate::FileSet;
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
 static REGISTRATION_H: &str = include_str!("templates/registration.h");
 static HIPIFY: &str = include_str!("cmake/hipify.py");
+static CUDA_SUPPORTED_ARCHS_JSON: &str = include_str!("cuda_supported_archs.json");
 
 fn kernel_ops_identifier(name: &str, ops_id: Option<String>) -> String {
     let identifier = ops_id.unwrap_or_else(|| {
@@ -26,6 +27,12 @@ fn kernel_ops_identifier(name: &str, ops_id: Option<String>) -> String {
     });
 
     format!("_{name}_{identifier}")
+}
+
+fn cuda_supported_archs() -> String {
+    let supported_archs: Vec<String> = serde_json::from_str(CUDA_SUPPORTED_ARCHS_JSON)
+        .expect("Error parsing supported CUDA archs");
+    supported_archs.join(";")
 }
 
 pub fn write_torch_ext(
@@ -321,7 +328,14 @@ pub fn render_extension(env: &Environment, ops_name: &str, write: &mut impl Writ
 pub fn render_preamble(env: &Environment, name: &str, write: &mut impl Write) -> Result<()> {
     env.get_template("preamble.cmake")
         .wrap_err("Cannot get CMake prelude template")?
-        .render_to_write(context! { name => name }, &mut *write)
+        .render_to_write(
+            context! {
+                name => name,
+                cuda_supported_archs => cuda_supported_archs(),
+
+            },
+            &mut *write,
+        )
         .wrap_err("Cannot render CMake prelude template")?;
 
     write.write_all(b"\n")?;

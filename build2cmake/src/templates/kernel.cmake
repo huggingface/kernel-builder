@@ -11,7 +11,12 @@ set_source_files_properties(
 {% endif %}
 
 if(GPU_LANG STREQUAL "CUDA")
-  cuda_archs_loose_intersection({{kernel_name}}_ARCHS "{{ cuda_capabilities|join(";") }}" "${CUDA_ARCHS}")
+  {% if cuda_capabilities %}
+    cuda_archs_loose_intersection({{kernel_name}}_ARCHS "{{ cuda_capabilities|join(";") }}" "${CUDA_ARCHS}")
+  {% else %}
+    cuda_archs_loose_intersection({{kernel_name}}_ARCHS "${CUDA_SUPPORTED_ARCHS}" "${CUDA_ARCHS}")
+  {% endif %}
+  message(STATUS "Capabilities for kernel {{kernel_name}}: {{ '${' + kernel_name + '_ARCHS}'}}")
   set_gencode_flags_for_srcs(SRCS {{'"${' + kernel_name + '_SRC}"'}} CUDA_ARCHS "{{ '${' + kernel_name + '_ARCHS}'}}")
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% if language == "cuda-hipify" %}

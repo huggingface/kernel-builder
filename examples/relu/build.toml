@@ -9,7 +9,6 @@ src = [
 
 [kernel.activation]
 language = "cuda-hipify"
-cuda-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
 rocm-archs = [ "gfx906", "gfx908", "gfx90a", "gfx940", "gfx941", "gfx942", "gfx1030", "gfx1100", "gfx1101" ]
 src = [
   "relu_kernel/relu.cu",

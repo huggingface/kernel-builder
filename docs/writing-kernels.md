@@ -76,11 +76,14 @@ src = [
 ]
 
 [kernel.activation]
-cuda-capabilities = [ "7.0", "7.2", "7.5", "8.0", "8.6", "8.7", "8.9", "9.0" ]
 src = [
   "relu_kernel/relu.cu",
 ]
 depends = [ "torch" ]
+# If the kernel is only supported on specific capabilities, set the
+# cuda-capabilities option:
+#
+# cuda-capabilities = [ "9.0", "10.0", "12.0" ]
 ```
 
 ### `general`
@@ -107,15 +110,17 @@ following options:
 Specification of a kernel with the name `<name>`. This section can contain
 the following options:
 
-- `cuda-capabilities` (required): a list of CUDA capabilities that the
-  kernel should be compiled for. The effective capabilities are the
-  intersection of this list and the capabilities a given Torch version
-  is compiled with.
-- `rocm-archs` (required): a list of ROCm architectures that the kernel
-  should be compiled for.
+- `rocm-archs` (required when `language` is set to `cuda-hipify`): a list
+  of ROCm architectures that the kernel should be compiled for.
 - `depends` (required): a list of dependencies. The supported dependencies
   are listed in [`deps.nix`](../lib/deps.nix].
 - `src` (required): a list of source files and headers.
+- `cuda-capabilities` (optional): a list of CUDA capabilities that the
+  kernel should be compiled for. When absent, the kernel will be built
+  using all capabilities that the builder supports. The effective
+  capabilities are the intersection of this list and the capabilities
+  supported by the CUDA compiler. It is recommended to leave this option
+  unspecified **unless** a kernel requires specific capabilities.
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
 - `language` (optional): the language used for the kernel. Must be `cuda`

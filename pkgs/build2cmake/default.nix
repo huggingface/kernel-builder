@@ -17,6 +17,7 @@ rustPlatform.buildRustPackage {
         file.name == "Cargo.toml"
         || file.name == "Cargo.lock"
         || file.name == "pyproject.toml"
+        || file.name == "cuda_supported_archs.json"
         || (builtins.any file.hasExt [
           "cmake"
           "h"
