@@ -56,11 +56,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1743085847,
-        "narHash": "sha256-uWG29p+nhZmGRV1LffWwRGjwtPIXeu1F0YTQbXgB+GU=",
+        "lastModified": 1745310663,
+        "narHash": "sha256-1U3PzCO/jt7HUlEgLOY3RpxadKwTo6GSvb2j4m0UFw0=",
         "owner": "huggingface",
         "repo": "rocm-nix",
-        "rev": "245cdc9bfb4bfafa818711c5f5e0b889afe1ba39",
+        "rev": "e08373a0efa1c297b0c57af070e0a311df47481f",
         "type": "github"
       },
       "original": {
