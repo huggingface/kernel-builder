@@ -68,9 +68,13 @@ RUN uv add numpy pytest
 # Copy kernels and tests
 COPY activation-kernel ./activation-kernel
 COPY cutlass-gemm-kernel ./cutlass-gemm-kernel
+COPY silu-and-mul-universal-kernel ./silu-and-mul-universal-kernel
 COPY examples/activation/tests ./activation_tests
 COPY examples/cutlass-gemm/tests ./tests/cutlass_gemm_tests
 
 # Run tests
-ENV PYTHONPATH="activation-kernel:cutlass-gemm-kernel:$PYTHONPATH"
+ENV PYTHONPATH="activation-kernel:cutlass-gemm-kernel:silu-and-mul-universal-kernel:$PYTHONPATH"
 CMD ["/bin/sh", "-c", ".venv/bin/pytest", "activation_tests", "cutlass_gemm_tests"] 
+
+# We only care about importing, the kernel is trivial.
+CMD ["/bin/sh", "-c", ".venv/bin/python", "-c", "'import silu_and_mul_universal'"] 
