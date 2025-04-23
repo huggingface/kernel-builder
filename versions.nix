@@ -2,17 +2,6 @@
 
 rec {
   torchCudaVersions = {
-    "2.5" = {
-      cudaVersions = [
-        "11.8"
-        "12.1"
-        "12.4"
-      ];
-      cxx11Abi = [
-        true
-        false
-      ];
-    };
     "2.6" = {
       cudaVersions = [
         "11.8"

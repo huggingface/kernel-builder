@@ -66,8 +66,8 @@
             in
             {
               devShells = rec {
-                default = devShells."torch26-cxx98-cu126-${system}";
-                test = testShells."torch26-cxx98-cu126-${system}";
+                default = devShells."torch27-cxx11-cu126-${system}";
+                test = testShells."torch27-cxx11-cu126-${system}";
                 devShells = build.torchDevShells {
                   inherit path;
                   rev = revUnderscored;

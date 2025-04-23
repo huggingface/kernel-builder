@@ -15,8 +15,6 @@ final: prev:
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {
-        torch_2_5 = callPackage ./pkgs/python-modules/torch_2_5 { };
-
         torch_2_6 = callPackage ./pkgs/python-modules/torch_2_6 { rocmPackages = final.rocmPackages; };
 
         torch_2_7 = callPackage ./pkgs/python-modules/torch_2_7 { rocmPackages = final.rocmPackages; };
