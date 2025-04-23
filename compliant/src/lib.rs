@@ -1,14 +1,49 @@
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use serde_json::{self};
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum CompliantError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Repository not found: {0}")]
+    RepositoryNotFound(String),
+
+    #[error("Build directory not found in repository: {0}")]
+    BuildDirNotFound(String),
+
+    #[error("Failed to fetch repository: {0}")]
+    FetchError(String),
+
+    #[error("Failed to parse object file: {0}")]
+    ObjectParseError(String),
+
+    #[error("Failed to check ABI compatibility: {0}")]
+    AbiCheckError(String),
+
+    #[error("Failed to serialize JSON: {0}")]
+    SerializationError(String),
+
+    #[error("Failed to fetch variants: {0}")]
+    VariantsFetchError(String),
+
+    #[error("Network error: {0}")]
+    NetworkError(String),
+
+    #[error("Unknown error: {0}")]
+    Other(String),
+}
 
 /// Hugging Face kernel compliance checker
 #[derive(Parser)]
@@ -88,21 +123,31 @@ struct VariantsConfig {
 struct ArchConfig {
     cuda: Vec<String>,
     #[serde(default)]
+    #[cfg(feature = "enable_rocm")]
     rocm: Vec<String>,
+    #[cfg(not(feature = "enable_rocm"))]
+    #[serde(default, skip)]
+    _rocm: Vec<String>,
 }
 
-fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>), Box<dyn std::error::Error>> {
+async fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>)> {
     let url = "https://raw.githubusercontent.com/huggingface/kernel-builder/refs/heads/main/build-variants.json";
-    let response = reqwest::blocking::get(url)?;
+    let response = reqwest::get(url)
+        .await
+        .context("Failed to connect to variants endpoint")?;
 
     if !response.status().is_success() {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Failed to fetch variants: HTTP {}", response.status()),
-        )));
+        return Err(CompliantError::VariantsFetchError(format!(
+            "HTTP error: {}",
+            response.status()
+        ))
+        .into());
     }
 
-    let variants_config: VariantsConfig = response.json()?;
+    let variants_config: VariantsConfig = response
+        .json()
+        .await
+        .context("Failed to parse variants JSON")?;
 
     let mut cuda_variants = Vec::new();
     cuda_variants.extend(variants_config.x86_64_linux.cuda);
@@ -117,17 +162,24 @@ fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>), Box<dyn std:
     Ok((cuda_variants, rocm_variants))
 }
 
-lazy_static::lazy_static! {
-    pub static ref COMPLIANT_VARIANTS: (Vec<String>, Vec<String>) = {
-        match fetch_compliant_variants() {
-            Ok(variants) => variants,
-            Err(e) => {
-                eprintln!("Error: Failed to fetch compliant variants from GitHub: {}", e);
-                std::process::exit(1);
-            }
-        }
-    };
+/// Synchronous wrapper for fetching variants. This avoids spreading async/await throughout
+/// the codebase. Used for compatibility with sync contexts.
+fn fetch_variants_sync() -> Result<(Vec<String>, Vec<String>)> {
+    let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
+    rt.block_on(fetch_compliant_variants())
 }
+
+/// Cached variants to avoid repeatedly fetching the same data
+pub static COMPLIANT_VARIANTS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
+    match fetch_variants_sync() {
+        Ok(variants) => variants,
+        Err(e) => {
+            // We still need to handle initialization errors, but without process::exit
+            // This still panics but at least gives proper error context
+            panic!("Failed to fetch compliant variants: {}", e);
+        }
+    }
+});
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Variant {
@@ -200,6 +252,112 @@ impl ConsoleFormatter {
             println!("status: {}", message);
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn format_repository_check_result(
+        repo_id: &str,
+        build_status: &str,
+        cuda_compatible: bool,
+        #[cfg(feature = "enable_rocm")] rocm_compatible: bool,
+        #[cfg(not(feature = "enable_rocm"))] _rocm_compatible: bool,
+        cuda_variants: &[String],
+        #[cfg(feature = "enable_rocm")] rocm_variants: &[String],
+        #[cfg(not(feature = "enable_rocm"))] _rocm_variants: &[String],
+        cuda_variants_present: Vec<&String>,
+        #[cfg(feature = "enable_rocm")] rocm_variants_present: Vec<&String>,
+        #[cfg(not(feature = "enable_rocm"))] _rocm_variants_present: Vec<&String>,
+        compact_output: bool,
+        abi_output: &AbiCheckResult,
+        abi_status: &str,
+    ) {
+        // Display console-formatted output
+        let abi_mark = if abi_output.overall_compatible {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
+
+        let cuda_mark = if cuda_compatible {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
+
+        #[cfg(feature = "enable_rocm")]
+        let rocm_mark = if rocm_compatible {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
+
+        let label = format!(" {} ", repo_id).black().on_bright_white().bold();
+
+        println!("\n{}", label);
+        println!("├── build: {}", build_status);
+
+        if !compact_output {
+            println!("│  {} {}", cuda_mark, "CUDA".bold());
+
+            // Print variant list with proper tree characters
+            for (i, cuda_variant) in cuda_variants.iter().enumerate() {
+                let is_last = i == cuda_variants.len() - 1;
+                let is_present = cuda_variants_present.contains(&cuda_variant);
+                let prefix = if is_last {
+                    "│    ╰── "
+                } else {
+                    "│    ├── "
+                };
+
+                if is_present {
+                    println!("{}{}", prefix, cuda_variant);
+                } else {
+                    println!("{}{}", prefix, cuda_variant.dimmed());
+                }
+            }
+
+            // Only show ROCm section if the feature is enabled
+            #[cfg(feature = "enable_rocm")]
+            {
+                println!("│  {} {}", rocm_mark, "ROCM".bold());
+
+                for (i, rocm_variant) in rocm_variants.iter().enumerate() {
+                    let is_last = i == rocm_variants.len() - 1;
+                    let is_present = rocm_variants_present.contains(&rocm_variant);
+                    let prefix = if is_last {
+                        "│    ╰── "
+                    } else {
+                        "│    ├── "
+                    };
+
+                    if is_present {
+                        println!("{}{}", prefix, rocm_variant);
+                    } else {
+                        println!("{}{}", prefix, rocm_variant.dimmed());
+                    }
+                }
+            }
+        } else {
+            // Compact output
+            #[cfg(feature = "enable_rocm")]
+            {
+                println!("│   ├── {} CUDA", cuda_mark);
+                println!("│   ╰── {} ROCM", rocm_mark);
+            }
+
+            #[cfg(not(feature = "enable_rocm"))]
+            {
+                println!("│   ╰── {} CUDA", cuda_mark);
+            }
+        }
+
+        // ABI status section
+        println!("╰── abi: {}", abi_status);
+        println!("    ├── {} {}", abi_mark, abi_output.manylinux_version);
+        println!(
+            "    ╰── {} python {}",
+            abi_mark, abi_output.python_abi_version
+        );
+    }
 }
 
 #[derive(Serialize)]
@@ -255,7 +413,7 @@ pub struct VariantCheckOutput {
     violations: Vec<String>,
 }
 
-pub fn get_cache_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn get_cache_dir() -> Result<PathBuf> {
     let cache_dir = if let Ok(dir) = std::env::var("HF_KERNELS_CACHE") {
         PathBuf::from(dir)
     } else {
@@ -263,18 +421,20 @@ pub fn get_cache_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
             .unwrap_or_else(std::env::temp_dir)
             .join(".cache/huggingface/hub")
     };
+
     if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir)?;
+        fs::create_dir_all(&cache_dir).context("Failed to create cache directory")?;
     }
+
     Ok(cache_dir)
 }
 
-// Get "org/name" repo ID from filesystem path
-pub fn get_repo_id_from_path(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+/// Get "org/name" repo ID from filesystem path
+pub fn get_repo_id_from_path(path: &Path) -> Result<String> {
     // Extract the organization and model name from the path
     let dir_name = path
         .file_name()
-        .unwrap_or_default()
+        .ok_or_else(|| CompliantError::Other(format!("Invalid path: {:?}", path)))?
         .to_string_lossy()
         .to_string();
 
@@ -287,15 +447,17 @@ pub fn get_repo_id_from_path(path: &Path) -> Result<String, Box<dyn std::error::
     Ok(dir_name)
 }
 
-// Check if repository has build variants
-pub fn has_build_variants(repo_path: &Path) -> Result<bool, Box<dyn std::error::Error>> {
+/// Check if repository has build variants
+pub fn has_build_variants(repo_path: &Path) -> Result<bool> {
     // Look for the snapshot directory
     let ref_file = repo_path.join("refs/main");
     if !ref_file.exists() {
         return Ok(false);
     }
 
-    let content = fs::read_to_string(ref_file)?;
+    let content = fs::read_to_string(&ref_file)
+        .with_context(|| format!("Failed to read ref file: {:?}", ref_file))?;
+
     let hash = content.trim();
     let snapshot_dir = repo_path.join(format!("snapshots/{}", hash));
 
@@ -310,10 +472,13 @@ pub fn has_build_variants(repo_path: &Path) -> Result<bool, Box<dyn std::error::
     }
 
     // Check if build directory has any variant subdirectories
-    let entries = fs::read_dir(&build_dir)?;
+    let entries = fs::read_dir(&build_dir)
+        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
+
     for entry in entries {
-        let entry = entry?;
+        let entry = entry.context("Failed to read directory entry")?;
         let path = entry.path();
+
         if path.is_dir() {
             // At least one build variant exists
             return Ok(true);
@@ -329,111 +494,126 @@ pub fn get_repo_path(repo_id: &str, base_dir: &Path) -> PathBuf {
     base_dir.join(repo.folder_name())
 }
 
-pub fn fetch_repository(
-    repo_id: &str,
-    _cache_dir: &Path,
-    revision: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("fetching: {} (revision: {})", repo_id, revision);
-    let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async {
-        let api = ApiBuilder::new().high().build().unwrap();
-        let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
-        let api_repo = api.repo(repo);
-        let info = api_repo.info().await.unwrap();
-        let file_names = info
-            .siblings
-            .iter()
-            .map(|f| f.rfilename.clone())
-            .collect::<Vec<_>>();
+pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()> {
+    let api = ApiBuilder::new()
+        .high()
+        .build()
+        .context("Failed to create HF API client")?;
 
-        // Create a stream of tasks and process them concurrently with bounded parallelism
-        use futures::stream::{self, StreamExt};
+    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
 
-        let download_results = stream::iter(file_names)
-            .map(|file_name| {
-                // Create a new API instance for each download
-                let api = ApiBuilder::new().high().build().unwrap();
-                let repo_clone =
-                    Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
-                let download_repo = api.repo(repo_clone);
+    let api_repo = api.repo(repo);
+    let info = api_repo
+        .info()
+        .await
+        .context(format!("Failed to fetch repo info for {}", repo_id))?;
 
-                async move {
-                    match download_repo.download(&file_name).await {
-                        Ok(_) => Ok(file_name),
-                        Err(e) => {
-                            match e {
-                                ApiError::RequestError(ref inner_error) => {
-                                    if file_name.contains("__init__.py") {
-                                        // allow __init__.py to be empty
-                                        return Ok(file_name);
-                                    } else {
-                                        eprintln!(
-                                            "Failed to download {}: {}",
-                                            file_name, inner_error
-                                        );
-                                    }
-                                }
-                                _ => {
-                                    eprintln!("Failed to download {}: {}", file_name, e);
-                                }
-                            }
-                            Err((
-                                file_name,
-                                Box::new(std::io::Error::new(
-                                    std::io::ErrorKind::Other,
-                                    format!("failed to download file: {}", e),
-                                )),
-                            ))
-                        }
+    let file_names = info
+        .siblings
+        .iter()
+        .map(|f| f.rfilename.clone())
+        .collect::<Vec<_>>();
+
+    // Create a stream of tasks and process them concurrently with bounded parallelism
+    use futures::stream::{self, StreamExt};
+
+    let download_results = stream::iter(file_names)
+        .map(|file_name| {
+            // Create a new API instance for each download to avoid shared state issues
+            let api = ApiBuilder::new().high().build().unwrap();
+            let repo_clone =
+                Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
+            let download_repo = api.repo(repo_clone);
+            let file_to_download = file_name.clone();
+
+            async move {
+                if let Err(e) = download_repo.download(&file_name).await {
+                    // Special case for __init__.py which can be empty
+                    if file_name.contains("__init__.py") && matches!(e, ApiError::RequestError(_)) {
+                        return Ok(file_name);
                     }
+
+                    Err(anyhow::anyhow!("Failed to download {}: {}", file_name, e))
+                } else {
+                    Ok(file_to_download)
                 }
-            })
-            .buffer_unordered(10) // Process up to 10 downloads concurrently
-            .collect::<Vec<_>>()
-            .await;
+            }
+        })
+        .buffer_unordered(10) // Process up to 10 downloads concurrently
+        .collect::<Vec<_>>()
+        .await;
 
-        // Count successful downloads
-        let successful = download_results.iter().filter(|r| r.is_ok()).count();
-        let failed = download_results.len() - successful;
+    // Count successful downloads and collect errors
+    let (successful, failed): (Vec<_>, Vec<_>) =
+        download_results.into_iter().partition(Result::is_ok);
 
-        println!(
-            "Downloaded {} files successfully ({} failed)",
-            successful, failed
-        );
+    let success_count = successful.len();
+    let fail_count = failed.len();
 
-        // Print any errors
-        for result in download_results {
-            if let Err((file, error)) = result {
-                eprintln!("Failed to download {}: {}", file, error);
+    // If there were failures, report them
+    if !failed.is_empty() {
+        for error in failed {
+            if let Err(e) = error {
+                eprintln!("{}", e);
             }
         }
-    });
+
+        // Only return an error if all downloads failed
+        if success_count == 0 {
+            return Err(CompliantError::FetchError(format!(
+                "All {} downloads failed for repository {}",
+                fail_count, repo_id
+            ))
+            .into());
+        }
+    }
+
+    // Log success info
+    println!(
+        "Downloaded {} files successfully ({} failed)",
+        success_count, fail_count
+    );
 
     Ok(())
 }
 
-pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>, Box<dyn std::error::Error>> {
+/// Synchronous wrapper for the async fetch repository function
+pub fn fetch_repository(repo_id: &str, _cache_dir: &Path, revision: &str) -> Result<()> {
+    println!("fetching: {} (revision: {})", repo_id, revision);
+
+    let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
+
+    rt.block_on(fetch_repository_async(repo_id, revision))
+}
+
+pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
     let build_dir = repo_path.join("build");
     let mut variants = Vec::new();
+
     if !build_dir.exists() {
         return Ok(variants);
     }
-    let entries = fs::read_dir(build_dir)?;
+
+    let entries = fs::read_dir(&build_dir)
+        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
+
     for entry in entries {
-        let entry = entry?;
+        let entry = entry.context("Failed to read directory entry")?;
         let path = entry.path();
+
         if path.is_dir() {
             let name = path
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
+
             if let Some(variant) = Variant::from_name(&name) {
                 variants.push(variant);
             }
         }
     }
+
     Ok(variants)
 }
 
@@ -510,16 +690,23 @@ impl Serialize for AbiCheckResult {
     }
 }
 
-pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>> {
     let mut so_files = Vec::new();
+
     if !dir.exists() || !dir.is_dir() {
         return Ok(so_files);
     }
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
+
+    let entries =
+        fs::read_dir(dir).with_context(|| format!("Failed to read directory: {:?}", dir))?;
+
+    for entry in entries {
+        let entry = entry.context("Failed to read directory entry")?;
         let path = entry.path();
+
         if path.is_dir() {
-            let mut subdir_so_files = find_shared_objects(&path)?;
+            let mut subdir_so_files = find_shared_objects(&path)
+                .with_context(|| format!("Failed to find .so files in subdirectory: {:?}", path))?;
             so_files.append(&mut subdir_so_files);
         } else if let Some(extension) = path.extension() {
             if extension == "so" {
@@ -527,6 +714,7 @@ pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn std::erro
             }
         }
     }
+
     Ok(so_files)
 }
 
@@ -535,45 +723,34 @@ pub fn check_shared_object(
     manylinux_version: &str,
     python_abi_version: &Version,
     show_violations: bool,
-) -> Result<(bool, String), Box<dyn std::error::Error>> {
+) -> Result<(bool, String)> {
     let mut violations_output = String::new();
 
-    let binary_data = fs::read(so_path).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("cannot read shared object file: {}", e),
-        )
-    })?;
+    // Read binary data
+    let binary_data = fs::read(so_path)
+        .with_context(|| format!("Failed to read shared object file: {:?}", so_path))?;
 
-    let file = object::File::parse(&*binary_data).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("cannot parse object file: {}", e),
-        )
-    })?;
+    // Parse object file
+    let file = object::File::parse(&*binary_data)
+        .map_err(|e| anyhow::anyhow!("Cannot parse object file: {}: {}", so_path.display(), e))?;
 
+    // Run manylinux check
     let manylinux_result = check_manylinux(
         manylinux_version,
         file.architecture(),
         file.endianness(),
         file.symbols(),
     )
-    .map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("manylinux check error: {}", e),
-        )
-    })?;
+    .map_err(|e| anyhow::anyhow!("Manylinux check error: {}", e))?;
 
-    let python_abi_result = check_python_abi(python_abi_version, file.symbols()).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("python abi check error: {}", e),
-        )
-    })?;
+    // Run Python ABI check
+    let python_abi_result = check_python_abi(python_abi_version, file.symbols())
+        .map_err(|e| anyhow::anyhow!("Python ABI check error: {}", e))?;
 
+    // Determine if checks passed
     let passed = manylinux_result.is_empty() && python_abi_result.is_empty();
 
+    // Generate violations output if requested
     if !passed && show_violations {
         if !manylinux_result.is_empty() {
             violations_output.push_str("\n  manylinux violations:\n");
@@ -598,8 +775,10 @@ pub fn check_abi_for_repository(
     manylinux_version: &str,
     python_abi_version: &Version,
     show_violations: bool,
-) -> Result<AbiCheckResult, Box<dyn std::error::Error>> {
+) -> Result<AbiCheckResult> {
     let build_dir = snapshot_dir.join("build");
+
+    // If build directory doesn't exist, return empty result
     if !build_dir.exists() {
         return Ok(AbiCheckResult {
             overall_compatible: false,
@@ -610,11 +789,24 @@ pub fn check_abi_for_repository(
     }
 
     // Get all variant directories
-    let variant_paths: Vec<PathBuf> = fs::read_dir(&build_dir)?
-        .filter_map(|entry| entry.ok().map(|e| e.path()))
-        .filter(|path| path.is_dir())
+    let entries = fs::read_dir(&build_dir)
+        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
+
+    let variant_paths: Vec<PathBuf> = entries
+        .filter_map(|entry_result| match entry_result {
+            Ok(entry) => {
+                let path = entry.path();
+                if path.is_dir() {
+                    Some(path)
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        })
         .collect();
 
+    // If no variants found, return empty result
     if variant_paths.is_empty() {
         return Ok(AbiCheckResult {
             overall_compatible: false,
@@ -630,13 +822,19 @@ pub fn check_abi_for_repository(
     for variant_path in variant_paths.iter() {
         let variant_name = variant_path
             .file_name()
-            .unwrap_or_default()
+            .ok_or_else(|| {
+                CompliantError::Other(format!("Invalid variant path: {:?}", variant_path))
+            })?
             .to_string_lossy()
             .to_string();
 
-        let so_files = find_shared_objects(variant_path)?;
+        let so_files = find_shared_objects(variant_path).with_context(|| {
+            format!("Failed to find shared objects in variant: {}", variant_name)
+        })?;
+
         let has_shared_objects = !so_files.is_empty();
 
+        // If no shared objects, mark as compatible and continue
         if !has_shared_objects {
             variant_results.push(VariantResult {
                 name: variant_name,
@@ -656,10 +854,10 @@ pub fn check_abi_for_repository(
                 manylinux_version,
                 python_abi_version,
                 show_violations,
-            )?;
+            )
+            .with_context(|| format!("Failed to check shared object: {:?}", so_path))?;
 
             if !passed && show_violations {
-                // TODO: parse the violations_text more carefully
                 variant_violations.push(SharedObjectViolation {
                     message: violations_text,
                 });
@@ -697,7 +895,7 @@ pub fn process_repository(
     compact_output: bool,
     show_violations: bool,
     format: Format,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let repo_path = get_repo_path(repo_id, cache_dir);
 
     // Check if repository exists locally
@@ -732,7 +930,11 @@ pub fn process_repository(
                             status: "fetch_failed".to_string(),
                             error: e.to_string(),
                         };
-                        println!("{}", serde_json::to_string_pretty(&error).unwrap());
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&error)
+                                .context("Failed to serialize error response")?
+                        );
                     }
                     return Ok(());
                 }
@@ -747,13 +949,14 @@ pub fn process_repository(
                     status: "not_found".to_string(),
                     error: "repository not found locally".to_string(),
                 };
-                println!("{}", serde_json::to_string_pretty(&error).unwrap());
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&error)
+                        .context("Failed to serialize error response")?
+                );
             }
 
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "repository not found locally",
-            )));
+            return Err(CompliantError::RepositoryNotFound(repo_id.to_string()).into());
         }
     }
 
@@ -769,16 +972,19 @@ pub fn process_repository(
                 status: "not_found".to_string(),
                 error: "repository not found locally".to_string(),
             };
-            println!("{}", serde_json::to_string_pretty(&error).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&error)
+                    .context("Failed to serialize error response")?
+            );
         }
 
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "repository not found locally",
-        )));
+        return Err(CompliantError::RepositoryNotFound(repo_id.to_string()).into());
     }
 
-    let content = fs::read_to_string(ref_file)?;
+    let content = fs::read_to_string(&ref_file)
+        .with_context(|| format!("Failed to read ref file: {:?}", ref_file))?;
+
     let hash = content.trim();
     let snapshot_dir = repo_path.join(format!("snapshots/{}", hash));
 
@@ -792,13 +998,18 @@ pub fn process_repository(
                 status: "missing_snapshot".to_string(),
                 error: "snapshot not found".to_string(),
             };
-            println!("{}", serde_json::to_string_pretty(&error).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&error)
+                    .context("Failed to serialize error response")?
+            );
         }
 
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "snapshot not found",
-        )));
+        return Err(CompliantError::RepositoryNotFound(format!(
+            "Snapshot not found for repository {}",
+            repo_id
+        ))
+        .into());
     }
 
     let build_dir = snapshot_dir.join("build");
@@ -812,16 +1023,18 @@ pub fn process_repository(
                 status: "missing_build_dir".to_string(),
                 error: "build directory not found".to_string(),
             };
-            println!("{}", serde_json::to_string_pretty(&error).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&error)
+                    .context("Failed to serialize error response")?
+            );
         }
 
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "build directory not found",
-        )));
+        return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
     }
 
-    let variants = get_build_variants(&snapshot_dir)?;
+    let variants = get_build_variants(&snapshot_dir).context("Failed to get build variants")?;
+
     let variant_strings: Vec<String> = variants.iter().map(|v| v.to_string()).collect();
 
     let build_status = get_build_status_summary(
@@ -832,7 +1045,9 @@ pub fn process_repository(
     );
 
     let abi_output =
-        check_abi_for_repository(&snapshot_dir, manylinux, python_version, show_violations)?;
+        check_abi_for_repository(&snapshot_dir, manylinux, python_version, show_violations)
+            .with_context(|| format!("Failed to check ABI compatibility for {}", repo_id))?;
+
     let abi_status = if abi_output.overall_compatible {
         "compatible"
     } else {
@@ -931,93 +1146,24 @@ pub fn process_repository(
         };
 
         // Output pretty-printed JSON
-        println!("{}", serde_json::to_string_pretty(&result).unwrap());
-    } else {
-        // Display console-formatted output
-        let abi_mark = if abi_output.overall_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-        let cuda_mark = if cuda_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-
-        #[cfg(feature = "enable_rocm")]
-        let rocm_mark = if rocm_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-
-        let label = format!(" {} ", repo_id).black().on_bright_white().bold();
-
-        println!("\n{}", label);
-        println!("├── build: {}", build_status);
-
-        if !compact_output {
-            println!("│  {} {}", cuda_mark, "CUDA".bold());
-
-            // Print variant list with proper tree characters
-            for (i, cuda_variant) in COMPLIANT_VARIANTS.0.iter().enumerate() {
-                let is_last = i == COMPLIANT_VARIANTS.0.len() - 1;
-                let is_present = cuda_variants_present_set.contains(&cuda_variant);
-                let prefix = if is_last {
-                    "│    ╰── "
-                } else {
-                    "│    ├── "
-                };
-
-                if is_present {
-                    println!("{}{}", prefix, cuda_variant);
-                } else {
-                    println!("{}{}", prefix, cuda_variant.dimmed());
-                }
-            }
-
-            // Only show ROCm section if the feature is enabled
-            #[cfg(feature = "enable_rocm")]
-            {
-                println!("│  {} {}", rocm_mark, "ROCM".bold());
-
-                for (i, rocm_variant) in COMPLIANT_VARIANTS.1.iter().enumerate() {
-                    let is_last = i == COMPLIANT_VARIANTS.1.len() - 1;
-                    let is_present = rocm_variants_present_set.contains(&rocm_variant);
-                    let prefix = if is_last {
-                        "│    ╰── "
-                    } else {
-                        "│    ├── "
-                    };
-
-                    if is_present {
-                        println!("{}{}", prefix, rocm_variant);
-                    } else {
-                        println!("{}{}", prefix, rocm_variant.dimmed());
-                    }
-                }
-            }
-        } else {
-            // Compact output
-            #[cfg(feature = "enable_rocm")]
-            {
-                println!("│   ├── {} CUDA", cuda_mark);
-                println!("│   ╰── {} ROCM", rocm_mark);
-            }
-
-            #[cfg(not(feature = "enable_rocm"))]
-            {
-                println!("│   ╰── {} CUDA", cuda_mark);
-            }
-        }
-
-        // ABI status section
-        println!("╰── abi: {}", abi_status);
-        println!("    ├── {} {}", abi_mark, abi_output.manylinux_version);
         println!(
-            "    ╰── {} python {}",
-            abi_mark, abi_output.python_abi_version
+            "{}",
+            serde_json::to_string_pretty(&result).context("Failed to serialize result")?
+        );
+    } else {
+        // Display console-formatted output via ConsoleFormatter
+        ConsoleFormatter::format_repository_check_result(
+            repo_id,
+            &build_status,
+            cuda_compatible,
+            rocm_compatible,
+            &COMPLIANT_VARIANTS.0,
+            &COMPLIANT_VARIANTS.1,
+            cuda_variants_present_set,
+            rocm_variants_present_set,
+            compact_output,
+            &abi_output,
+            abi_status,
         );
     }
 
