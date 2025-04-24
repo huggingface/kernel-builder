@@ -1032,7 +1032,9 @@ dependencies = [
 
 [[package]]
 name = "kernel-abi-check"
-version = "0.3.0"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "484034a9535c3fd64b8f6b0921c6756a94756a090979b8953a8c2f1cfdaa0ca3"
 dependencies = [
  "clap",
  "color-eyre",
