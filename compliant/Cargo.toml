@@ -2,6 +2,11 @@
 name = "compliant"
 version = "0.1.0"
 edition = "2021"
+description = "Command-line utility for validating kernel compliance standards"
+license = "Apache-2.0"
+repository = "https://github.com/huggingface/kernel-builder"
+documentation = "https://docs.rs/compliant"
+homepage = "https://github.com/huggingface/kernel-builder"
 
 [features]
 default = []
