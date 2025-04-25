@@ -92,7 +92,7 @@ fn generate_torch(
 
     if let Some(torch_ext) = build.torch.as_ref() {
         if torch_ext.universal {
-            write_torch_universal_ext(&env, &build, target_dir, force)?;
+            write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?;
         } else {
             write_torch_ext(&env, &build, target_dir, force, ops_id)?;
         }

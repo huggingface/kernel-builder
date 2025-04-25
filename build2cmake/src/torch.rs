@@ -15,7 +15,7 @@ static REGISTRATION_H: &str = include_str!("templates/registration.h");
 static HIPIFY: &str = include_str!("cmake/hipify.py");
 static CUDA_SUPPORTED_ARCHS_JSON: &str = include_str!("cuda_supported_archs.json");
 
-fn kernel_ops_identifier(name: &str, ops_id: Option<String>) -> String {
+pub fn kernel_ops_identifier(name: &str, ops_id: Option<String>) -> String {
     let identifier = ops_id.unwrap_or_else(|| {
         // Generate a random string when no ops_id is provided
         let mut rng = rand::thread_rng();
