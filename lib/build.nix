@@ -92,7 +92,7 @@ rec {
     if buildConfig.torch.universal or false then
       # No torch extension sources? Treat it as a noarch package.
       pkgs.callPackage ./torch-extension-noarch ({
-        inherit src rev;
+        inherit src rev torch;
         extensionName = buildConfig.general.name;
       })
     else
