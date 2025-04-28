@@ -176,13 +176,6 @@ impl Variant {
     }
 }
 
-/// Struct to hold repository list result
-#[derive(Serialize)]
-pub struct RepoListResult {
-    pub repositories: Vec<String>,
-    pub count: usize,
-}
-
 #[derive(Serialize)]
 pub struct RepoErrorResponse {
     pub repository: String,
