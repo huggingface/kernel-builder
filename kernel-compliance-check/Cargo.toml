@@ -13,7 +13,7 @@ default = []
 enable_rocm = []
 
 [dependencies]
-anyhow = "1.0.71"
+eyre = "0.6.12"
 clap = { version = "4.5.35", features = ["derive"] }
 colored = "3.0.0"
 dirs = "6.0.0"
