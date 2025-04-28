@@ -1,136 +1,33 @@
-use std::fmt;
+mod formatter;
+mod models;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand, ValueEnum};
-use colored::Colorize;
+use futures::stream::{self, StreamExt};
 use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
+use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
-use kernel_abi_check::{check_manylinux, check_python_abi, Version};
+pub use formatter::*;
+pub use models::*;
 
-#[derive(Error, Debug)]
-pub enum CompliantError {
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant};
 
-    #[error("Repository not found: {0}")]
-    RepositoryNotFound(String),
-
-    #[error("Build directory not found in repository: {0}")]
-    BuildDirNotFound(String),
-
-    #[error("Failed to fetch repository: {0}")]
-    FetchError(String),
-
-    #[error("Failed to parse object file: {0}")]
-    ObjectParseError(String),
-
-    #[error("Failed to check ABI compatibility: {0}")]
-    AbiCheckError(String),
-
-    #[error("Failed to serialize JSON: {0}")]
-    SerializationError(String),
-
-    #[error("Failed to fetch variants: {0}")]
-    VariantsFetchError(String),
-
-    #[error("Network error: {0}")]
-    NetworkError(String),
-
-    #[error("Unknown error: {0}")]
-    Other(String),
-}
-
-/// Hugging Face kernel compliance checker
-#[derive(Parser)]
-#[command(author, version, about)]
-pub struct Cli {
-    #[command(subcommand)]
-    pub command: Commands,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum Format {
-    Console,
-    Json,
-}
-
-impl Format {
-    pub fn is_json(&self) -> bool {
-        matches!(self, Format::Json)
+/// Cached variants to avoid repeatedly fetching the same data
+pub static COMPLIANT_VARIANTS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
+    match fetch_variants_sync() {
+        Ok(variants) => variants,
+        Err(e) => {
+            // We still need to handle initialization errors, but without process::exit
+            // This still panics but at least gives proper error context
+            panic!("Failed to fetch compliant variants: {}", e);
+        }
     }
-}
-
-#[derive(Subcommand)]
-pub enum Commands {
-    /// List fetched repositories with build variants
-    List {
-        /// Format of the output. Default is console
-        #[arg(long, default_value = "console")]
-        format: Format,
-    },
-
-    /// Check repository compliance and ABI compatibility
-    Check {
-        /// Repository IDs or names (comma-separated)
-        #[arg(short, long)]
-        repos: String,
-
-        /// Manylinux version to check against
-        #[arg(short, long, default_value = "manylinux_2_28")]
-        manylinux: String,
-
-        /// Python ABI version to check against
-        #[arg(short, long, default_value = "3.9")]
-        python_abi: String,
-
-        /// Automatically fetch repositories if not found locally
-        #[arg(short, long, default_value = "true")]
-        auto_fetch: bool,
-
-        /// Revision (branch, tag, or commit hash) to use when fetching
-        #[arg(short, long, default_value = "main")]
-        revision: String,
-
-        /// Show all variants in a long format. Default is compact output.
-        #[arg(long, default_value = "false")]
-        long: bool,
-
-        /// Show ABI violations in the output. Default is to only show compatibility status.
-        #[arg(long, default_value = "false")]
-        show_violations: bool,
-
-        /// Format of the output. Default is console
-        #[arg(long, default_value = "console")]
-        format: Format,
-    },
-}
-
-/// Structured representation of build variants
-#[derive(Debug, Deserialize)]
-struct VariantsConfig {
-    #[serde(rename = "x86_64-linux")]
-    x86_64_linux: ArchConfig,
-    #[serde(rename = "aarch64-linux")]
-    aarch64_linux: ArchConfig,
-}
-
-#[derive(Debug, Deserialize)]
-struct ArchConfig {
-    cuda: Vec<String>,
-    #[serde(default)]
-    #[cfg(feature = "enable_rocm")]
-    rocm: Vec<String>,
-    #[cfg(not(feature = "enable_rocm"))]
-    #[serde(default, skip)]
-    _rocm: Vec<String>,
-}
+});
 
 async fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>)> {
     let url = "https://raw.githubusercontent.com/huggingface/kernel-builder/refs/heads/main/build-variants.json";
@@ -164,255 +61,10 @@ async fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>)> {
     Ok((cuda_variants, rocm_variants))
 }
 
-/// Synchronous wrapper for fetching variants. This avoids spreading async/await throughout
-/// the codebase. Used for compatibility with sync contexts.
+/// Synchronous wrapper for fetching variants.
 fn fetch_variants_sync() -> Result<(Vec<String>, Vec<String>)> {
     let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
     rt.block_on(fetch_compliant_variants())
-}
-
-/// Cached variants to avoid repeatedly fetching the same data
-pub static COMPLIANT_VARIANTS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
-    match fetch_variants_sync() {
-        Ok(variants) => variants,
-        Err(e) => {
-            // We still need to handle initialization errors, but without process::exit
-            // This still panics but at least gives proper error context
-            panic!("Failed to fetch compliant variants: {}", e);
-        }
-    }
-});
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Variant {
-    torch_version: String,
-    cxx_abi: String,
-    compute_framework: String,
-    arch: String,
-    os: String,
-}
-
-impl fmt::Display for Variant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}-{}-{}-{}-{}",
-            self.torch_version, self.cxx_abi, self.compute_framework, self.arch, self.os
-        )
-    }
-}
-
-impl Variant {
-    pub fn from_name(name: &str) -> Option<Self> {
-        let parts: Vec<&str> = name.split('-').collect();
-        if parts.len() < 5 {
-            return None;
-        }
-        // Format: torch{major}{minor}-{cxxabi}-{compute_framework}-{arch}-{os}
-        Some(Variant {
-            torch_version: parts[0].to_string(),
-            cxx_abi: parts[1].to_string(),
-            compute_framework: parts[2].to_string(),
-            arch: parts[3].to_string(),
-            os: parts[4].to_string(),
-        })
-    }
-}
-
-/// Struct to hold repository list result
-#[derive(Serialize)]
-pub struct RepoListResult {
-    pub repositories: Vec<String>,
-    pub count: usize,
-}
-
-/// Struct for console output formatting
-pub struct ConsoleFormatter;
-
-impl ConsoleFormatter {
-    pub fn format_repo_list(repos: &[String], count: usize) {
-        println!(".");
-        for repo_id in repos {
-            println!("├── {}", repo_id);
-        }
-        println!("╰── {} kernel repositories found\n", count);
-    }
-
-    pub fn format_missing_repo(repo_id: &str) {
-        println!(".");
-        println!("├── {}", repo_id.on_bright_white().black().bold());
-        println!("├── build: missing");
-        println!("╰── abi: missing");
-    }
-
-    pub fn format_fetch_status(repo_id: &str, fetching: bool, result: Option<&str>) {
-        println!("repository: {}", repo_id);
-        if fetching {
-            println!("status: not found locally, fetching...");
-        }
-        if let Some(message) = result {
-            println!("status: {}", message);
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn format_repository_check_result(
-        repo_id: &str,
-        build_status: &str,
-        cuda_compatible: bool,
-        #[cfg(feature = "enable_rocm")] rocm_compatible: bool,
-        #[cfg(not(feature = "enable_rocm"))] _rocm_compatible: bool,
-        cuda_variants: &[String],
-        #[cfg(feature = "enable_rocm")] rocm_variants: &[String],
-        #[cfg(not(feature = "enable_rocm"))] _rocm_variants: &[String],
-        cuda_variants_present: Vec<&String>,
-        #[cfg(feature = "enable_rocm")] rocm_variants_present: Vec<&String>,
-        #[cfg(not(feature = "enable_rocm"))] _rocm_variants_present: Vec<&String>,
-        compact_output: bool,
-        abi_output: &AbiCheckResult,
-        abi_status: &str,
-    ) {
-        // Display console-formatted output
-        let abi_mark = if abi_output.overall_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-
-        let cuda_mark = if cuda_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-
-        #[cfg(feature = "enable_rocm")]
-        let rocm_mark = if rocm_compatible {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
-
-        let label = format!(" {} ", repo_id).black().on_bright_white().bold();
-
-        println!("\n{}", label);
-        println!("├── build: {}", build_status);
-
-        if !compact_output {
-            println!("│  {} {}", cuda_mark, "CUDA".bold());
-
-            // Print variant list with proper tree characters
-            for (i, cuda_variant) in cuda_variants.iter().enumerate() {
-                let is_last = i == cuda_variants.len() - 1;
-                let is_present = cuda_variants_present.contains(&cuda_variant);
-                let prefix = if is_last {
-                    "│    ╰── "
-                } else {
-                    "│    ├── "
-                };
-
-                if is_present {
-                    println!("{}{}", prefix, cuda_variant);
-                } else {
-                    println!("{}{}", prefix, cuda_variant.dimmed());
-                }
-            }
-
-            // Only show ROCm section if the feature is enabled
-            #[cfg(feature = "enable_rocm")]
-            {
-                println!("│  {} {}", rocm_mark, "ROCM".bold());
-
-                for (i, rocm_variant) in rocm_variants.iter().enumerate() {
-                    let is_last = i == rocm_variants.len() - 1;
-                    let is_present = rocm_variants_present.contains(&rocm_variant);
-                    let prefix = if is_last {
-                        "│    ╰── "
-                    } else {
-                        "│    ├── "
-                    };
-
-                    if is_present {
-                        println!("{}{}", prefix, rocm_variant);
-                    } else {
-                        println!("{}{}", prefix, rocm_variant.dimmed());
-                    }
-                }
-            }
-        } else {
-            // Compact output
-            #[cfg(feature = "enable_rocm")]
-            {
-                println!("│   ├── {} CUDA", cuda_mark);
-                println!("│   ╰── {} ROCM", rocm_mark);
-            }
-
-            #[cfg(not(feature = "enable_rocm"))]
-            {
-                println!("│   ╰── {} CUDA", cuda_mark);
-            }
-        }
-
-        // ABI status section
-        println!("╰── abi: {}", abi_status);
-        println!("    ├── {} {}", abi_mark, abi_output.manylinux_version);
-        println!(
-            "    ╰── {} python {}",
-            abi_mark, abi_output.python_abi_version
-        );
-    }
-}
-
-#[derive(Serialize)]
-pub struct RepoErrorResponse {
-    repository: String,
-    status: String,
-    error: String,
-}
-
-#[derive(Serialize)]
-pub struct RepositoryCheckResult {
-    repository: String,
-    status: String,
-    build_status: BuildStatus,
-    abi_status: AbiStatus,
-}
-
-#[derive(Serialize)]
-pub struct BuildStatus {
-    summary: String,
-    cuda: CudaStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    rocm: Option<RocmStatus>,
-}
-
-#[derive(Serialize)]
-pub struct CudaStatus {
-    compatible: bool,
-    present: Vec<String>,
-    missing: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct RocmStatus {
-    compatible: bool,
-    present: Vec<String>,
-    missing: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct AbiStatus {
-    compatible: bool,
-    manylinux_version: String,
-    python_abi_version: String,
-    variants: Vec<VariantCheckOutput>,
-}
-
-#[derive(Serialize)]
-pub struct VariantCheckOutput {
-    name: String,
-    compatible: bool,
-    has_shared_objects: bool,
-    violations: Vec<String>,
 }
 
 pub fn get_cache_dir() -> Result<PathBuf> {
@@ -496,15 +148,140 @@ pub fn get_repo_path(repo_id: &str, base_dir: &Path) -> PathBuf {
     base_dir.join(repo.folder_name())
 }
 
-pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()> {
-    let api = ApiBuilder::new()
+async fn fetch_repository_async(
+    repo_id: &str,
+    revision: &str,
+    force_fetch: bool,
+    prefer_hub_cli: bool,
+) -> Result<()> {
+    println!("Repository: {} (revision: {})", repo_id, revision);
+
+    // Check if repository exists and has the requested snapshot
+    let cache_dir = get_cache_dir()?;
+    let repo_path = get_repo_path(repo_id, &cache_dir);
+    let ref_path = repo_path.join("refs").join(revision);
+
+    // Only continue with fetch if force_fetch is true or the repository/revision doesn't exist locally
+    if !force_fetch && ref_path.exists() {
+        // Read local revision hash
+        let local_hash = fs::read_to_string(&ref_path)
+            .with_context(|| format!("Failed to read ref file: {:?}", ref_path))?
+            .trim()
+            .to_string();
+
+        // Check if snapshot exists
+        let snapshot_dir = repo_path.join("snapshots").join(&local_hash);
+        if snapshot_dir.exists() {
+            // Check if build directory exists
+            let build_dir = snapshot_dir.join("build");
+            if build_dir.exists() {
+                println!("Repository is up to date, using local files");
+                return Ok(());
+            }
+        }
+    }
+
+    // TODO: improve internal fetching logic to match cli speed/timeouts when downloading
+    // to avoid using huggingface-cli
+
+    // Attempt to fetch the repository using huggingface-cli
+    if prefer_hub_cli {
+        let huggingface_cli =
+            std::env::var("HUGGINGFACE_CLI").unwrap_or_else(|_| "huggingface-cli".to_string());
+
+        let mut cmd = std::process::Command::new(&huggingface_cli);
+        cmd.arg("download")
+            .arg(repo_id)
+            .arg("--revision")
+            .arg(revision);
+
+        if force_fetch {
+            cmd.arg("--force");
+        }
+
+        println!("Using huggingface-cli to download repository");
+
+        // Create the command with pipes for stdout and stderr
+        let mut child = cmd
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .context("Failed to execute huggingface-cli")?;
+
+        // Process stdout in a separate thread for true real-time output
+        let stdout_thread = if let Some(stdout) = child.stdout.take() {
+            use std::io::{BufRead, BufReader};
+            use std::thread;
+
+            Some(thread::spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines().map_while(Result::ok) {
+                    println!("{}", line);
+                }
+            }))
+        } else {
+            None
+        };
+
+        // Process stderr in a separate thread too
+        let stderr_thread = if let Some(stderr) = child.stderr.take() {
+            use std::io::{BufRead, BufReader};
+            use std::thread;
+            let stderr_copy = stderr;
+
+            Some(thread::spawn(move || {
+                let reader = BufReader::new(stderr_copy);
+                let mut error_output = String::new();
+                for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("{}", line); // Print to stderr
+                    error_output.push_str(&line);
+                    error_output.push('\n');
+                }
+                error_output
+            }))
+        } else {
+            None
+        };
+
+        // Wait for the process to complete
+        let status = child.wait().context("Failed to wait for huggingface-cli")?;
+
+        // Wait for stdout thread to finish (if it exists)
+        if let Some(stdout_handle) = stdout_thread {
+            stdout_handle.join().unwrap();
+        }
+
+        // Wait for stderr thread and collect error output if needed
+        let stderr_output = if let Some(stderr_handle) = stderr_thread {
+            stderr_handle.join().unwrap()
+        } else {
+            String::new()
+        };
+
+        if !status.success() {
+            return Err(CompliantError::FetchError(format!(
+                "Failed to download repository {}: {}",
+                repo_id, stderr_output
+            ))
+            .into());
+        }
+
+        println!("Downloaded repository successfully using huggingface-cli");
+        return Ok(());
+    }
+
+    // If here use the API to download the repository (fallback)
+    println!("Using API to download repository");
+
+    // Create API client
+    let api = ApiBuilder::from_env()
         .high()
         .build()
         .context("Failed to create HF API client")?;
 
     let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
-
     let api_repo = api.repo(repo);
+    // Get repository info and file list
     let info = api_repo
         .info()
         .await
@@ -516,8 +293,8 @@ pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()>
         .map(|f| f.rfilename.clone())
         .collect::<Vec<_>>();
 
-    // Create a stream of tasks and process them concurrently with bounded parallelism
-    use futures::stream::{self, StreamExt};
+    // Download files
+    println!("Starting download of {} files", file_names.len());
 
     let download_results = stream::iter(file_names)
         .map(|file_name| {
@@ -526,18 +303,53 @@ pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()>
             let repo_clone =
                 Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
             let download_repo = api.repo(repo_clone);
-            let file_to_download = file_name.clone();
 
             async move {
-                if let Err(e) = download_repo.download(&file_name).await {
-                    // Special case for __init__.py which can be empty
-                    if file_name.contains("__init__.py") && matches!(e, ApiError::RequestError(_)) {
-                        return Ok(file_name);
-                    }
+                // Implement retry logic with exponential backoff
+                let mut retry_count = 0;
+                let max_retries = 2;
+                let mut delay_ms = 1000;
 
-                    Err(anyhow::anyhow!("Failed to download {}: {}", file_name, e))
-                } else {
-                    Ok(file_to_download)
+                loop {
+                    match download_repo.download(&file_name).await {
+                        Ok(_) => {
+                            // Add delay after successful download to avoid rate limiting
+                            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                            return Ok(file_name.clone());
+                        }
+                        Err(e) => {
+                            // Special case for __init__.py which can be empty
+                            if file_name.contains("__init__.py")
+                                && matches!(e, ApiError::RequestError(_))
+                            {
+                                return Ok(file_name.clone());
+                            }
+
+                            if retry_count < max_retries {
+                                // Log retry attempt
+                                println!(
+                                    "Retry {}/{} for file {}: {}",
+                                    retry_count + 1,
+                                    max_retries,
+                                    file_name,
+                                    e
+                                );
+
+                                // Exponential backoff
+                                tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms))
+                                    .await;
+                                delay_ms *= 2; // Double the delay for next retry
+                                retry_count += 1;
+                            } else {
+                                return Err(anyhow::anyhow!(
+                                    "Failed to download {} after {} retries: {}",
+                                    file_name,
+                                    max_retries,
+                                    e
+                                ));
+                            }
+                        }
+                    }
                 }
             }
         })
@@ -548,7 +360,6 @@ pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()>
     // Count successful downloads and collect errors
     let (successful, failed): (Vec<_>, Vec<_>) =
         download_results.into_iter().partition(Result::is_ok);
-
     let success_count = successful.len();
     let fail_count = failed.len();
 
@@ -559,7 +370,6 @@ pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()>
                 eprintln!("{}", e);
             }
         }
-
         // Only return an error if all downloads failed
         if success_count == 0 {
             return Err(CompliantError::FetchError(format!(
@@ -571,21 +381,151 @@ pub async fn fetch_repository_async(repo_id: &str, revision: &str) -> Result<()>
     }
 
     // Log success info
-    println!(
-        "Downloaded {} files successfully ({} failed)",
-        success_count, fail_count
-    );
+    if force_fetch {
+        println!(
+            "Force fetched {} files successfully ({} failed)",
+            success_count, fail_count
+        );
+    } else {
+        println!(
+            "Downloaded {} files successfully ({} failed)",
+            success_count, fail_count
+        );
+    }
 
     Ok(())
 }
 
 /// Synchronous wrapper for the async fetch repository function
-pub fn fetch_repository(repo_id: &str, _cache_dir: &Path, revision: &str) -> Result<()> {
-    println!("fetching: {} (revision: {})", repo_id, revision);
+pub fn fetch_repository(
+    repo_id: &str,
+    _cache_dir: &Path,
+    revision: &str,
+    force_fetch: bool,
+    prefer_hub_cli: bool,
+) -> Result<()> {
+    if force_fetch {
+        println!("Mode: Force fetch (redownloading all files)");
+    } else {
+        println!("Mode: Smart sync (checking for updates)");
+    }
 
     let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
+    rt.block_on(fetch_repository_async(
+        repo_id,
+        revision,
+        force_fetch,
+        prefer_hub_cli,
+    ))
+}
 
-    rt.block_on(fetch_repository_async(repo_id, revision))
+/// Process a single repository with improved snapshot checking
+#[allow(clippy::too_many_arguments)]
+pub fn process_repository(
+    repo_id: &str,
+    cache_dir: &Path,
+    revision: &str,
+    force_fetch: bool,
+    prefer_hub_cli: bool,
+    manylinux: &str,
+    python_version: &Version,
+    compact_output: bool,
+    show_violations: bool,
+    format: Format,
+) -> Result<()> {
+    // Check if repository exists and has the requested revision
+    let (repo_valid, snapshot_dir, hash) =
+        check_repository_revision(repo_id, cache_dir, revision, format)?;
+
+    // If repository has valid snapshot and force_fetch is false, process it directly
+    if repo_valid && !force_fetch {
+        process_repository_snapshot(
+            repo_id,
+            &snapshot_dir,
+            &hash,
+            manylinux,
+            python_version,
+            compact_output,
+            show_violations,
+            format,
+        )?;
+        return Ok(());
+    }
+
+    // If repository doesn't exist or needs to be fetched
+    if !format.is_json() {
+        ConsoleFormatter::format_fetch_status(repo_id, true, None);
+    }
+
+    // Fetch the repository
+    match fetch_repository(repo_id, cache_dir, revision, force_fetch, prefer_hub_cli) {
+        Ok(_) => {
+            if !format.is_json() {
+                ConsoleFormatter::format_fetch_status(repo_id, false, Some("fetch successful"));
+            }
+
+            // Recheck repository after fetch
+            let (repo_valid_after, snapshot_dir_after, hash_after) =
+                check_repository_revision(repo_id, cache_dir, revision, format)?;
+
+            if !repo_valid_after {
+                if !format.is_json() {
+                    ConsoleFormatter::format_missing_repo(repo_id);
+                } else {
+                    let error = RepoErrorResponse {
+                        repository: repo_id.to_string(),
+                        status: "not_found".to_string(),
+                        error: format!("repository not found after fetch: {}", repo_id),
+                    };
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&error)
+                            .context("Failed to serialize error response")?
+                    );
+                }
+                return Err(CompliantError::RepositoryNotFound(format!(
+                    "Repository {} not found after fetch",
+                    repo_id
+                ))
+                .into());
+            }
+
+            // Continue processing with fetched repository
+            process_repository_snapshot(
+                repo_id,
+                &snapshot_dir_after,
+                &hash_after,
+                manylinux,
+                python_version,
+                compact_output,
+                show_violations,
+                format,
+            )?;
+        }
+        Err(e) => {
+            if !format.is_json() {
+                ConsoleFormatter::format_fetch_status(
+                    repo_id,
+                    false,
+                    Some(&format!("fetch failed - {}", e)),
+                );
+                println!("---");
+            } else {
+                let error = RepoErrorResponse {
+                    repository: repo_id.to_string(),
+                    status: "fetch_failed".to_string(),
+                    error: e.to_string(),
+                };
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&error)
+                        .context("Failed to serialize error response")?
+                );
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
@@ -652,43 +592,6 @@ pub fn get_build_status_summary(
     #[cfg(not(feature = "enable_rocm"))]
     {
         format!("Total: {} (CUDA: {})", built, cuda_built)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SharedObjectViolation {
-    pub message: String,
-    // TODO: Explore what other fields we may need
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VariantResult {
-    pub name: String,
-    pub is_compatible: bool,
-    pub violations: Vec<SharedObjectViolation>,
-    pub has_shared_objects: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct AbiCheckResult {
-    pub overall_compatible: bool,
-    pub variants: Vec<VariantResult>,
-    pub manylinux_version: String,
-    pub python_abi_version: Version,
-}
-
-impl Serialize for AbiCheckResult {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("AbiCheckResult", 4)?;
-        state.serialize_field("overall_compatible", &self.overall_compatible)?;
-        state.serialize_field("variants", &self.variants)?;
-        state.serialize_field("manylinux_version", &self.manylinux_version)?;
-        state.serialize_field("python_abi_version", &self.python_abi_version.to_string())?;
-        state.end()
     }
 }
 
@@ -886,134 +789,18 @@ pub fn check_abi_for_repository(
     })
 }
 
+/// Process a repository snapshot once we have it
 #[allow(clippy::too_many_arguments)]
-pub fn process_repository(
+pub fn process_repository_snapshot(
     repo_id: &str,
-    cache_dir: &Path,
-    revision: &str,
-    auto_fetch: bool,
+    snapshot_dir: &Path,
+    _hash: &str,
     manylinux: &str,
     python_version: &Version,
     compact_output: bool,
     show_violations: bool,
     format: Format,
 ) -> Result<()> {
-    let repo_path = get_repo_path(repo_id, cache_dir);
-
-    // Check if repository exists locally
-    if !repo_path.exists() || !repo_path.join("refs/main").exists() {
-        if auto_fetch {
-            if !format.is_json() {
-                ConsoleFormatter::format_fetch_status(repo_id, true, None);
-            }
-
-            // Fetch the repository
-            match fetch_repository(repo_id, cache_dir, revision) {
-                Ok(_) => {
-                    if !format.is_json() {
-                        ConsoleFormatter::format_fetch_status(
-                            repo_id,
-                            false,
-                            Some("fetch successful"),
-                        );
-                    }
-                }
-                Err(e) => {
-                    if !format.is_json() {
-                        ConsoleFormatter::format_fetch_status(
-                            repo_id,
-                            false,
-                            Some(&format!("fetch failed - {}", e)),
-                        );
-                        println!("---");
-                    } else {
-                        let error = RepoErrorResponse {
-                            repository: repo_id.to_string(),
-                            status: "fetch_failed".to_string(),
-                            error: e.to_string(),
-                        };
-                        println!(
-                            "{}",
-                            serde_json::to_string_pretty(&error)
-                                .context("Failed to serialize error response")?
-                        );
-                    }
-                    return Ok(());
-                }
-            }
-        } else {
-            // Print a message indicating the repository is missing
-            if !format.is_json() {
-                ConsoleFormatter::format_missing_repo(repo_id);
-            } else {
-                let error = RepoErrorResponse {
-                    repository: repo_id.to_string(),
-                    status: "not_found".to_string(),
-                    error: "repository not found locally".to_string(),
-                };
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&error)
-                        .context("Failed to serialize error response")?
-                );
-            }
-
-            return Err(CompliantError::RepositoryNotFound(repo_id.to_string()).into());
-        }
-    }
-
-    // Re-check after potential fetch
-    let ref_file = repo_path.join("refs/main");
-    if !ref_file.exists() {
-        // Print a message indicating the repository is missing
-        if !format.is_json() {
-            ConsoleFormatter::format_missing_repo(repo_id);
-        } else {
-            let error = RepoErrorResponse {
-                repository: repo_id.to_string(),
-                status: "not_found".to_string(),
-                error: "repository not found locally".to_string(),
-            };
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&error)
-                    .context("Failed to serialize error response")?
-            );
-        }
-
-        return Err(CompliantError::RepositoryNotFound(repo_id.to_string()).into());
-    }
-
-    let content = fs::read_to_string(&ref_file)
-        .with_context(|| format!("Failed to read ref file: {:?}", ref_file))?;
-
-    let hash = content.trim();
-    let snapshot_dir = repo_path.join(format!("snapshots/{}", hash));
-
-    if !snapshot_dir.exists() {
-        // Print a message indicating the snapshot is missing
-        if !format.is_json() {
-            ConsoleFormatter::format_missing_repo(repo_id);
-        } else {
-            let error = RepoErrorResponse {
-                repository: repo_id.to_string(),
-                status: "missing_snapshot".to_string(),
-                error: "snapshot not found".to_string(),
-            };
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&error)
-                    .context("Failed to serialize error response")?
-            );
-        }
-
-        return Err(CompliantError::RepositoryNotFound(format!(
-            "Snapshot not found for repository {}",
-            repo_id
-        ))
-        .into());
-    }
-
     let build_dir = snapshot_dir.join("build");
     if !build_dir.exists() {
         // Print a message indicating the build directory is missing
@@ -1035,8 +822,7 @@ pub fn process_repository(
         return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
     }
 
-    let variants = get_build_variants(&snapshot_dir).context("Failed to get build variants")?;
-
+    let variants = get_build_variants(snapshot_dir).context("Failed to get build variants")?;
     let variant_strings: Vec<String> = variants.iter().map(|v| v.to_string()).collect();
 
     let build_status = get_build_status_summary(
@@ -1047,7 +833,7 @@ pub fn process_repository(
     );
 
     let abi_output =
-        check_abi_for_repository(&snapshot_dir, manylinux, python_version, show_violations)
+        check_abi_for_repository(snapshot_dir, manylinux, python_version, show_violations)
             .with_context(|| format!("Failed to check ABI compatibility for {}", repo_id))?;
 
     let abi_status = if abi_output.overall_compatible {
@@ -1170,4 +956,46 @@ pub fn process_repository(
     }
 
     Ok(())
+}
+
+/// Check if the specified revision in a repository needs processing
+pub fn check_repository_revision(
+    repo_id: &str,
+    cache_dir: &Path,
+    revision: &str,
+    format: Format,
+) -> Result<(bool, PathBuf, String)> {
+    let repo_path = get_repo_path(repo_id, cache_dir);
+    let ref_path = repo_path.join("refs").join(revision);
+
+    // Check if repository exists with specified revision
+    if !repo_path.exists() || !ref_path.exists() {
+        if !format.is_json() {
+            println!(
+                "Repository {} with revision {} not found locally",
+                repo_id, revision
+            );
+        }
+        return Ok((false, PathBuf::new(), String::new()));
+    }
+
+    // Read hash from revision file
+    let hash = fs::read_to_string(&ref_path)
+        .with_context(|| format!("Failed to read ref file: {:?}", ref_path))?
+        .trim()
+        .to_string();
+
+    // Check if snapshot exists
+    let snapshot_dir = repo_path.join("snapshots").join(&hash);
+    if !snapshot_dir.exists() {
+        if !format.is_json() {
+            println!(
+                "Snapshot for hash {} not found in repository {}",
+                hash, repo_id
+            );
+        }
+        return Ok((false, PathBuf::new(), String::new()));
+    }
+
+    Ok((true, snapshot_dir, hash))
 }

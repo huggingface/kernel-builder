@@ -2,40 +2,44 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-
 use kernel_abi_check::Version;
+use kernel_compliance_check::{get_cache_dir, process_repository, Cli, Commands, Format};
 
 fn main() -> Result<()> {
     // Parse CLI arguments
-    let cli = kernel_compliance_check::Cli::parse();
+    let cli = Cli::parse();
 
     // Get cache directory
-    let cache_dir =
-        kernel_compliance_check::get_cache_dir().context("Failed to determine cache directory")?;
+    let cache_dir = get_cache_dir().context("Failed to determine cache directory")?;
+
+    // Prefer the cli unless explicitly set to avoid it
+    let prefer_hub_cli = !std::env::var("AVOID_HUB_CLI")
+        .map(|v| v == "1" || v == "true")
+        .unwrap_or(false);
 
     match cli.command {
-        kernel_compliance_check::Commands::List { format } => {
-            // List repositories with build variants
-            list_repositories(&cache_dir, format)?;
-        }
-
-        kernel_compliance_check::Commands::Check {
+        Commands::Check {
             repos,
             manylinux,
             python_abi,
-            auto_fetch,
             revision,
             long,
+            force_fetch,
             show_violations,
             format,
         } => {
+            println!("Running kernel compliance check");
+            println!("Repositories: {}", repos);
+            println!("Kernel Revision: {}", revision);
+
             // Check repositories for compliance
             check_repositories(
                 &repos,
                 &cache_dir,
-                &manylinux,
+                &manylinux.to_string(),
                 &python_abi,
-                auto_fetch,
+                prefer_hub_cli,
+                force_fetch,
                 &revision,
                 long,
                 show_violations,
@@ -47,66 +51,18 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn list_repositories(
-    cache_dir: &std::path::Path,
-    format: kernel_compliance_check::Format,
-) -> Result<()> {
-    let entries = std::fs::read_dir(cache_dir)
-        .with_context(|| format!("Failed to read cache directory: {:?}", cache_dir))?;
-
-    let mut found_repos = 0;
-    let mut repo_list = Vec::new();
-
-    for entry in entries {
-        let entry = entry.context("Failed to read directory entry")?;
-        let path = entry.path();
-
-        if !path.is_dir() {
-            continue;
-        }
-
-        // Extract repo ID from path
-        let repo_id = kernel_compliance_check::get_repo_id_from_path(&path)
-            .with_context(|| format!("Failed to extract repo ID from path: {:?}", path))?;
-
-        // Check if this repo has a build directory with variants
-        if kernel_compliance_check::has_build_variants(&path)
-            .with_context(|| format!("Failed to check for build variants in: {:?}", path))?
-        {
-            repo_list.push(repo_id);
-            found_repos += 1;
-        }
-    }
-
-    // Sort repositories for consistent display
-    repo_list.sort();
-
-    if format.is_json() {
-        // Create JSON response
-        let result = kernel_compliance_check::RepoListResult {
-            repositories: repo_list,
-            count: found_repos,
-        };
-        let json =
-            serde_json::to_string_pretty(&result).context("Failed to serialize JSON response")?;
-        println!("{}", json);
-    } else {
-        kernel_compliance_check::ConsoleFormatter::format_repo_list(&repo_list, found_repos);
-    }
-
-    Ok(())
-}
-
+#[allow(clippy::too_many_arguments)]
 fn check_repositories(
     repos: &str,
     cache_dir: &std::path::Path,
     manylinux: &str,
     python_abi: &str,
-    auto_fetch: bool,
+    prefer_hub_cli: bool,
+    force_fetch: bool,
     revision: &str,
     long: bool,
     show_violations: bool,
-    format: kernel_compliance_check::Format,
+    format: Format,
 ) -> Result<()> {
     let repositories: Vec<String> = repos
         .split(',')
@@ -139,11 +95,12 @@ fn check_repositories(
         .map_err(|e| anyhow::anyhow!("Invalid Python ABI version {}: {}", python_abi, e))?;
 
     for repo_id in &repositories {
-        if let Err(e) = kernel_compliance_check::process_repository(
+        if let Err(e) = process_repository(
             repo_id,
             cache_dir,
             revision,
-            auto_fetch,
+            force_fetch,
+            prefer_hub_cli,
             manylinux,
             &python_version,
             !long,
