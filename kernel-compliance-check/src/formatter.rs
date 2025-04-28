@@ -76,8 +76,9 @@ impl ConsoleFormatter {
             println!("│  {} {}", cuda_mark, "CUDA".bold());
 
             // Print variant list with proper tree characters
-            for (i, cuda_variant) in cuda_variants.iter().enumerate() {
-                let is_last = i == cuda_variants.len() - 1;
+            let mut cuda_iter = cuda_variants.iter().peekable();
+            while let Some(cuda_variant) = cuda_iter.next() {
+                let is_last = cuda_iter.peek().is_none();
                 let is_present = cuda_variants_present.contains(cuda_variant);
                 let prefix = if is_last {
                     "│    ╰── "
@@ -97,8 +98,9 @@ impl ConsoleFormatter {
             {
                 println!("│  {} {}", rocm_mark, "ROCM".bold());
 
-                for (i, rocm_variant) in rocm_variants.iter().enumerate() {
-                    let is_last = i == rocm_variants.len() - 1;
+                let mut rocm_iter = rocm_variants.iter().peekable();
+                while let Some(rocm_variant) = rocm_iter.next() {
+                    let is_last = rocm_iter.peek().is_none();
                     let is_present = rocm_variants_present.contains(rocm_variant);
                     let prefix = if is_last {
                         "│    ╰── "
