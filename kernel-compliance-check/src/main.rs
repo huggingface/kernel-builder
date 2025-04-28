@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::{Context, Result};
+use eyre::{Context, Result};
 use clap::Parser;
 use kernel_abi_check::Version;
 use kernel_compliance_check::{get_cache_dir, process_repository, Cli, Commands, Format};
@@ -92,7 +92,7 @@ fn check_repositories(
     }
 
     let python_version = Version::from_str(python_abi)
-        .map_err(|e| anyhow::anyhow!("Invalid Python ABI version {}: {}", python_abi, e))?;
+        .map_err(|e| eyre::eyre!("Invalid Python ABI version {}: {}", python_abi, e))?;
 
     for repo_id in &repositories {
         if let Err(e) = process_repository(

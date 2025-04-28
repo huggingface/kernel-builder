@@ -4,7 +4,7 @@ mod models;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use eyre::{Context, Result};
 use futures::stream::{self, StreamExt};
 use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
@@ -299,7 +299,7 @@ async fn fetch_repository_async(
                                 delay_ms *= 2; // Double the delay for next retry
                                 retry_count += 1;
                             } else {
-                                return Err(anyhow::anyhow!(
+                                return Err(eyre::eyre!(
                                     "Failed to download {} after {} retries: {}",
                                     file_name,
                                     max_retries,
@@ -595,7 +595,7 @@ pub fn check_shared_object(
 
     // Parse object file
     let file = object::File::parse(&*binary_data)
-        .map_err(|e| anyhow::anyhow!("Cannot parse object file: {}: {}", so_path.display(), e))?;
+        .map_err(|e| eyre::eyre!("Cannot parse object file: {}: {}", so_path.display(), e))?;
 
     // Run manylinux check
     let manylinux_result = check_manylinux(
@@ -604,11 +604,11 @@ pub fn check_shared_object(
         file.endianness(),
         file.symbols(),
     )
-    .map_err(|e| anyhow::anyhow!("Manylinux check error: {}", e))?;
+    .map_err(|e| eyre::eyre!("Manylinux check error: {}", e))?;
 
     // Run Python ABI check
     let python_abi_result = check_python_abi(python_abi_version, file.symbols())
-        .map_err(|e| anyhow::anyhow!("Python ABI check error: {}", e))?;
+        .map_err(|e| eyre::eyre!("Python ABI check error: {}", e))?;
 
     // Determine if checks passed
     let passed = manylinux_result.is_empty() && python_abi_result.is_empty();
