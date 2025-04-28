@@ -40,9 +40,9 @@ impl ConsoleFormatter {
         cuda_variants: &[String],
         #[cfg(feature = "enable_rocm")] rocm_variants: &[String],
         #[cfg(not(feature = "enable_rocm"))] _rocm_variants: &[String],
-        cuda_variants_present: Vec<&String>,
-        #[cfg(feature = "enable_rocm")] rocm_variants_present: Vec<&String>,
-        #[cfg(not(feature = "enable_rocm"))] _rocm_variants_present: Vec<&String>,
+        cuda_variants_present: Vec<String>,
+        #[cfg(feature = "enable_rocm")] rocm_variants_present: Vec<String>,
+        #[cfg(not(feature = "enable_rocm"))] _rocm_variants_present: Vec<String>,
         compact_output: bool,
         abi_output: &AbiCheckResult,
         abi_status: &str,
@@ -78,7 +78,7 @@ impl ConsoleFormatter {
             // Print variant list with proper tree characters
             for (i, cuda_variant) in cuda_variants.iter().enumerate() {
                 let is_last = i == cuda_variants.len() - 1;
-                let is_present = cuda_variants_present.contains(&cuda_variant);
+                let is_present = cuda_variants_present.contains(cuda_variant);
                 let prefix = if is_last {
                     "│    ╰── "
                 } else {
@@ -99,7 +99,7 @@ impl ConsoleFormatter {
 
                 for (i, rocm_variant) in rocm_variants.iter().enumerate() {
                     let is_last = i == rocm_variants.len() - 1;
-                    let is_present = rocm_variants_present.contains(&rocm_variant);
+                    let is_present = rocm_variants_present.contains(rocm_variant);
                     let prefix = if is_last {
                         "│    ╰── "
                     } else {

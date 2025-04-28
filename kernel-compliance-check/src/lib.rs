@@ -10,62 +10,20 @@ use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
-use once_cell::sync::Lazy;
 
 pub use formatter::*;
 pub use models::*;
 
 pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant};
 
-/// Cached variants to avoid repeatedly fetching the same data
-pub static COMPLIANT_VARIANTS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
-    match fetch_variants_sync() {
-        Ok(variants) => variants,
-        Err(e) => {
-            // We still need to handle initialization errors, but without process::exit
-            // This still panics but at least gives proper error context
-            panic!("Failed to fetch compliant variants: {}", e);
-        }
-    }
-});
-
-async fn fetch_compliant_variants() -> Result<(Vec<String>, Vec<String>)> {
-    let url = "https://raw.githubusercontent.com/huggingface/kernel-builder/refs/heads/main/build-variants.json";
-    let response = reqwest::get(url)
-        .await
-        .context("Failed to connect to variants endpoint")?;
-
-    if !response.status().is_success() {
-        return Err(CompliantError::VariantsFetchError(format!(
-            "HTTP error: {}",
-            response.status()
-        ))
-        .into());
-    }
-
-    let variants_config: VariantsConfig = response
-        .json()
-        .await
-        .context("Failed to parse variants JSON")?;
-
-    let mut cuda_variants = Vec::new();
-    cuda_variants.extend(variants_config.x86_64_linux.cuda);
-    cuda_variants.extend(variants_config.aarch64_linux.cuda);
-
-    #[cfg(feature = "enable_rocm")]
-    let rocm_variants = variants_config.x86_64_linux.rocm;
-
-    #[cfg(not(feature = "enable_rocm"))]
-    let rocm_variants = Vec::new();
-
-    Ok((cuda_variants, rocm_variants))
-}
-
-/// Synchronous wrapper for fetching variants.
-fn fetch_variants_sync() -> Result<(Vec<String>, Vec<String>)> {
-    let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
-    rt.block_on(fetch_compliant_variants())
-}
+// Import the generated code containing variant data and helper functions
+// This file is generated at compile time by build.rs and provides:
+//
+// - VARIANTS_DATA: Raw JSON string containing supported build variants
+// - get_variants(): Returns lazily parsed JSON data as &'static Value
+// - get_cuda_variants(): Returns all CUDA variants
+// - get_rocm_variants(): Returns all ROCm variants
+include!(concat!(env!("OUT_DIR"), "/variants_data.rs"));
 
 pub fn get_cache_dir() -> Result<PathBuf> {
     let cache_dir = if let Ok(dir) = std::env::var("HF_KERNELS_CACHE") {
@@ -828,8 +786,8 @@ pub fn process_repository_snapshot(
     let build_status = get_build_status_summary(
         &build_dir,
         &variant_strings,
-        &COMPLIANT_VARIANTS.0,
-        &COMPLIANT_VARIANTS.1,
+        &get_cuda_variants(),
+        &get_rocm_variants(),
     );
 
     let abi_output =
@@ -843,27 +801,26 @@ pub fn process_repository_snapshot(
     };
 
     // Get present CUDA and ROCM variants
-    let cuda_variants_present_set: Vec<&String> = COMPLIANT_VARIANTS
-        .0
+    let cuda_variants_present_set: Vec<String> = get_cuda_variants()
         .iter()
         .filter(|v| variant_strings.contains(v))
+        .cloned()
         .collect();
 
     #[cfg(feature = "enable_rocm")]
-    let rocm_variants_present_set: Vec<&String> = COMPLIANT_VARIANTS
-        .1
+    let rocm_variants_present_set: Vec<&String> = get_rocm_variants()
         .iter()
         .filter(|v| variant_strings.contains(v))
         .collect();
 
     #[cfg(not(feature = "enable_rocm"))]
-    let rocm_variants_present_set: Vec<&String> = Vec::new();
+    let rocm_variants_present_set: Vec<String> = Vec::new();
 
     // Check if all required variants are present
-    let cuda_compatible = cuda_variants_present_set.len() == COMPLIANT_VARIANTS.0.len();
+    let cuda_compatible = cuda_variants_present_set.len() == get_cuda_variants().len();
 
     #[cfg(feature = "enable_rocm")]
-    let rocm_compatible = rocm_variants_present_set.len() == COMPLIANT_VARIANTS.1.len();
+    let rocm_compatible = rocm_variants_present_set.len() == get_rocm_variants().len();
 
     #[cfg(not(feature = "enable_rocm"))]
     let rocm_compatible = true; // When ROCm is disabled, consider it compatible but unused
@@ -872,12 +829,8 @@ pub fn process_repository_snapshot(
         // Create structured data for JSON output
         let cuda_status = CudaStatus {
             compatible: cuda_compatible,
-            present: cuda_variants_present_set
-                .iter()
-                .map(|&v| v.clone())
-                .collect(),
-            missing: COMPLIANT_VARIANTS
-                .0
+            present: cuda_variants_present_set.to_vec(),
+            missing: get_cuda_variants()
                 .iter()
                 .filter(|v| !cuda_variants_present_set.contains(v))
                 .cloned()
@@ -889,7 +842,7 @@ pub fn process_repository_snapshot(
             compatible: rocm_compatible,
             present: rocm_variants_present_set
                 .iter()
-                .map(|&v| v.clone())
+                .map(|v| v.clone())
                 .collect(),
             missing: COMPLIANT_VARIANTS
                 .1
@@ -945,8 +898,8 @@ pub fn process_repository_snapshot(
             &build_status,
             cuda_compatible,
             rocm_compatible,
-            &COMPLIANT_VARIANTS.0,
-            &COMPLIANT_VARIANTS.1,
+            &get_cuda_variants(),
+            &get_rocm_variants(),
             cuda_variants_present_set,
             rocm_variants_present_set,
             compact_output,

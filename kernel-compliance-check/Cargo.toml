@@ -27,3 +27,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.40"
 tokio = { version = "1.44.2", features = ["full"] }
+
+[build-dependencies]
+ureq = "2.7.1"
