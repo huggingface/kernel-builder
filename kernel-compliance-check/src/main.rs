@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use anyhow::{Context, Result};
 use clap::Parser;
+
 use kernel_abi_check::Version;
-use std::str::FromStr;
 
 fn main() -> Result<()> {
     // Parse CLI arguments

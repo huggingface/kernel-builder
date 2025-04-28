@@ -1,16 +1,18 @@
+use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use hf_hub::api::tokio::{ApiBuilder, ApiError};
 use hf_hub::{Repo, RepoType};
-use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::fs;
-use std::path::{Path, PathBuf};
 use thiserror::Error;
+
+use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 
 #[derive(Error, Debug)]
 pub enum CompliantError {
