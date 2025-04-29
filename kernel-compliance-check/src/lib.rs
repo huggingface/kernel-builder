@@ -11,7 +11,7 @@ use hf_hub::{Cache, Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
 
-pub use formatter::*;
+pub use formatter::Console;
 pub use models::*;
 
 pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant};
@@ -25,13 +25,14 @@ pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant}
 // - get_rocm_variants(): Returns all ROCm variants
 include!(concat!(env!("OUT_DIR"), "/variants_data.rs"));
 
+#[allow(clippy::too_many_lines)]
 async fn fetch_repository_async(
     repo_id: &str,
     revision: &str,
     force_fetch: bool,
     prefer_hub_cli: bool,
 ) -> Result<()> {
-    println!("Repository: {} (revision: {})", repo_id, revision);
+    println!("Repository: {repo_id} (revision: {revision})");
 
     // Create API client
     let api = ApiBuilder::from_env()
@@ -76,7 +77,7 @@ async fn fetch_repository_async(
             Some(thread::spawn(move || {
                 let reader = BufReader::new(stdout);
                 for line in reader.lines().map_while(Result::ok) {
-                    println!("{}", line);
+                    println!("{line}");
                 }
             }))
         } else {
@@ -93,7 +94,7 @@ async fn fetch_repository_async(
                 let reader = BufReader::new(stderr_copy);
                 let mut error_output = String::new();
                 for line in reader.lines().map_while(Result::ok) {
-                    eprintln!("{}", line); // Print to stderr
+                    eprintln!("{line}"); // Print to stderr
                     error_output.push_str(&line);
                     error_output.push('\n');
                 }
@@ -120,8 +121,7 @@ async fn fetch_repository_async(
 
         if !status.success() {
             return Err(CompliantError::FetchError(format!(
-                "Failed to download repository {}: {}",
-                repo_id, stderr_output
+                "Failed to download repository {repo_id}: {stderr_output}"
             ))
             .into());
         }
@@ -138,7 +138,7 @@ async fn fetch_repository_async(
     let info = api_repo
         .info()
         .await
-        .context(format!("Failed to fetch repo info for {}", repo_id))?;
+        .context(format!("Failed to fetch repo info for {repo_id}"))?;
 
     let file_names = info
         .siblings
@@ -220,14 +220,13 @@ async fn fetch_repository_async(
     if !failed.is_empty() {
         for error in failed {
             if let Err(e) = error {
-                eprintln!("{}", e);
+                eprintln!("{e}");
             }
         }
         // Only return an error if all downloads failed
         if success_count == 0 {
             return Err(CompliantError::FetchError(format!(
-                "All {} downloads failed for repository {}",
-                fail_count, repo_id
+                "All {fail_count} downloads failed for repository {repo_id}"
             ))
             .into());
         }
@@ -235,21 +234,18 @@ async fn fetch_repository_async(
 
     // Log success info
     if force_fetch {
-        println!(
-            "Force fetched {} files successfully ({} failed)",
-            success_count, fail_count
-        );
+        println!("Force fetched {success_count} files successfully ({fail_count} failed)");
     } else {
-        println!(
-            "Downloaded {} files successfully ({} failed)",
-            success_count, fail_count
-        );
+        println!("Downloaded {success_count} files successfully ({fail_count} failed)");
     }
 
     Ok(())
 }
 
 /// Synchronous wrapper for the async fetch repository function
+///
+/// # Errors
+/// Returns an error if the repository fetch fails or if the Tokio runtime cannot be created
 pub fn fetch_repository(
     repo_id: &str,
     revision: &str,
@@ -271,6 +267,10 @@ pub fn fetch_repository(
     ))
 }
 
+/// Checks if there is a valid, up-to-date snapshot directory for the repository
+///
+/// # Errors
+/// Returns an error if the metadata cannot be fetched or if the directory path is invalid
 pub fn snapshot_dir_if_latest(
     api: &hf_hub::api::tokio::Api,
     repo: &Repo,
@@ -283,29 +283,26 @@ pub fn snapshot_dir_if_latest(
     };
 
     let sha_on_hub = &metadata.sha;
-    let first_item = match metadata.siblings.first() {
-        Some(item) => item,
-        None => return Ok(None), // nothing published yet
-    };
+    let Some(first_item) = metadata.siblings.first() else {
+        return Ok(None);
+    }; // nothing published yet
 
     let cache = Cache::from_env();
     let cached_repo = cache.repo(repo.clone());
 
-    let file = match cached_repo.get(&first_item.rfilename) {
-        Some(path) => path,
-        None => return Ok(None), // file not cached
-    };
+    let Some(file) = cached_repo.get(&first_item.rfilename) else {
+        return Ok(None);
+    }; // file not cached
 
     if !file.to_string_lossy().contains(sha_on_hub) {
         return Ok(None); // outdated snapshot
     }
 
     file.parent()
-        .map(|p| p.to_path_buf())
+        .map(std::path::Path::to_path_buf)
         .ok_or_else(|| {
             CompliantError::BuildDirNotFound(format!(
-                "Failed to get parent directory for file: {:?}",
-                file
+                "Failed to get parent directory for file: {file:?}"
             ))
         })
         .map(Some)
@@ -313,6 +310,11 @@ pub fn snapshot_dir_if_latest(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Processes a repository by fetching it if needed and checking its compatibility
+///
+/// # Errors
+/// Returns an error if the repository cannot be fetched or processed
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn process_repository(
     repo_id: &str,
     revision: &str,
@@ -349,7 +351,7 @@ pub fn process_repository(
 
     // Fetch the repository
     if !format.is_json() {
-        ConsoleFormatter::format_fetch_status(repo_id, true, None);
+        Console::format_fetch_status(repo_id, true, None);
     }
 
     if let Err(e) = fetch_repository(repo_id, revision, force_fetch, prefer_hub_cli) {
@@ -360,7 +362,7 @@ pub fn process_repository(
     }
 
     if !format.is_json() {
-        ConsoleFormatter::format_fetch_status(repo_id, false, Some("fetch successful"));
+        Console::format_fetch_status(repo_id, false, Some("fetch successful"));
     }
 
     // Recheck repository after fetch
@@ -381,6 +383,10 @@ pub fn process_repository(
     }
 }
 
+/// Gets all build variants from a repository
+///
+/// # Errors
+/// Returns an error if the build directory cannot be read
 pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
     let build_dir = repo_path.join("build");
     let mut variants = Vec::new();
@@ -390,7 +396,7 @@ pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
     }
 
     let entries = fs::read_dir(&build_dir)
-        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
+        .with_context(|| format!("Failed to read build directory: {build_dir:?}"))?;
 
     for entry in entries {
         let entry = entry.context("Failed to read directory entry")?;
@@ -413,6 +419,7 @@ pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
 }
 
 /// Generate a build status summary string
+#[must_use]
 pub fn get_build_status_summary(
     build_dir: &Path,
     variants: &[String],
@@ -444,10 +451,14 @@ pub fn get_build_status_summary(
 
     #[cfg(not(feature = "enable_rocm"))]
     {
-        format!("Total: {} (CUDA: {})", built, cuda_built)
+        format!("Total: {built} (CUDA: {cuda_built})")
     }
 }
 
+/// Recursively finds all shared object files in a directory
+///
+/// # Errors
+/// Returns an error if the directory cannot be read
 pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>> {
     let mut so_files = Vec::new();
 
@@ -456,7 +467,7 @@ pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>> {
     }
 
     let entries =
-        fs::read_dir(dir).with_context(|| format!("Failed to read directory: {:?}", dir))?;
+        fs::read_dir(dir).with_context(|| format!("Failed to read directory: {dir:?}"))?;
 
     for entry in entries {
         let entry = entry.context("Failed to read directory entry")?;
@@ -464,7 +475,7 @@ pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>> {
 
         if path.is_dir() {
             let mut subdir_so_files = find_shared_objects(&path)
-                .with_context(|| format!("Failed to find .so files in subdirectory: {:?}", path))?;
+                .with_context(|| format!("Failed to find .so files in subdirectory: {path:?}"))?;
             so_files.append(&mut subdir_so_files);
         } else if let Some(extension) = path.extension() {
             if extension == "so" {
@@ -476,6 +487,10 @@ pub fn find_shared_objects(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(so_files)
 }
 
+/// Checks if a shared object is compatible with the given manylinux and Python ABI versions
+///
+/// # Errors
+/// Returns an error if the shared object cannot be read or analyzed
 pub fn check_shared_object(
     so_path: &Path,
     manylinux_version: &str,
@@ -486,7 +501,7 @@ pub fn check_shared_object(
 
     // Read binary data
     let binary_data = fs::read(so_path)
-        .with_context(|| format!("Failed to read shared object file: {:?}", so_path))?;
+        .with_context(|| format!("Failed to read shared object file: {so_path:?}"))?;
 
     // Parse object file
     let file = object::File::parse(&*binary_data)
@@ -513,14 +528,14 @@ pub fn check_shared_object(
         if !manylinux_result.is_empty() {
             violations_output.push_str("\n  manylinux violations:\n");
             for violation in &manylinux_result {
-                violations_output.push_str(&format!("    - {:?}\n", violation));
+                violations_output.push_str(&format!("    - {violation:?}\n"));
             }
         }
 
         if !python_abi_result.is_empty() {
             violations_output.push_str("\n  python abi violations:\n");
             for violation in &python_abi_result {
-                violations_output.push_str(&format!("    - {:?}\n", violation));
+                violations_output.push_str(&format!("    - {violation:?}\n"));
             }
         }
     }
@@ -528,6 +543,10 @@ pub fn check_shared_object(
     Ok((passed, violations_output))
 }
 
+/// Checks ABI compatibility for all variants in a repository
+///
+/// # Errors
+/// Returns an error if the repository cannot be analyzed
 pub fn check_abi_for_repository(
     snapshot_dir: &Path,
     manylinux_version: &str,
@@ -548,7 +567,7 @@ pub fn check_abi_for_repository(
 
     // Get all variant directories
     let entries = fs::read_dir(&build_dir)
-        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
+        .with_context(|| format!("Failed to read build directory: {build_dir:?}"))?;
 
     let variant_paths: Vec<PathBuf> = entries
         .filter_map(|entry_result| match entry_result {
@@ -577,18 +596,17 @@ pub fn check_abi_for_repository(
     let mut variant_results = Vec::new();
 
     // Check each variant
-    for variant_path in variant_paths.iter() {
+    for variant_path in &variant_paths {
         let variant_name = variant_path
             .file_name()
             .ok_or_else(|| {
-                CompliantError::Other(format!("Invalid variant path: {:?}", variant_path))
+                CompliantError::Other(format!("Invalid variant path: {variant_path:?}"))
             })?
             .to_string_lossy()
             .to_string();
 
-        let so_files = find_shared_objects(variant_path).with_context(|| {
-            format!("Failed to find shared objects in variant: {}", variant_name)
-        })?;
+        let so_files = find_shared_objects(variant_path)
+            .with_context(|| format!("Failed to find shared objects in variant: {variant_name}"))?;
 
         let has_shared_objects = !so_files.is_empty();
 
@@ -613,7 +631,7 @@ pub fn check_abi_for_repository(
                 python_abi_version,
                 show_violations,
             )
-            .with_context(|| format!("Failed to check shared object: {:?}", so_path))?;
+            .with_context(|| format!("Failed to check shared object: {so_path:?}"))?;
 
             if !passed && show_violations {
                 variant_violations.push(SharedObjectViolation {
@@ -642,8 +660,12 @@ pub fn check_abi_for_repository(
     })
 }
 
-/// Process a repository snapshot once we have it
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
+/// Processes a repository snapshot once we have it
+///
+/// # Errors
+/// Returns an error if the repository snapshot cannot be processed
 pub fn process_repository_snapshot(
     repo_id: &str,
     snapshot_dir: &Path,
@@ -656,9 +678,7 @@ pub fn process_repository_snapshot(
     let build_dir = snapshot_dir.join("build");
     if !build_dir.exists() {
         // Print a message indicating the build directory is missing
-        if !format.is_json() {
-            return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
-        } else {
+        if format.is_json() {
             let error = RepoErrorResponse {
                 repository: repo_id.to_string(),
                 status: "missing_build_dir".to_string(),
@@ -669,13 +689,18 @@ pub fn process_repository_snapshot(
                 serde_json::to_string_pretty(&error)
                     .context("Failed to serialize error response")?
             );
+        } else {
+            return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
         }
 
         return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
     }
 
     let variants = get_build_variants(snapshot_dir).context("Failed to get build variants")?;
-    let variant_strings: Vec<String> = variants.iter().map(|v| v.to_string()).collect();
+    let variant_strings: Vec<String> = variants
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
 
     let build_status = get_build_status_summary(
         &build_dir,
@@ -686,7 +711,7 @@ pub fn process_repository_snapshot(
 
     let abi_output =
         check_abi_for_repository(snapshot_dir, manylinux, python_version, show_violations)
-            .with_context(|| format!("Failed to check ABI compatibility for {}", repo_id))?;
+            .with_context(|| format!("Failed to check ABI compatibility for {repo_id}"))?;
 
     let abi_status = if abi_output.overall_compatible {
         "compatible"
@@ -723,7 +748,7 @@ pub fn process_repository_snapshot(
         // Create structured data for JSON output
         let cuda_status = CudaStatus {
             compatible: cuda_compatible,
-            present: cuda_variants_present_set.to_vec(),
+            present: cuda_variants_present_set.clone(),
             missing: get_cuda_variants()
                 .iter()
                 .filter(|v| !cuda_variants_present_set.contains(v))
@@ -786,15 +811,15 @@ pub fn process_repository_snapshot(
             serde_json::to_string_pretty(&result).context("Failed to serialize result")?
         );
     } else {
-        // Display console-formatted output via ConsoleFormatter
-        ConsoleFormatter::format_repository_check_result(
+        // Display console-formatted output via Console
+        Console::format_repository_check_result(
             repo_id,
             &build_status,
             cuda_compatible,
             rocm_compatible,
             &get_cuda_variants(),
             &get_rocm_variants(),
-            cuda_variants_present_set,
+            &cuda_variants_present_set,
             rocm_variants_present_set,
             compact_output,
             &abi_output,

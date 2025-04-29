@@ -1,25 +1,25 @@
-use crate::models::*;
+use crate::models::AbiCheckResult;
 use colored::Colorize;
 
 /// Struct for console output formatting
-pub struct ConsoleFormatter;
+pub struct Console;
 
-impl ConsoleFormatter {
+impl Console {
     pub fn format_repo_list(repos: &[String], count: usize) {
         println!(".");
         for repo_id in repos {
-            println!("├── {}", repo_id);
+            println!("├── {repo_id}");
         }
-        println!("╰── {} kernel repositories found\n", count);
+        println!("╰── {count} kernel repositories found\n");
     }
 
     pub fn format_fetch_status(repo_id: &str, fetching: bool, result: Option<&str>) {
-        println!("repository: {}", repo_id);
+        println!("repository: {repo_id}");
         if fetching {
             println!("status: not found locally, fetching...");
         }
         if let Some(message) = result {
-            println!("status: {}", message);
+            println!("status: {message}");
         }
     }
 
@@ -33,7 +33,7 @@ impl ConsoleFormatter {
         cuda_variants: &[String],
         #[cfg(feature = "enable_rocm")] rocm_variants: &[String],
         #[cfg(not(feature = "enable_rocm"))] _rocm_variants: &[String],
-        cuda_variants_present: Vec<String>,
+        cuda_variants_present: &[String],
         #[cfg(feature = "enable_rocm")] rocm_variants_present: Vec<String>,
         #[cfg(not(feature = "enable_rocm"))] _rocm_variants_present: Vec<String>,
         compact_output: bool,
@@ -60,12 +60,24 @@ impl ConsoleFormatter {
             "✗".red()
         };
 
-        let label = format!(" {} ", repo_id).black().on_bright_white().bold();
+        let label = format!(" {repo_id} ").black().on_bright_white().bold();
 
-        println!("\n{}", label);
-        println!("├── build: {}", build_status);
+        println!("\n{label}");
+        println!("├── build: {build_status}");
 
-        if !compact_output {
+        if compact_output {
+            // Compact output
+            #[cfg(feature = "enable_rocm")]
+            {
+                println!("│   ├── {} CUDA", cuda_mark);
+                println!("│   ╰── {} ROCM", rocm_mark);
+            }
+
+            #[cfg(not(feature = "enable_rocm"))]
+            {
+                println!("│   ╰── {cuda_mark} CUDA");
+            }
+        } else {
             println!("│  {} {}", cuda_mark, "CUDA".bold());
 
             // Print variant list with proper tree characters
@@ -80,7 +92,7 @@ impl ConsoleFormatter {
                 };
 
                 if is_present {
-                    println!("{}{}", prefix, cuda_variant);
+                    println!("{prefix}{cuda_variant}");
                 } else {
                     println!("{}{}", prefix, cuda_variant.dimmed());
                 }
@@ -108,22 +120,10 @@ impl ConsoleFormatter {
                     }
                 }
             }
-        } else {
-            // Compact output
-            #[cfg(feature = "enable_rocm")]
-            {
-                println!("│   ├── {} CUDA", cuda_mark);
-                println!("│   ╰── {} ROCM", rocm_mark);
-            }
-
-            #[cfg(not(feature = "enable_rocm"))]
-            {
-                println!("│   ╰── {} CUDA", cuda_mark);
-            }
         }
 
         // ABI status section
-        println!("╰── abi: {}", abi_status);
+        println!("╰── abi: {abi_status}");
         println!("    ├── {} {}", abi_mark, abi_output.manylinux_version);
         println!(
             "    ╰── {} python {}",

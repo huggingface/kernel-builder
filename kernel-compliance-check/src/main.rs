@@ -1,7 +1,7 @@
-use std::str::FromStr;
+use core::str::FromStr as _;
 
-use clap::Parser;
-use eyre::{Context, Result};
+use clap::Parser as _;
+use eyre::{Context as _, Result};
 use kernel_abi_check::Version;
 use kernel_compliance_check::{process_repository, Cli, Commands, Format};
 
@@ -26,8 +26,8 @@ fn main() -> Result<()> {
             format,
         } => {
             println!("Running kernel compliance check");
-            println!("Repositories: {}", repos);
-            println!("Kernel Revision: {}", revision);
+            println!("Repositories: {repos}");
+            println!("Kernel Revision: {revision}");
 
             // Check repositories for compliance
             check_repositories(
@@ -47,7 +47,8 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::fn_params_excessive_bools)]
+#[expect(clippy::too_many_arguments)]
 fn check_repositories(
     repos: &str,
     manylinux: &str,
@@ -61,7 +62,7 @@ fn check_repositories(
 ) -> Result<()> {
     let repositories: Vec<String> = repos
         .split(',')
-        .map(|s| s.trim().to_string())
+        .map(|s| s.trim().to_owned())
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -79,7 +80,7 @@ fn check_repositories(
             };
             let json = serde_json::to_string_pretty(&error)
                 .context("Failed to serialize error response")?;
-            println!("{}", json);
+            println!("{json}");
         } else {
             eprintln!("no repository ids provided");
         }
@@ -101,7 +102,7 @@ fn check_repositories(
             show_violations,
             format,
         ) {
-            eprintln!("Error processing repository {}: {}", repo_id, e);
+            eprintln!("Error processing repository {repo_id}: {e}");
 
             // Continue processing other repositories rather than exiting early
             // This is more user-friendly for batch processing

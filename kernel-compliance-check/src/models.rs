@@ -25,7 +25,7 @@ pub enum ManylinuxVersion {
 
 impl std::fmt::Display for ManylinuxVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
+        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }
 
@@ -77,6 +77,7 @@ pub enum Format {
 }
 
 impl Format {
+    #[must_use]
     pub fn is_json(&self) -> bool {
         matches!(self, Format::Json)
     }
@@ -137,7 +138,7 @@ pub struct ArchConfig {
     pub rocm: Vec<String>,
     #[cfg(not(feature = "enable_rocm"))]
     #[serde(default, skip)]
-    pub _rocm: Vec<String>,
+    _rocm: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +161,7 @@ impl fmt::Display for Variant {
 }
 
 impl Variant {
+    #[must_use]
     pub fn from_name(name: &str) -> Option<Self> {
         let parts: Vec<&str> = name.split('-').collect();
         if parts.len() < 5 {

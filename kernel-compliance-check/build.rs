@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
-use std::io::Read;
+use std::io::Read as _;
 use std::path::Path;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     // Print for debugging and to ensure the script reruns when changed
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dest_path = Path::new(&out_dir).join("variants_data.rs");
 
     println!("cargo:warning=Build script is running!");
-    println!("cargo:warning=Output directory: {}", out_dir);
+    println!("cargo:warning=Output directory: {out_dir}");
 
     // Fetch the remote JSON file
     println!("cargo:warning=Fetching remote variants JSON...");
@@ -30,14 +30,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
                 }
                 Err(e) => {
-                    println!("cargo:warning=Error reading response body: {}", e);
+                    println!("cargo:warning=Error reading response body: {e}");
                     // Instead of returning an empty JSON, provide fallback content
                     remote_variants_json = String::from("{}");
                 }
             }
         }
         Err(e) => {
-            println!("cargo:warning=Error fetching remote variants: {}", e);
+            println!("cargo:warning=Error fetching remote variants: {e}");
             // Provide fallback content
             remote_variants_json = String::from("{}");
         }
@@ -66,6 +66,7 @@ pub fn get_variants() -> &'static Value {{
     }})
 }}
 
+#[allow(clippy::missing_panics_doc)]
 pub fn get_cuda_variants() -> Vec<String> {{
     let variants = get_variants();
     // get all cuda
@@ -93,6 +94,7 @@ pub fn get_cuda_variants() -> Vec<String> {{
     cuda_variants
 }}
 
+#[allow(clippy::missing_panics_doc)]
 pub fn get_rocm_variants() -> Vec<String> {{
     let variants = get_variants();
 
@@ -122,13 +124,12 @@ pub fn get_rocm_variants() -> Vec<String> {{
 "###,
         // Escape any problematic characters in the JSON string
         remote_variants_json
-            .replace("\\", "\\\\")
+            .replace('\\', "\\\\")
             .replace("\"#", "\\\"#")
     );
 
-    println!("cargo:warning=Writing output to: {:?}", dest_path);
+    println!("cargo:warning=Writing output to: {dest_path:?}");
     fs::write(&dest_path, &output).expect("Failed to write variants_data.rs");
 
     println!("cargo:warning=Build script completed successfully");
-    Ok(())
 }
