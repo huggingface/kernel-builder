@@ -13,13 +13,6 @@ impl ConsoleFormatter {
         println!("╰── {} kernel repositories found\n", count);
     }
 
-    pub fn format_missing_repo(repo_id: &str) {
-        println!(".");
-        println!("├── {}", repo_id.on_bright_white().black().bold());
-        println!("├── build: missing");
-        println!("╰── abi: missing");
-    }
-
     pub fn format_fetch_status(repo_id: &str, fetching: bool, result: Option<&str>) {
         println!("repository: {}", repo_id);
         if fetching {

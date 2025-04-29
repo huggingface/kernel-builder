@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use eyre::{Context, Result};
 use futures::stream::{self, StreamExt};
 use hf_hub::api::tokio::{ApiBuilder, ApiError};
-use hf_hub::{Repo, RepoType};
+use hf_hub::{Cache, Repo, RepoType};
 use kernel_abi_check::{check_manylinux, check_python_abi, Version};
 use object::Object;
 
@@ -25,87 +25,6 @@ pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant}
 // - get_rocm_variants(): Returns all ROCm variants
 include!(concat!(env!("OUT_DIR"), "/variants_data.rs"));
 
-pub fn get_cache_dir() -> Result<PathBuf> {
-    let cache_dir = if let Ok(dir) = std::env::var("HF_KERNELS_CACHE") {
-        PathBuf::from(dir)
-    } else {
-        dirs::home_dir()
-            .unwrap_or_else(std::env::temp_dir)
-            .join(".cache/huggingface/hub")
-    };
-
-    if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir).context("Failed to create cache directory")?;
-    }
-
-    Ok(cache_dir)
-}
-
-/// Get "org/name" repo ID from filesystem path
-pub fn get_repo_id_from_path(path: &Path) -> Result<String> {
-    // Extract the organization and model name from the path
-    let dir_name = path
-        .file_name()
-        .ok_or_else(|| CompliantError::Other(format!("Invalid path: {:?}", path)))?
-        .to_string_lossy()
-        .to_string();
-
-    // Remove the "models--" prefix if present
-    let dir_name = dir_name
-        .strip_prefix("models--")
-        .unwrap_or(&dir_name)
-        .replace("--", "/");
-
-    Ok(dir_name)
-}
-
-/// Check if repository has build variants
-pub fn has_build_variants(repo_path: &Path) -> Result<bool> {
-    // Look for the snapshot directory
-    let ref_file = repo_path.join("refs/main");
-    if !ref_file.exists() {
-        return Ok(false);
-    }
-
-    let content = fs::read_to_string(&ref_file)
-        .with_context(|| format!("Failed to read ref file: {:?}", ref_file))?;
-
-    let hash = content.trim();
-    let snapshot_dir = repo_path.join(format!("snapshots/{}", hash));
-
-    if !snapshot_dir.exists() {
-        return Ok(false);
-    }
-
-    // Check build directory
-    let build_dir = snapshot_dir.join("build");
-    if !build_dir.exists() {
-        return Ok(false);
-    }
-
-    // Check if build directory has any variant subdirectories
-    let entries = fs::read_dir(&build_dir)
-        .with_context(|| format!("Failed to read build directory: {:?}", build_dir))?;
-
-    for entry in entries {
-        let entry = entry.context("Failed to read directory entry")?;
-        let path = entry.path();
-
-        if path.is_dir() {
-            // At least one build variant exists
-            return Ok(true);
-        }
-    }
-
-    // Build directory exists but is empty
-    Ok(false)
-}
-
-pub fn get_repo_path(repo_id: &str, base_dir: &Path) -> PathBuf {
-    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, "main".to_string());
-    base_dir.join(repo.folder_name())
-}
-
 async fn fetch_repository_async(
     repo_id: &str,
     revision: &str,
@@ -114,30 +33,13 @@ async fn fetch_repository_async(
 ) -> Result<()> {
     println!("Repository: {} (revision: {})", repo_id, revision);
 
-    // Check if repository exists and has the requested snapshot
-    let cache_dir = get_cache_dir()?;
-    let repo_path = get_repo_path(repo_id, &cache_dir);
-    let ref_path = repo_path.join("refs").join(revision);
+    // Create API client
+    let api = ApiBuilder::from_env()
+        .high()
+        .build()
+        .context("Failed to create HF API client")?;
 
-    // Only continue with fetch if force_fetch is true or the repository/revision doesn't exist locally
-    if !force_fetch && ref_path.exists() {
-        // Read local revision hash
-        let local_hash = fs::read_to_string(&ref_path)
-            .with_context(|| format!("Failed to read ref file: {:?}", ref_path))?
-            .trim()
-            .to_string();
-
-        // Check if snapshot exists
-        let snapshot_dir = repo_path.join("snapshots").join(&local_hash);
-        if snapshot_dir.exists() {
-            // Check if build directory exists
-            let build_dir = snapshot_dir.join("build");
-            if build_dir.exists() {
-                println!("Repository is up to date, using local files");
-                return Ok(());
-            }
-        }
-    }
+    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
 
     // TODO: improve internal fetching logic to match cli speed/timeouts when downloading
     // to avoid using huggingface-cli
@@ -231,13 +133,6 @@ async fn fetch_repository_async(
     // If here use the API to download the repository (fallback)
     println!("Using API to download repository");
 
-    // Create API client
-    let api = ApiBuilder::from_env()
-        .high()
-        .build()
-        .context("Failed to create HF API client")?;
-
-    let repo = Repo::with_revision(repo_id.to_string(), RepoType::Model, revision.to_string());
     let api_repo = api.repo(repo);
     // Get repository info and file list
     let info = api_repo
@@ -357,15 +252,14 @@ async fn fetch_repository_async(
 /// Synchronous wrapper for the async fetch repository function
 pub fn fetch_repository(
     repo_id: &str,
-    _cache_dir: &Path,
     revision: &str,
     force_fetch: bool,
     prefer_hub_cli: bool,
 ) -> Result<()> {
     if force_fetch {
-        println!("Mode: Force fetch (redownloading all files)");
+        println!("Force fetch (redownloading all files)");
     } else {
-        println!("Mode: Smart sync (checking for updates)");
+        println!("Syncing (checking for updates)");
     }
 
     let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
@@ -377,11 +271,50 @@ pub fn fetch_repository(
     ))
 }
 
-/// Process a single repository with improved snapshot checking
+pub fn snapshot_dir_if_latest(
+    api: &hf_hub::api::tokio::Api,
+    repo: &Repo,
+) -> Result<Option<PathBuf>> {
+    let metadata = {
+        let rt = tokio::runtime::Runtime::new().context("failed to create Tokio runtime")?;
+        let api_repo = api.repo(repo.clone());
+        rt.block_on(api_repo.info())
+            .context("failed to fetch metadata")?
+    };
+
+    let sha_on_hub = &metadata.sha;
+    let first_item = match metadata.siblings.first() {
+        Some(item) => item,
+        None => return Ok(None), // nothing published yet
+    };
+
+    let cache = Cache::from_env();
+    let cached_repo = cache.repo(repo.clone());
+
+    let file = match cached_repo.get(&first_item.rfilename) {
+        Some(path) => path,
+        None => return Ok(None), // file not cached
+    };
+
+    if !file.to_string_lossy().contains(sha_on_hub) {
+        return Ok(None); // outdated snapshot
+    }
+
+    file.parent()
+        .map(|p| p.to_path_buf())
+        .ok_or_else(|| {
+            CompliantError::BuildDirNotFound(format!(
+                "Failed to get parent directory for file: {:?}",
+                file
+            ))
+        })
+        .map(Some)
+        .context("failed to get snapshot directory")
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn process_repository(
     repo_id: &str,
-    cache_dir: &Path,
     revision: &str,
     force_fetch: bool,
     prefer_hub_cli: bool,
@@ -391,99 +324,61 @@ pub fn process_repository(
     show_violations: bool,
     format: Format,
 ) -> Result<()> {
-    // Check if repository exists and has the requested revision
-    let (repo_valid, snapshot_dir, hash) =
-        check_repository_revision(repo_id, cache_dir, revision, format)?;
+    let api = ApiBuilder::from_env()
+        .high()
+        .build()
+        .wrap_err("failed to create HF API client")?;
 
-    // If repository has valid snapshot and force_fetch is false, process it directly
-    if repo_valid && !force_fetch {
-        process_repository_snapshot(
-            repo_id,
-            &snapshot_dir,
-            &hash,
-            manylinux,
-            python_version,
-            compact_output,
-            show_violations,
-            format,
-        )?;
-        return Ok(());
-    }
+    let repo = Repo::with_revision(repo_id.to_owned(), RepoType::Model, revision.to_owned());
 
-    // If repository doesn't exist or needs to be fetched
-    if !format.is_json() {
-        ConsoleFormatter::format_fetch_status(repo_id, true, None);
-    }
-
-    // Fetch the repository
-    match fetch_repository(repo_id, cache_dir, revision, force_fetch, prefer_hub_cli) {
-        Ok(_) => {
-            if !format.is_json() {
-                ConsoleFormatter::format_fetch_status(repo_id, false, Some("fetch successful"));
-            }
-
-            // Recheck repository after fetch
-            let (repo_valid_after, snapshot_dir_after, hash_after) =
-                check_repository_revision(repo_id, cache_dir, revision, format)?;
-
-            if !repo_valid_after {
-                if !format.is_json() {
-                    ConsoleFormatter::format_missing_repo(repo_id);
-                } else {
-                    let error = RepoErrorResponse {
-                        repository: repo_id.to_string(),
-                        status: "not_found".to_string(),
-                        error: format!("repository not found after fetch: {}", repo_id),
-                    };
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&error)
-                            .context("Failed to serialize error response")?
-                    );
-                }
-                return Err(CompliantError::RepositoryNotFound(format!(
-                    "Repository {} not found after fetch",
-                    repo_id
-                ))
-                .into());
-            }
-
-            // Continue processing with fetched repository
-            process_repository_snapshot(
+    // Check for existing snapshot directory
+    if !force_fetch {
+        if let Some(dir) = snapshot_dir_if_latest(&api, &repo)? {
+            return process_repository_snapshot(
                 repo_id,
-                &snapshot_dir_after,
-                &hash_after,
+                &dir,
                 manylinux,
                 python_version,
                 compact_output,
                 show_violations,
                 format,
-            )?;
+            );
         }
-        Err(e) => {
-            if !format.is_json() {
-                ConsoleFormatter::format_fetch_status(
-                    repo_id,
-                    false,
-                    Some(&format!("fetch failed - {}", e)),
-                );
-                println!("---");
-            } else {
-                let error = RepoErrorResponse {
-                    repository: repo_id.to_string(),
-                    status: "fetch_failed".to_string(),
-                    error: e.to_string(),
-                };
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&error)
-                        .context("Failed to serialize error response")?
-                );
-            }
-        }
+        println!("No valid snapshot directory found");
     }
 
-    Ok(())
+    // Fetch the repository
+    if !format.is_json() {
+        ConsoleFormatter::format_fetch_status(repo_id, true, None);
+    }
+
+    if let Err(e) = fetch_repository(repo_id, revision, force_fetch, prefer_hub_cli) {
+        return Err(CompliantError::FetchError(format!(
+            "failed to fetch repository {repo_id}: {e}"
+        ))
+        .into());
+    }
+
+    if !format.is_json() {
+        ConsoleFormatter::format_fetch_status(repo_id, false, Some("fetch successful"));
+    }
+
+    // Recheck repository after fetch
+    match snapshot_dir_if_latest(&api, &repo)? {
+        Some(dir) => process_repository_snapshot(
+            repo_id,
+            &dir,
+            manylinux,
+            python_version,
+            compact_output,
+            show_violations,
+            format,
+        ),
+        None => Err(CompliantError::RepositoryNotFound(format!(
+            "repository {repo_id} not found after fetch"
+        ))
+        .into()),
+    }
 }
 
 pub fn get_build_variants(repo_path: &Path) -> Result<Vec<Variant>> {
@@ -752,7 +647,6 @@ pub fn check_abi_for_repository(
 pub fn process_repository_snapshot(
     repo_id: &str,
     snapshot_dir: &Path,
-    _hash: &str,
     manylinux: &str,
     python_version: &Version,
     compact_output: bool,
@@ -763,7 +657,7 @@ pub fn process_repository_snapshot(
     if !build_dir.exists() {
         // Print a message indicating the build directory is missing
         if !format.is_json() {
-            ConsoleFormatter::format_missing_repo(repo_id);
+            return Err(CompliantError::BuildDirNotFound(repo_id.to_string()).into());
         } else {
             let error = RepoErrorResponse {
                 repository: repo_id.to_string(),
@@ -909,46 +803,4 @@ pub fn process_repository_snapshot(
     }
 
     Ok(())
-}
-
-/// Check if the specified revision in a repository needs processing
-pub fn check_repository_revision(
-    repo_id: &str,
-    cache_dir: &Path,
-    revision: &str,
-    format: Format,
-) -> Result<(bool, PathBuf, String)> {
-    let repo_path = get_repo_path(repo_id, cache_dir);
-    let ref_path = repo_path.join("refs").join(revision);
-
-    // Check if repository exists with specified revision
-    if !repo_path.exists() || !ref_path.exists() {
-        if !format.is_json() {
-            println!(
-                "Repository {} with revision {} not found locally",
-                repo_id, revision
-            );
-        }
-        return Ok((false, PathBuf::new(), String::new()));
-    }
-
-    // Read hash from revision file
-    let hash = fs::read_to_string(&ref_path)
-        .with_context(|| format!("Failed to read ref file: {:?}", ref_path))?
-        .trim()
-        .to_string();
-
-    // Check if snapshot exists
-    let snapshot_dir = repo_path.join("snapshots").join(&hash);
-    if !snapshot_dir.exists() {
-        if !format.is_json() {
-            println!(
-                "Snapshot for hash {} not found in repository {}",
-                hash, repo_id
-            );
-        }
-        return Ok((false, PathBuf::new(), String::new()));
-    }
-
-    Ok((true, snapshot_dir, hash))
 }

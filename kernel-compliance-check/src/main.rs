@@ -1,16 +1,13 @@
 use std::str::FromStr;
 
-use eyre::{Context, Result};
 use clap::Parser;
+use eyre::{Context, Result};
 use kernel_abi_check::Version;
-use kernel_compliance_check::{get_cache_dir, process_repository, Cli, Commands, Format};
+use kernel_compliance_check::{process_repository, Cli, Commands, Format};
 
 fn main() -> Result<()> {
     // Parse CLI arguments
     let cli = Cli::parse();
-
-    // Get cache directory
-    let cache_dir = get_cache_dir().context("Failed to determine cache directory")?;
 
     // Prefer the cli unless explicitly set to avoid it
     let prefer_hub_cli = !std::env::var("AVOID_HUB_CLI")
@@ -35,7 +32,6 @@ fn main() -> Result<()> {
             // Check repositories for compliance
             check_repositories(
                 &repos,
-                &cache_dir,
                 &manylinux.to_string(),
                 &python_abi,
                 prefer_hub_cli,
@@ -54,7 +50,6 @@ fn main() -> Result<()> {
 #[allow(clippy::too_many_arguments)]
 fn check_repositories(
     repos: &str,
-    cache_dir: &std::path::Path,
     manylinux: &str,
     python_abi: &str,
     prefer_hub_cli: bool,
@@ -97,7 +92,6 @@ fn check_repositories(
     for repo_id in &repositories {
         if let Err(e) = process_repository(
             repo_id,
-            cache_dir,
             revision,
             force_fetch,
             prefer_hub_cli,
