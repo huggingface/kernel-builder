@@ -309,11 +309,11 @@ pub fn snapshot_dir_if_latest(
         .context("failed to get snapshot directory")
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Processes a repository by fetching it if needed and checking its compatibility
 ///
 /// # Errors
 /// Returns an error if the repository cannot be fetched or processed
+#[allow(clippy::too_many_arguments)]
 #[allow(clippy::fn_params_excessive_bools)]
 pub fn process_repository(
     repo_id: &str,
@@ -660,12 +660,12 @@ pub fn check_abi_for_repository(
     })
 }
 
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_lines)]
 /// Processes a repository snapshot once we have it
 ///
 /// # Errors
 /// Returns an error if the repository snapshot cannot be processed
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 pub fn process_repository_snapshot(
     repo_id: &str,
     snapshot_dir: &Path,
