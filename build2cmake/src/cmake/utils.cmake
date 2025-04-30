@@ -503,5 +503,22 @@ function (define_gpu_extension_target GPU_MOD_NAME)
     target_link_libraries(${GPU_MOD_NAME} PRIVATE ${TORCH_LIBRARIES})
   endif()
 
+  # if `LOW-MEM` keep every big compile/link in a 1-slot pool
+
+  # even with -j1, the generator might start a second huge link
+  # while the first is still in memory. Assigning every GPU module to a 
+  # dedicated 1-slot pool prevents that.
+  if(LOW_MEM)
+    get_property(_have GLOBAL PROPERTY JOB_POOLS)
+    if(NOT _have MATCHES "lowmem=1")
+      # one slot
+      set_property(GLOBAL APPEND PROPERTY JOB_POOLS lowmem=1)
+    endif()
+
+    set_target_properties(${GPU_MOD_NAME} PROPERTIES
+      JOB_POOL_COMPILE lowmem
+      JOB_POOL_LINK    lowmem)
+  endif()
+
   install(TARGETS ${GPU_MOD_NAME} LIBRARY DESTINATION ${GPU_DESTINATION} COMPONENT ${GPU_MOD_NAME})
 endfunction()
