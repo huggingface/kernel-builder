@@ -18,7 +18,7 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
     && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
     # Install necessary packages
-    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#sshx \
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
     && cachix use kernel-builder 
 
 # Set permissions for Nix directories
@@ -122,8 +122,8 @@ function build_extension {
     .\#bundle \
     --max-jobs $MAX_JOBS \
     -j $CORES \
-    -L
-  
+    -L 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }'
+
   echo "Build completed. Copying results to /home/nixuser/kernelcode/build/"
   mkdir -p /home/nixuser/kernelcode/build
   cp -r --dereference ./result/* /home/nixuser/kernelcode/build/
