@@ -9,6 +9,9 @@ fn main() -> Result<()> {
     // Parse CLI arguments
     let cli = Cli::parse();
 
+    // Respect KERNELS_CACHE if set
+    let non_standard_cache: Option<String> = std::env::var("KERNELS_CACHE").ok();
+
     // Prefer the cli unless explicitly set to avoid it
     let prefer_hub_cli = !std::env::var("AVOID_HUB_CLI")
         .map(|v| v == "1" || v == "true")
@@ -40,6 +43,7 @@ fn main() -> Result<()> {
                 long,
                 show_violations,
                 format,
+                non_standard_cache.as_ref(),
             )?;
         }
     }
@@ -59,6 +63,7 @@ fn check_repositories(
     long: bool,
     show_violations: bool,
     format: Format,
+    non_standard_cache: Option<&String>,
 ) -> Result<()> {
     let repositories: Vec<String> = repos
         .split(',')
@@ -101,6 +106,7 @@ fn check_repositories(
             !long,
             show_violations,
             format,
+            non_standard_cache,
         ) {
             eprintln!("Error processing repository {repo_id}: {e}");
 

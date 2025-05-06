@@ -1,6 +1,7 @@
 mod formatter;
 mod models;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,14 +17,39 @@ pub use models::*;
 
 pub use models::{AbiCheckResult, Cli, Commands, CompliantError, Format, Variant};
 
-// Import the generated code containing variant data and helper functions
-// This file is generated at compile time by build.rs and provides:
-//
-// - VARIANTS_DATA: Raw JSON string containing supported build variants
-// - get_variants(): Returns lazily parsed JSON data as &'static Value
-// - get_cuda_variants(): Returns all CUDA variants
-// - get_rocm_variants(): Returns all ROCm variants
-include!(concat!(env!("OUT_DIR"), "/variants_data.rs"));
+// Get the build variants the parent directory, starting from the app dir
+static BUILD_VARIANTS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../build_variants.json"
+));
+
+/// Returns a list of available CUDA variants from build configuration
+#[must_use]
+pub fn get_cuda_variants() -> Vec<String> {
+    serde_json::from_str::<HashMap<String, HashMap<String, Vec<String>>>>(BUILD_VARIANTS)
+        .map(|variants| {
+            variants
+                .values()
+                .filter_map(|arch_data| arch_data.get("cuda"))
+                .flat_map(std::clone::Clone::clone)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Returns a list of available `ROCm` variants from build configuration
+#[must_use]
+pub fn get_rocm_variants() -> Vec<String> {
+    serde_json::from_str::<HashMap<String, HashMap<String, Vec<String>>>>(BUILD_VARIANTS)
+        .map(|variants| {
+            variants
+                .values()
+                .filter_map(|arch_data| arch_data.get("rocm"))
+                .flat_map(std::clone::Clone::clone)
+                .collect()
+        })
+        .unwrap_or_default()
+}
 
 #[allow(clippy::too_many_lines)]
 async fn fetch_repository_async(
@@ -32,7 +58,7 @@ async fn fetch_repository_async(
     force_fetch: bool,
     prefer_hub_cli: bool,
 ) -> Result<()> {
-    println!("Repository: {repo_id} (revision: {revision})");
+    eprintln!("Repository: {repo_id} (revision: {revision})");
 
     // Create API client
     let api = ApiBuilder::from_env()
@@ -60,7 +86,7 @@ async fn fetch_repository_async(
             cmd.arg("--force");
         }
 
-        println!("Using huggingface-cli to download repository");
+        eprintln!("Using huggingface-cli to download repository");
 
         // Create the command with pipes for stdout and stderr
         let mut child = cmd
@@ -126,12 +152,12 @@ async fn fetch_repository_async(
             .into());
         }
 
-        println!("Downloaded repository successfully using huggingface-cli");
+        eprintln!("Downloaded repository successfully using huggingface-cli");
         return Ok(());
     }
 
     // If here use the API to download the repository (fallback)
-    println!("Using API to download repository");
+    eprintln!("Using API to download repository");
 
     let api_repo = api.repo(repo);
     // Get repository info and file list
@@ -147,7 +173,7 @@ async fn fetch_repository_async(
         .collect::<Vec<_>>();
 
     // Download files
-    println!("Starting download of {} files", file_names.len());
+    eprintln!("Starting download of {} files", file_names.len());
 
     let download_results = stream::iter(file_names)
         .map(|file_name| {
@@ -180,7 +206,7 @@ async fn fetch_repository_async(
 
                             if retry_count < max_retries {
                                 // Log retry attempt
-                                println!(
+                                eprintln!(
                                     "Retry {}/{} for file {}: {}",
                                     retry_count + 1,
                                     max_retries,
@@ -234,9 +260,9 @@ async fn fetch_repository_async(
 
     // Log success info
     if force_fetch {
-        println!("Force fetched {success_count} files successfully ({fail_count} failed)");
+        eprintln!("Force fetched {success_count} files successfully ({fail_count} failed)");
     } else {
-        println!("Downloaded {success_count} files successfully ({fail_count} failed)");
+        eprintln!("Downloaded {success_count} files successfully ({fail_count} failed)");
     }
 
     Ok(())
@@ -253,9 +279,9 @@ pub fn fetch_repository(
     prefer_hub_cli: bool,
 ) -> Result<()> {
     if force_fetch {
-        println!("Force fetch (redownloading all files)");
+        eprintln!("Force fetch (redownloading all files)");
     } else {
-        println!("Syncing (checking for updates)");
+        eprintln!("Syncing (checking for updates)");
     }
 
     let rt = tokio::runtime::Runtime::new().context("Failed to create Tokio runtime")?;
@@ -325,11 +351,17 @@ pub fn process_repository(
     compact_output: bool,
     show_violations: bool,
     format: Format,
+    non_standard_cache: Option<&String>,
 ) -> Result<()> {
-    let api = ApiBuilder::from_env()
-        .high()
-        .build()
-        .wrap_err("failed to create HF API client")?;
+    let api = {
+        let mut builder = ApiBuilder::from_env().high();
+
+        if let Some(cache_dir) = non_standard_cache {
+            builder = builder.with_cache_dir(PathBuf::from(cache_dir));
+        }
+
+        builder.build().wrap_err("failed to create HF API client")?
+    };
 
     let repo = Repo::with_revision(repo_id.to_owned(), RepoType::Model, revision.to_owned());
 
@@ -346,7 +378,7 @@ pub fn process_repository(
                 format,
             );
         }
-        println!("No valid snapshot directory found");
+        eprintln!("No valid snapshot directory found");
     }
 
     // Fetch the repository
@@ -505,7 +537,7 @@ pub fn check_shared_object(
 
     // Parse object file
     let file = object::File::parse(&*binary_data)
-        .map_err(|e| eyre::eyre!("Cannot parse object file: {}: {}", so_path.display(), e))?;
+        .with_context(|| format!("Failed to parse shared object file: {so_path:?}"))?;
 
     // Run manylinux check
     let manylinux_result = check_manylinux(
@@ -514,11 +546,11 @@ pub fn check_shared_object(
         file.endianness(),
         file.symbols(),
     )
-    .map_err(|e| eyre::eyre!("Manylinux check error: {}", e))?;
+    .with_context(|| format!("Failed to check manylinux compatibility: {so_path:?}"))?;
 
     // Run Python ABI check
     let python_abi_result = check_python_abi(python_abi_version, file.symbols())
-        .map_err(|e| eyre::eyre!("Python ABI check error: {}", e))?;
+        .with_context(|| format!("Failed to check Python ABI compatibility: {so_path:?}"))?;
 
     // Determine if checks passed
     let passed = manylinux_result.is_empty() && python_abi_result.is_empty();

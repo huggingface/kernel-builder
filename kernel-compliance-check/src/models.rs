@@ -4,31 +4,6 @@ use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
-#[clap(rename_all = "snake_case")]
-pub enum ManylinuxVersion {
-    Manylinux_2_5,
-    Manylinux_2_12,
-    Manylinux_2_17,
-    Manylinux_2_24,
-    Manylinux_2_27,
-    Manylinux_2_28,
-    Manylinux_2_31,
-    Manylinux_2_34,
-    Manylinux_2_35,
-    Manylinux_2_36,
-    Manylinux_2_37,
-    Manylinux_2_38,
-    Manylinux_2_39,
-}
-
-impl std::fmt::Display for ManylinuxVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("{self:?}").to_lowercase())
-    }
-}
-
 #[derive(Error, Debug)]
 pub enum CompliantError {
     #[error("IO error: {0}")]
@@ -93,7 +68,7 @@ pub enum Commands {
 
         /// Manylinux version to check against
         #[arg(short, long, default_value = "manylinux_2_28")]
-        manylinux: ManylinuxVersion,
+        manylinux: String,
 
         /// Python ABI version to check against
         #[arg(short, long, default_value = "3.9")]
