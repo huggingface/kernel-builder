@@ -28,9 +28,9 @@ fn main() -> Result<()> {
             show_violations,
             format,
         } => {
-            println!("Running kernel compliance check");
-            println!("Repositories: {repos}");
-            println!("Kernel Revision: {revision}");
+            eprintln!("Running kernel compliance check");
+            eprintln!("Repositories: {repos}");
+            eprintln!("Kernel Revision: {revision}");
 
             // Check repositories for compliance
             check_repositories(
