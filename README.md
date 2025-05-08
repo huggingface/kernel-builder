@@ -32,7 +32,7 @@ cd examples/activation
 
 # then run the following command to build the kernel
 docker run --rm \
-    -v $(pwd):/kernelcode \
+    -v $(pwd):/home/nixuser/kernelcode \
     ghcr.io/huggingface/kernel-builder:latest
 ```
 

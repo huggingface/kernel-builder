@@ -27,7 +27,7 @@ cd examples/activation
 
 # then run the following command to build the kernel
 docker run --rm \
-    -v $(pwd):/kernelcode \
+    -v $(pwd):/home/nixuser/kernelcode \
     ghcr.io/huggingface/kernel-builder:latest
 ```
 
@@ -49,10 +49,10 @@ The kernel builder now includes a command-line interface for easier interaction.
 
 ```bash
 # Build the kernel (same as the Quick Start example)
-docker run --rm -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest build
+docker run --rm -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest build
 
 # Start an ephemeral development shell
-docker run --rm -it -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
+docker run --rm -it -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
 
 # Build from a Git URL
 docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
@@ -74,7 +74,7 @@ The kernel builder can be configured in two ways:
 
 ```bash
 docker run --rm \
-    -v $(pwd):/kernelcode \
+    -v $(pwd):/home/nixuser/kernelcode \
     -e MAX_JOBS=8 \
     -e CORES=8 \
     ghcr.io/huggingface/kernel-builder:latest
@@ -91,7 +91,7 @@ You can also specify these parameters using command-line options:
 
 ```bash
 docker run --rm \
-    -v $(pwd):/kernelcode \
+    -v $(pwd):/home/nixuser/kernelcode \
     ghcr.io/huggingface/kernel-builder:latest build --jobs 8 --cores 4
 ```
 
@@ -102,7 +102,7 @@ For development purposes, you can start an interactive shell with:
 ```bash
 docker run -it \
   --name my-dev-env \
-  -v "$(pwd)":/kernelcode \
+  -v "$(pwd)":/home/nixuser/kernelcode \
   ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
@@ -116,7 +116,7 @@ For iterative development, you can create a persistent container to maintain the
 # Create a persistent container and start a development shell
 docker run -it \
   --name my-persistent-dev-env \
-  -v "$(pwd)":/kernelcode \
+  -v "$(pwd)":/home/nixuser/kernelcode \
   ghcr.io/huggingface/kernel-builder:latest dev
 ```
 
@@ -173,7 +173,7 @@ git clone git@hf.co:kernels-community/activation
 cd activation
 # then run the build command
 docker run --rm \
-    -v $(pwd):/kernelcode \
+    -v $(pwd):/home/nixuser/kernelcode \
     ghcr.io/huggingface/kernel-builder:latest
 # we should now have the built kernels on our host
 ls result
@@ -195,7 +195,7 @@ This will clone the repository into the container, build the kernels, and save t
 
 ```bash
 docker run --rm \
-    -v /path/to/output:/kernelcode/build \
+    -v /path/to/output:/home/nixuser/kernelcode/build \
     ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
 ```
 
@@ -209,7 +209,7 @@ docker build -t ghcr.io/huggingface/kernel-builder:latest .
 
 # You can build a kernel using this development container:
 cd examples/activation
-docker run --rm -v $(pwd):/kernelcode ghcr.io/huggingface/kernel-builder:latest
+docker run --rm -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest
 
 # copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
 # trace: evaluation warning: CUDA versions older than 12.0 will be removed in Nixpkgs 25.05; see the 24.11 release notes for more information
