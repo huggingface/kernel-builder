@@ -2,6 +2,7 @@
   gpu,
   pkgs,
   torch,
+  upstreamVariant,
 }:
 let
   inherit (pkgs) lib;

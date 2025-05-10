@@ -35,16 +35,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1743559129,
-        "narHash": "sha256-7gpAWsENV3tY2HmeHYQ2MoQxGpys+jQWnkS/BHAMXVk=",
-        "owner": "nixos",
+        "lastModified": 1746711195,
+        "narHash": "sha256-bSpM2ySq12PBOVN7jZdzXsc99iRoYOyolh5wz43+CjQ=",
+        "owner": "danieldk",
         "repo": "nixpkgs",
-        "rev": "adae22bea8bcc0aa2fd6e8732044660fb7755f5e",
+        "rev": "6b7a66b06ccb09ac95872ac6ddf952e0660672ab",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable-small",
+        "owner": "danieldk",
+        "ref": "kernel-builder-cuda-12.9.0",
         "repo": "nixpkgs",
         "type": "github"
       }
