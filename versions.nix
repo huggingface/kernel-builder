@@ -1,92 +1,128 @@
 { lib }:
 
 rec {
-  torchCudaVersions = {
-    "2.6" = {
-      cudaVersions = [
-        "11.8"
-        "12.4"
-        "12.6"
-      ];
-      cxx11Abi = [
-        true
-        false
-      ];
-    };
-    "2.7" = {
-      cudaVersions = [
-        "11.8"
-        "12.6"
-        "12.8"
-      ];
-      cxx11Abi = [
-        true
-      ];
-    };
-  };
+  torchVersions = [
+    {
+      torchVersion = "2.6";
+      cudaVersion = "11.8";
+      cxx11Abi = false;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      cudaVersion = "11.8";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      cudaVersion = "12.4";
+      cxx11Abi = false;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      cudaVersion = "12.4";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      cudaVersion = "12.6";
+      cxx11Abi = false;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      cudaVersion = "12.6";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.6";
+      rocmVersion = "6.2.4";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
 
-  torchRocmVersions = {
-    "2.6" = {
-      rocmVersions = [
-        "6.2.4"
-      ];
-      cxx11Abi = [
-        true
-      ];
-    };
-    "2.7" = {
-      rocmVersions = [
-        "6.3.4"
-      ];
-      cxx11Abi = [
-        true
-      ];
-    };
-  };
+    {
+      torchVersion = "2.7";
+      cudaVersion = "11.8";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.7";
+      cudaVersion = "12.6";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.7";
+      cudaVersion = "12.8";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+    {
+      torchVersion = "2.7";
+      rocmVersion = "6.3.4";
+      cxx11Abi = true;
+      upstreamVariant = true;
+    }
+
+    # Non-standard versions; not included in bundle builds.
+    {
+      torchVersion = "2.7";
+      cudaVersion = "12.9";
+      cxx11Abi = true;
+    }
+  ];
+
+  cudaVersions =
+    let
+      withCuda = builtins.filter (torchVersion: torchVersion ? cudaVersion) torchVersions;
+    in
+    builtins.map (torchVersion: torchVersion.cudaVersion) withCuda;
+
+  rocmVersions =
+    let
+      withRocm = builtins.filter (torchVersion: torchVersion ? rocmVersion) torchVersions;
+    in
+    builtins.map (torchVersion: torchVersion.rocmVersion) withRocm;
 
   # Upstream only builds aarch64 for CUDA >= 12.6.
-  cudaSupported =
-    system: cudaVersion:
+  isCudaSupported =
+    system: torchVersion:
     system == "x86_64-linux"
-    || (system == "aarch64-linux" && lib.strings.versionAtLeast cudaVersion "12.6");
+    || (
+      system == "aarch64-linux" && lib.strings.versionAtLeast (torchVersion.cudaVersion or "0.0") "12.6"
+    );
 
-  cudaVersions = lib.flatten (
-    builtins.map (versionInfo: versionInfo.cudaVersions) (builtins.attrValues torchCudaVersions)
-  );
+  # ROCm only builds on x86_64.
+  isRocmSupported = system: torchVersion: system == "x86_64-linux" && torchVersion ? rocmVersion;
 
-  rocmVersions = lib.flatten (
-    builtins.map (versionInfo: versionInfo.rocmVersions) (builtins.attrValues torchRocmVersions)
-  );
+  isSupported =
+    system: torchVersion:
+    (isCudaSupported system torchVersion) || (isRocmSupported system torchVersion);
+
+  computeFramework =
+    buildConfig:
+    if buildConfig ? cudaVersion then
+      "cuda"
+    else if buildConfig ? "rocmVersion" then
+      "rocm"
+    else
+      throw "No CUDA or ROCm version specified";
 
   # All build configurations supported by Torch.
   buildConfigs =
     system:
     let
-      cuda = lib.flatten (
-        lib.mapAttrsToList (
-          torchVersion: versionInfo:
-          lib.cartesianProduct {
-            cudaVersion = builtins.filter (cudaSupported system) versionInfo.cudaVersions;
-            cxx11Abi = versionInfo.cxx11Abi;
-            gpu = [ "cuda" ];
-            torchVersion = [ torchVersion ];
-          }
-        ) torchCudaVersions
-      );
-      rocm = lib.flatten (
-        lib.mapAttrsToList (
-          torchVersion: versionInfo:
-          lib.cartesianProduct {
-            rocmVersion = versionInfo.rocmVersions;
-            cxx11Abi = versionInfo.cxx11Abi;
-            gpu = [ "rocm" ];
-            torchVersion = [ torchVersion ];
-          }
-        ) torchRocmVersions
-      );
+      supported = builtins.filter (isSupported system) torchVersions;
     in
-    cuda ++ (lib.optionals (system == "x86_64-linux") rocm);
+    map (version: version // { gpu = computeFramework version; }) supported;
 
+  # Upstream build variants.
   buildVariants =
     system:
     let
@@ -102,12 +138,19 @@ rec {
       buildName =
         buildConfig:
         "torch${flattenVersion buildConfig.torchVersion}-${abiString buildConfig.cxx11Abi}-${computeString buildConfig}-${system}";
+      filterMap = f: xs: builtins.filter (x: x != null) (builtins.map f xs);
     in
     {
       ${system} = lib.zipAttrs (
-        map (buildConfig: {
-          ${buildConfig.gpu} = buildName buildConfig;
-        }) (buildConfigs system)
+        filterMap (
+          buildConfig:
+          if buildConfig.upstreamVariant or false then
+            {
+              ${buildConfig.gpu} = buildName buildConfig;
+            }
+          else
+            null
+        ) (buildConfigs system)
       );
     };
 }

@@ -32,6 +32,7 @@ let
       rocmVersion ? "",
       torchVersion,
       cxx11Abi,
+      upstreamVariant ? false,
     }:
     let
       pkgs = if gpu == "cuda" then pkgsByCudaVer.${cudaVersion} else pkgsByRocmVer.${rocmVersion};
@@ -40,7 +41,12 @@ let
       };
     in
     {
-      inherit gpu pkgs torch;
+      inherit
+        gpu
+        pkgs
+        torch
+        upstreamVariant
+        ;
     };
 
   pkgsForRocm = import nixpkgs {

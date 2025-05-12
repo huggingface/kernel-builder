@@ -15,10 +15,10 @@ available. This list will be updated as new PyTorch versions are released.
 ## CUDA x86_64-linux
 
 - `torch26-cxx11-cu118-x86_64-linux`
-- `torch26-cxx98-cu118-x86_64-linux`
 - `torch26-cxx11-cu124-x86_64-linux`
-- `torch26-cxx98-cu124-x86_64-linux`
 - `torch26-cxx11-cu126-x86_64-linux`
+- `torch26-cxx98-cu118-x86_64-linux`
+- `torch26-cxx98-cu124-x86_64-linux`
 - `torch26-cxx98-cu126-x86_64-linux`
 - `torch27-cxx11-cu118-x86_64-linux`
 - `torch27-cxx11-cu126-x86_64-linux`

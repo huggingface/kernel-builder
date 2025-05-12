@@ -126,7 +126,7 @@ let
   supportedTorchCudaCapabilities =
     let
       # https://github.com/pytorch/pytorch/blob/release/2.7/.ci/manywheel/build_cuda.sh
-      capsPerCudaVersion = {
+      capsPerCudaVersion = rec {
         "12.8" = [
           "7.5"
           "8.0"
@@ -162,6 +162,16 @@ let
           "8.0"
           "8.6"
           "9.0"
+        ];
+
+        # Not in upstream yet, so use same capabilities as 12.8.
+        "12.9" = [
+          "7.5"
+          "8.0"
+          "8.6"
+          "9.0"
+          "10.0"
+          "12.0"
         ];
       };
       real = capsPerCudaVersion."${lib.versions.majorMinor cudaPackages.cudaVersion}";

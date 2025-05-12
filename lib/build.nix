@@ -43,6 +43,7 @@ rec {
     in
     lib.foldl (langs: kernel: langs // { ${kernelLang kernel} = true; }) init kernels;
 
+  # Filter buildsets that are applicable to a given kernel build config.
   applicableBuildSets =
     buildConfig: buildSets:
     let
@@ -61,6 +62,7 @@ rec {
       gpu,
       pkgs,
       torch,
+      upstreamVariant,
     }:
     {
       path,
@@ -126,7 +128,11 @@ rec {
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
-    { path, rev }:
+    {
+      buildSets,
+      path,
+      rev,
+    }:
     let
       extensionForTorch =
         { path, rev }:
@@ -147,7 +153,11 @@ rec {
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
-      extensions = buildDistTorchExtensions { inherit path rev; };
+      upstreamBuildSets = builtins.filter (buildSet: buildSet.upstreamVariant) buildSets;
+      extensions = buildDistTorchExtensions {
+        inherit path rev;
+        buildSets = upstreamBuildSets;
+      };
       buildConfig = readBuildConfig path;
       namePaths =
         if buildConfig.torch.universal or false then

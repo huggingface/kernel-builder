@@ -3,7 +3,8 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
+    #nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
+    nixpkgs.url = "github:danieldk/nixpkgs/kernel-builder-cuda-12.9.0";
     flake-compat.url = "github:edolstra/flake-compat";
     rocm-nix = {
       url = "github:huggingface/rocm-nix";
@@ -85,6 +86,7 @@
                 };
                 redistributable = build.buildDistTorchExtensions {
                   inherit path;
+                  buildSets = buildSetPerSystem.${system};
                   rev = revUnderscored;
                 };
                 buildTree =
