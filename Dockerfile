@@ -1,8 +1,8 @@
 FROM nixos/nix:2.18.8
 
 # default build args
-ARG MAX_JOBS=4
-ARG CORES=4
+ARG MAX_JOBS=1
+ARG CORES=1
 
 # Set up Nix configuration and user
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
@@ -33,6 +33,8 @@ ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
 ENV HF_TOKEN=${HF_TOKEN}
 ENV HOME=/home/nixuser
+ENV PUSH_REVISION=hfjob-build
+ENV REPO=kernels-community/job-build-test-repo
 
 # Set up CLI script in nixuser's home
 RUN mkdir -p /home/nixuser/bin && \
@@ -162,8 +164,9 @@ function fetch_and_build {
   # upload the build to the repo
   nix shell nixpkgs#python3 nixpkgs#python3Packages.huggingface-hub -c huggingface-cli \
     upload \
+    --revision ${PUSH_REVISION} \
     --commit-message "Build from kernel-builder job" \
-    kernels-community/job-build-test-repo \
+    ${REPO} \
     /home/nixuser/kernelcode/build/ \
     build/
 }
