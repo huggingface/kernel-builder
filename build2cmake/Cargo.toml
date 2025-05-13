@@ -12,6 +12,7 @@ repository = "https://github.com/huggingface/kernel-builder"
 base32 = "0.5"
 clap = { version = "4", features = ["derive"] }
 eyre = "0.6.12"
+git2 = "0.20"
 itertools = "0.13"
 minijinja = "2.5"
 minijinja-embed = "2.5"

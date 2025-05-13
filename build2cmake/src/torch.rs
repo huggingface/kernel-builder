@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use eyre::{bail, Context, Result};
+use git2::Repository;
 use itertools::Itertools;
 use minijinja::{context, Environment};
 use rand::Rng;
@@ -15,15 +16,33 @@ static REGISTRATION_H: &str = include_str!("templates/registration.h");
 static HIPIFY: &str = include_str!("cmake/hipify.py");
 static CUDA_SUPPORTED_ARCHS_JSON: &str = include_str!("cuda_supported_archs.json");
 
-pub fn kernel_ops_identifier(name: &str, ops_id: Option<String>) -> String {
-    let identifier = ops_id.unwrap_or_else(|| {
-        // Generate a random string when no ops_id is provided
-        let mut rng = rand::thread_rng();
-        let build_id: u64 = rng.gen();
-        base32::encode(
-            base32::Alphabet::Rfc4648Lower { padding: false },
-            &build_id.to_le_bytes(),
-        )
+fn random_identifier() -> String {
+    // Generate a random string when no ops_id is provided
+    let mut rng = rand::thread_rng();
+    let build_id: u64 = rng.gen();
+    base32::encode(
+        base32::Alphabet::Rfc4648Lower { padding: false },
+        &build_id.to_le_bytes(),
+    )
+}
+
+fn git_identifier(target_dir: impl AsRef<Path>) -> Result<String> {
+    let repo = Repository::discover(target_dir.as_ref()).context("Cannot open git repository")?;
+    let head = repo.head()?;
+    let commit = head.peel_to_commit()?;
+    let rev = commit.tree_id().to_string().chars().take(7).collect();
+    let dirty = !repo.statuses(None)?.is_empty();
+    Ok(if dirty { format!("{rev}_dirty") } else { rev })
+}
+
+pub fn kernel_ops_identifier(
+    target_dir: impl AsRef<Path>,
+    name: &str,
+    ops_id: Option<String>,
+) -> String {
+    let identifier = ops_id.unwrap_or_else(|| match git_identifier(target_dir.as_ref()) {
+        Ok(rev) => rev,
+        Err(_) => random_identifier(),
     });
 
     format!("_{name}_{identifier}")
@@ -49,7 +68,7 @@ pub fn write_torch_ext(
 
     let mut file_set = FileSet::default();
 
-    let ops_name = kernel_ops_identifier(&build.general.name, ops_id);
+    let ops_name = kernel_ops_identifier(&target_dir, &build.general.name, ops_id);
 
     write_cmake(
         env,

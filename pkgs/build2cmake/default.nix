@@ -1,6 +1,9 @@
 {
   lib,
   rustPlatform,
+  pkg-config,
+  libgit2,
+  openssl,
 }:
 
 let
@@ -34,6 +37,13 @@ rustPlatform.buildRustPackage {
   cargoLock = {
     lockFile = ../../build2cmake/Cargo.lock;
   };
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [
+    libgit2
+    openssl.dev
+  ];
 
   meta = {
     description = "Create cmake build infrastructure from build.toml files";
