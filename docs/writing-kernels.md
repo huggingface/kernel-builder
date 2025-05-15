@@ -43,8 +43,8 @@ relu
 ├── relu_kernel
 │   └── relu.cu
 └── torch-ext
-    └── torch_bindings.cpp
-    └── torch_bindings.h
+    └── torch_binding.cpp
+    └── torch_binding.h
     └── relu
         └── __init__.py
 ```
@@ -54,9 +54,9 @@ In this example we can find:
 - The build configuration in `build.toml`.
 - One or more top-level directories containing kernels (`relu_kernel`).
 - The `torch-ext` directory, which contains:
-  - `torch_bindings.h`: contains declarations for kernel entry points
+  - `torch_binding.h`: contains declarations for kernel entry points
     (from `kernel_a` and `kernel_b`).
-  - `torch_bindings.cpp`: registers the entry points as Torch ops.
+  - `torch_binding.cpp`: registers the entry points as Torch ops.
   - `torch_ext/relu`: contains any Python wrapping the kernel needs. At the
     bare minimum, it should contain an `__init__.py` file.
 
@@ -139,11 +139,11 @@ for an example with multiple kernel sections.
 
 Torch bindings are defined in C++, kernels commonly use two files:
 
-- `torch_bindings.h` containing function declarations.
-- `torch_bindings.cpp` registering the functions as Torch ops.
+- `torch_binding.h` containing function declarations.
+- `torch_binding.cpp` registering the functions as Torch ops.
 
 For instance, the `relu` kernel has the following declaration in
-`torch_bindings.h`:
+`torch_binding.h`:
 
 ```cpp
 #pragma once
@@ -190,7 +190,7 @@ void relu(torch::Tensor &out,
 }
 ```
 
-This function is then registered as a Torch op in `torch_bindings.cpp`:
+This function is then registered as a Torch op in `torch_binding.cpp`:
 
 ```cpp
 #include <torch/library.h>
