@@ -14,6 +14,7 @@
   - [Reproducible run](#reproducible-run)
     - [Accessing kernel in expected format](#accessing-kernel-in-expected-format)
   - [Building from URL](#building-from-url)
+  - [Available Docker Images](#available-docker-images)
   - [Development](#development)
 <!-- tocstop -->
 
@@ -36,7 +37,7 @@ the activation folder.
 
 ## CLI Interface
 
-The kernel builder now includes a command-line interface for easier interaction. The following commands are available:
+The kernel builder includes a command-line interface for easier interaction. The following commands are available:
 
 | Command       | Description                                                  |
 | ------------- | ------------------------------------------------------------ |
@@ -130,20 +131,20 @@ docker start my-persistent-dev-env
 docker exec -it my-persistent-dev-env sh
 
 # Once inside, start the development shell
-/etc/kernelcode/cli.sh dev
+/home/nixuser/bin/cli.sh dev
 ```
 
 This approach preserves the Nix store cache between sessions, making subsequent builds much faster.
 
 ## Final Output
 
-The whole goal of building these kernels is to allow researchers, developers, and programmers to use high performance kernels in their code PyTorch code. Kernels uploaded to Hugging Face Hub can be loaded using the [kernels](https://github.com/huggingface/kernels/) package.
+The whole goal of building these kernels is to allow researchers, developers, and programmers to use high performance kernels in their PyTorch code. Kernels uploaded to Hugging Face Hub can be loaded using the [kernels](https://github.com/huggingface/kernels/) package.
 
-To load a kernel locally, you can should add the kernel build that is compatible with the Torch and CUDA versions in you environment to `PYTHONPATH`. For example:
+To load a kernel locally, you should add the kernel build that is compatible with the Torch and CUDA versions in your environment to `PYTHONPATH`. For example:
 
 ```bash
-# PyTorch 2.4 and CUDA 12.1.
-export PYTHONPATH="result/torch24-cxx98-cu121-x86_64-linux"
+# PyTorch 2.6 and CUDA 12.6
+export PYTHONPATH="result/torch26-cxx11-cu126-x86_64-linux"
 ```
 
 The kernel can then be imported as a Python module:
@@ -191,12 +192,26 @@ You can also directly build kernels from a Git repository URL:
 docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
 ```
 
-This will clone the repository into the container, build the kernels, and save the output in the container's `/kernelcode/build` directory. You can mount a volume to access the results:
+This will clone the repository into the container, build the kernels, and save the output in the container's `/home/nixuser/kernelcode/build` directory. You can mount a volume to access the results:
 
 ```bash
 docker run --rm \
     -v /path/to/output:/home/nixuser/kernelcode/build \
     ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
+```
+
+## Available Docker Images
+
+The kernel-builder is available in different variants with specific tags:
+
+| Tag | Description |
+| --- | ----------- |
+| `[SHA]` | Specific commit hash version (example: `ghcr.io/huggingface/kernel-builder:abc123`) |
+| `user-[SHA]` | Non root user variant (use when specific permissions are needed) |
+
+All images are available from the GitHub Container Registry:
+```
+ghcr.io/huggingface/kernel-builder
 ```
 
 ## Development
@@ -212,9 +227,7 @@ cd examples/activation
 docker run --rm -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest
 
 # copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
-# trace: evaluation warning: CUDA versions older than 12.0 will be removed in Nixpkgs 25.05; see the 24.11 release notes for more information
 # ...
-# copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
 ls result
 # torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
 # torch24-cxx11-cu121-x86_64-linux  torch24-cxx98-cu124-x86_64-linux  torch25-cxx98-cu118-x86_64-linux
