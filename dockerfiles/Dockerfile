@@ -10,27 +10,21 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
     && nix profile install nixpkgs#cachix nixpkgs#git-lfs \
     && cachix use kernel-builder
-
-WORKDIR /kernelcode
-
+WORKDIR /app
 # Copy builder files
 COPY . /etc/kernel-builder/
-
 # Set environment variables
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
-
 # Create directory and setup script
-RUN mkdir -p /etc/kernelcode && \
-    cat <<'EOF' > /etc/kernelcode/cli.sh
+RUN mkdir -p /etc/kernel-builder && \
+    cat <<'EOF' > /etc/kernel-builder/cli.sh
 #!/bin/sh
 set -e
-
 # Default values
 BUILD_URL=""
 DEV_SHELL=0
 HELP=0
-
 # CLI usage function
 function show_usage {
   echo "Kernel Builder CLI"
@@ -50,21 +44,20 @@ function show_usage {
   echo "Examples:"
   echo "  docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:root build"
   echo "  docker run -it --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:root dev"
-  echo "  docker run kernel-builder:root fetch https://huggingface.co/user/repo.git"
+  echo "  docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:root fetch https://huggingface.co/user/repo.git"
 }
 
 # Function to generate a basic flake.nix if it doesn't exist
 function ensure_flake_exists {
-  if [ ! -f "/kernelcode/flake.nix" ]; then
+  local work_dir=$1
+  if [ ! -f "${work_dir}/flake.nix" ]; then
     echo "No flake.nix found, creating a basic one..."
-    cat <<'FLAKE_EOF' > /kernelcode/flake.nix
+    cat <<'FLAKE_EOF' > "${work_dir}/flake.nix"
 {
   description = "Flake for Torch kernel extension";
-
   inputs = {
     kernel-builder.url = "github:huggingface/kernel-builder";
   };
-
   outputs = { self, kernel-builder, }:
     kernel-builder.lib.genFlakeOutputs {
       path = ./.;
@@ -77,14 +70,18 @@ FLAKE_EOF
     echo "flake.nix already exists, skipping creation."
   fi
 }
-
 # Function to build the extension
 function build_extension {
-  echo "Building Torch Extension Bundle"
-  # Check if kernelcode is a git repo and get hash if possible
-  if [ -d "/kernelcode/.git" ]; then
+  local work_dir=$1
+  local output_dir=$2
+  
+  echo "Building Torch Extension Bundle from ${work_dir}"
+  cd "${work_dir}"
+  
+  # Check if work_dir is a git repo and get hash if possible
+  if [ -d "${work_dir}/.git" ]; then
     # Mark git as safe to allow commands
-    git config --global --add safe.directory /kernelcode
+    git config --global --add safe.directory "${work_dir}"
     # Try to get git revision
     REV=$(git rev-parse --short=8 HEAD)
     
@@ -99,7 +96,7 @@ function build_extension {
   echo "Building with rev $REV"
   
   # Check for flake.nix or create one
-  ensure_flake_exists
+  ensure_flake_exists "${work_dir}"
   
   # Pure bundle build
   echo "Building with Nix..."
@@ -109,22 +106,21 @@ function build_extension {
     -j $CORES \
     -L
   
-  echo "Build completed. Copying results to /kernelcode/build/"
-  mkdir -p /kernelcode/build
-  cp -r --dereference ./result/* /kernelcode/build/
+  echo "Build completed. Copying results to ${output_dir}"
+  mkdir -p "${output_dir}"
+  cp -r --dereference ./result/* "${output_dir}/"
   # As root, ensure proper permissions for host access
-  chmod -R 777 /kernelcode/build
-  echo 'Done'
+  chmod -R 777 "${output_dir}"
+  echo "Done - results available in ${output_dir}"
 }
-
 # Function to start a dev shell
 function start_dev_shell {
   echo "Starting development shell..."
   # Check for flake.nix or create one
-  ensure_flake_exists
+  ensure_flake_exists "/kernelcode"
+  cd /kernelcode
   /root/.nix-profile/bin/nix develop
 }
-
 # Function to fetch and build from URL
 function fetch_and_build {
   if [ -z "$1" ]; then
@@ -133,14 +129,21 @@ function fetch_and_build {
     exit 1
   fi
   
-  echo "Fetching code from $1"
-  rm -rf /kernelcode/* /kernelcode/.* 2>/dev/null || true
+  local repo_url="$1"
+  local src_dir="/tmp/kernel-src"
+  local output_dir="/kernelcode/result"
+  
+  echo "Fetching code from ${repo_url} to ${src_dir}"
+  # Create a temporary directory for the clone
+  mkdir -p "${src_dir}"
+  
+  # Clone the repository to the temporary directory
   git lfs install
-  git clone "$1" /kernelcode
-  cd /kernelcode
-  build_extension
+  git clone "${repo_url}" "${src_dir}"
+  
+  # Build from the temporary directory and copy results to mounted output
+  build_extension "${src_dir}" "${output_dir}"
 }
-
 # Parse arguments
 COMMAND="build"  # Default command
 ARGS=()
@@ -170,11 +173,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
 # Execute the command
 case $COMMAND in
   build)
-    build_extension
+    # When building existing code, use the mounted directory
+    build_extension "/kernelcode" "/kernelcode/build"
     ;;
   dev)
     start_dev_shell
@@ -192,10 +195,10 @@ case $COMMAND in
     ;;
 esac
 EOF
+RUN chmod +x /etc/kernel-builder/cli.sh
+# Create output directory structure
+RUN mkdir -p /kernelcode/build
+# Set up volume for kernelcode
+VOLUME /kernelcode
 
-RUN chmod +x /etc/kernelcode/cli.sh
-
-# Set up results volume
-VOLUME /kernelcode/results
-
-ENTRYPOINT ["/etc/kernelcode/cli.sh"]
+ENTRYPOINT ["/etc/kernel-builder/cli.sh"]
