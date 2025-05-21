@@ -4,7 +4,7 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     #nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
-    nixpkgs.url = "github:danieldk/nixpkgs/kernel-builder-cuda-12.9.0";
+    nixpkgs.url = "github:danieldk/nixpkgs/cudatoolkit-12.9-kernel-builder";
     flake-compat.url = "github:edolstra/flake-compat";
     rocm-nix = {
       url = "github:huggingface/rocm-nix";
