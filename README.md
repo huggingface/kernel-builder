@@ -24,20 +24,21 @@ is updated for the final release.
 
 ## 🚀 Quick Start
 
-We provide a Docker image with which you can build a kernel:
+We provide Docker containers for building kernels. For a quick build:
 
 ```bash
-# navigate to the activation directory
-cd examples/activation
-
-# then run the following command to build the kernel
-docker run --rm \
-    -v $(pwd):/home/nixuser/kernelcode \
-    ghcr.io/huggingface/kernel-builder:latest
+# Using the prebuilt container
+docker run --mount type=bind,source=$(pwd),target=/kernelcode ghcr.io/huggingface/kernel-builder:{SHA}
 ```
 
-This will build the kernel and save the output in the `build` directory in
-the activation folder.
+or build the container locally:
+
+```bash
+docker build -t kernel-builder:local -f dockerfiles/Dockerfile .
+docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:local
+```
+
+See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.
 
 # 📚 Documentation
 
