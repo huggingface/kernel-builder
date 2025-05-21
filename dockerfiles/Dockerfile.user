@@ -6,20 +6,20 @@ ARG CORES=1
 
 # Set up Nix configuration and user
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
-  && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
-  && echo "cores = $CORES" >> /etc/nix/nix.conf \
-  && echo "trusted-users = root nixuser" >> /etc/nix/nix.conf \
-  # Create user entries directly in password and group files
-  && echo "nixuser:x:1000:1000:NixOS User:/home/nixuser:/bin/bash" >> /etc/passwd \
-  && echo "nixuser:x:1000:" >> /etc/group \
-  && mkdir -p /home/nixuser/kernelcode \
-  # Create Nix directories with proper permissions
-  && mkdir -p /nix/var/nix/profiles/per-user/nixuser \
-  && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
-  && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
-  # Install necessary packages
-  && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
-  && cachix use kernel-builder 
+    && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
+    && echo "cores = $CORES" >> /etc/nix/nix.conf \
+    && echo "trusted-users = root nixuser" >> /etc/nix/nix.conf \
+    # Create user entries directly in password and group files
+    && echo "nixuser:x:1000:1000:NixOS User:/home/nixuser:/bin/bash" >> /etc/passwd \
+    && echo "nixuser:x:1000:" >> /etc/group \
+    && mkdir -p /home/nixuser/kernelcode \
+    # Create Nix directories with proper permissions
+    && mkdir -p /nix/var/nix/profiles/per-user/nixuser \
+    && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
+    && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
+    # Install necessary packages
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
+    && cachix use kernel-builder 
 
 # Set permissions for Nix directories
 RUN chown -R nixuser:nixuser /nix
@@ -38,7 +38,7 @@ ENV REPO=kernels-community/job-build-test-repo
 
 # Set up CLI script in nixuser's home
 RUN mkdir -p /home/nixuser/bin && \
-  cat <<'EOF' > /home/nixuser/bin/cli.sh
+    cat <<'EOF' > /home/nixuser/bin/cli.sh
 #!/bin/sh
 set -e
 
@@ -225,7 +225,7 @@ EOF
 
 # Set permissions and make the script executable
 RUN chmod +x /home/nixuser/bin/cli.sh && \
-  chown -R nixuser:nixuser /home/nixuser
+    chown -R nixuser:nixuser /home/nixuser
 
 # Switch to nixuser
 USER nixuser
