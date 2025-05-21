@@ -27,9 +27,15 @@ is updated for the final release.
 We provide Docker containers for building kernels. For a quick build:
 
 ```bash
-# Using the standard container
-docker build -t kernel-builder -f dockerfiles/Dockerfile .
-docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder build
+# Using the prebuilt container
+docker run --mount type=bind,source=$(pwd),target=/kernelcode ghcr.io/huggingface/kernel-builder:{SHA}
+```
+
+or build the container locally:
+
+```bash
+docker build -t kernel-builder:local -f dockerfiles/Dockerfile .
+docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:local
 ```
 
 See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.
