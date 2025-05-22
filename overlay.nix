@@ -1,5 +1,4 @@
-final: prev:
-{
+final: prev: {
   cmakeNvccThreadsHook = prev.callPackage ./pkgs/cmake-nvcc-threads-hook { };
 
   # Local packages
