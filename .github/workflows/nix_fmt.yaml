@@ -17,4 +17,4 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: Check formatting
-        run: nix fmt -- -c ./
+        run: nix fmt -- --ci

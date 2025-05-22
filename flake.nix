@@ -127,7 +127,7 @@
 
       in
       rec {
-        formatter = pkgs.nixfmt-rfc-style;
+        formatter = pkgs.nixfmt-tree;
 
         packages = rec {
           build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
