@@ -143,7 +143,7 @@ def main():
     print(f"\n{Colors.CYAN}{Colors.BOLD}Next steps:{Colors.ENDC}")
 
     commands = [
-        "nix run nixpkgs#cachix -- use kernel-builder",
+        "nix run nixpkgs#cachix -- use huggingface",
         f"cd {target_dir}",
         "git add .",
         "nix develop -L",

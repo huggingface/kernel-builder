@@ -17,7 +17,7 @@ and `flake.lock` to your repository, this will ensure that kernel
 builds are reproducible.
 
 Since the kernel builder depends on many packages (e.g. every supported
-PyTorch version), it is recommended to [enable the kernel-builder cache](https://app.cachix.org/cache/kernel-builder)
+PyTorch version), it is recommended to [enable the huggingface cache](https://app.cachix.org/cache/huggingface)
 to avoid expensive rebuilds.
 
 The kernel builder also provides Nix development shells with all Torch
