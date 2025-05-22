@@ -1,26 +1,6 @@
 final: prev:
 {
-  blas = if final.stdenv.isx86_64 then prev.blas.override { blasProvider = prev.mkl; } else prev.blas;
-  lapack =
-    if final.stdenv.isx86_64 then prev.lapack.override { lapackProvider = prev.mkl; } else prev.blas;
-
   cmakeNvccThreadsHook = prev.callPackage ./pkgs/cmake-nvcc-threads-hook { };
-
-  magma-hip =
-    (prev.callPackage ./pkgs/magma {
-      cudaSupport = false;
-      rocmSupport = true;
-    }).magma;
-
-  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
-    (
-      python-self: python-super: with python-self; {
-        torch_2_6 = callPackage ./pkgs/python-modules/torch_2_6 { rocmPackages = final.rocmPackages; };
-
-        torch_2_7 = callPackage ./pkgs/python-modules/torch_2_7 { rocmPackages = final.rocmPackages; };
-      }
-    )
-  ];
 
   # Local packages
 
@@ -30,4 +10,3 @@ final: prev:
 
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 }
-// (import ./pkgs/cutlass { pkgs = final; })

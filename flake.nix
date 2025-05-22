@@ -3,13 +3,9 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    #nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
-    nixpkgs.url = "github:danieldk/nixpkgs/cudatoolkit-12.9-kernel-builder";
+    nixpkgs.follows = "hf-nix/nixpkgs";
     flake-compat.url = "github:edolstra/flake-compat";
-    rocm-nix = {
-      url = "github:huggingface/rocm-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    hf-nix.url = "github:huggingface/hf-nix";
   };
 
   outputs =
@@ -17,8 +13,8 @@
       self,
       flake-compat,
       flake-utils,
+      hf-nix,
       nixpkgs,
-      rocm-nix,
     }:
     let
       systems = with flake-utils.lib.system; [
@@ -32,7 +28,7 @@
           name = system;
           value = import ./lib/buildsets.nix {
             inherit nixpkgs system;
-            rocm = rocm-nix.overlays.default;
+            hf-nix = hf-nix.overlays.default;
           };
         }) systems
       );

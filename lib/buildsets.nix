@@ -1,7 +1,7 @@
 {
   nixpkgs,
   system,
-  rocm,
+  hf-nix,
 }:
 
 let
@@ -56,8 +56,8 @@ let
       rocmSupport = true;
     };
     overlays = [
+      hf-nix
       overlay
-      rocm
     ];
   };
 
@@ -75,6 +75,7 @@ let
             cudaSupport = true;
           };
           overlays = [
+            hf-nix
             overlay
             (overlayForCudaVersion cudaVersion)
           ];
@@ -96,8 +97,8 @@ let
             rocmSupport = true;
           };
           overlays = [
+            hf-nix
             overlay
-            rocm
             (overlayForRocmVersion rocmVersion)
           ];
         };
