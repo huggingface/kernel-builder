@@ -45,7 +45,7 @@ fn write_ops_py(
     path.push("_ops.py");
     let writer = file_set.entry(path);
 
-    env.get_template("_ops-universal.py")
+    env.get_template("universal/_ops.py")
         .wrap_err("Cannot get _ops-universal.py template")?
         .render_to_write(
             context! {
@@ -68,7 +68,7 @@ fn write_pyproject_toml(
 
     let data_globs = torch.and_then(|torch| torch.data_globs().map(|globs| globs.join(", ")));
 
-    env.get_template("pyproject_universal.toml")
+    env.get_template("universal/pyproject.toml")
         .wrap_err("Cannot get universal pyproject.toml template")?
         .render_to_write(
             context! {

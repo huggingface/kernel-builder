@@ -9,16 +9,13 @@ use eyre::{bail, ensure, Context, Result};
 use minijinja::Environment;
 
 mod torch;
-use torch::write_torch_ext;
-
-mod torch_universal;
+use torch::{write_torch_ext, write_torch_universal_ext};
 
 mod config;
 use config::{Backend, Build, BuildCompat};
 
 mod fileset;
 use fileset::FileSet;
-use torch_universal::write_torch_universal_ext;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
