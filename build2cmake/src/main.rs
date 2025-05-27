@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::Read,
+    io::{BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -14,7 +14,7 @@ use torch::write_torch_ext;
 mod torch_universal;
 
 mod config;
-use config::Build;
+use config::{Backend, Build, BuildCompat};
 
 mod fileset;
 use fileset::FileSet;
@@ -47,6 +47,15 @@ enum Commands {
         /// kernel name to avoid name collisions. (e.g. Git SHA)
         #[arg(long)]
         ops_id: Option<String>,
+
+        #[arg(long)]
+        backend: Option<Backend>,
+    },
+
+    /// Update a `build.toml` to the current format.
+    UpdateBuild {
+        #[arg(name = "BUILD_TOML")]
+        build_toml: PathBuf,
     },
 
     /// Validate the build.toml file.
@@ -60,16 +69,22 @@ fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
         Commands::GenerateTorch {
+            backend,
             build_toml,
             force,
             target_dir,
             ops_id,
-        } => generate_torch(build_toml, target_dir, force, ops_id),
-        Commands::Validate { build_toml } => validate(build_toml),
+        } => generate_torch(backend, build_toml, target_dir, force, ops_id),
+        Commands::UpdateBuild { build_toml } => update_build(build_toml),
+        Commands::Validate { build_toml } => {
+            parse_and_validate(build_toml)?;
+            Ok(())
+        }
     }
 }
 
 fn generate_torch(
+    backend: Option<Backend>,
     build_toml: PathBuf,
     target_dir: Option<PathBuf>,
     force: bool,
@@ -77,28 +92,79 @@ fn generate_torch(
 ) -> Result<()> {
     let target_dir = check_or_infer_target_dir(&build_toml, target_dir)?;
 
-    let mut toml_data = String::new();
-    File::open(&build_toml)
-        .wrap_err_with(|| format!("Cannot open {} for reading", build_toml.to_string_lossy()))?
-        .read_to_string(&mut toml_data)
-        .wrap_err_with(|| format!("Cannot read from {}", build_toml.to_string_lossy()))?;
+    let build_compat = parse_and_validate(build_toml)?;
 
-    let build: Build = toml::from_str(&toml_data)
-        .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
+    if matches!(build_compat, BuildCompat::V1(_)) {
+        eprintln!(
+            "build.toml is in the deprecated V1 format, use `build2cmake update-build` to update."
+        )
+    }
+
+    let build: Build = build_compat.into();
 
     let mut env = Environment::new();
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    if let Some(torch_ext) = build.torch.as_ref() {
-        if torch_ext.universal {
-            write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?;
-        } else {
-            write_torch_ext(&env, &build, target_dir, force, ops_id)?;
+    match (backend, build.general.universal) {
+        (None, true) => write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?,
+        (Some(backend), true) => bail!("Universal kernel, cannot generate for backend {}", backend),
+        // TODO: add check if that type of backend has at least one kernel.
+        (Some(backend), false) => {
+            if !build.has_kernel_with_backend(&backend) {
+                bail!("No kernels found for backend {}", backend);
+            }
+
+            write_torch_ext(&env, &build, target_dir, force, ops_id)?
         }
-    } else {
-        bail!("Build configuration does not have `torch` section");
+        (None, false) => {
+            let mut kernel_backends = build.backends();
+            let backend = if let Some(backend) = kernel_backends.pop_first() {
+                backend
+            } else {
+                bail!("No kernels found in build.toml");
+            };
+
+            if !kernel_backends.is_empty() {
+                let kernel_backends: Vec<_> = build
+                    .backends()
+                    .into_iter()
+                    .map(|backend| backend.to_string())
+                    .collect();
+                bail!(
+                    "Multiple supported backends found in build.toml: {}. Please specify one with --backend.",
+                    kernel_backends.join(", ")
+                );
+            }
+
+            match backend {
+                Backend::Cuda | Backend::Rocm => {
+                    write_torch_ext(&env, &build, target_dir, force, ops_id)?
+                }
+            }
+        }
     }
+
+    Ok(())
+}
+
+fn update_build(build_toml: PathBuf) -> Result<()> {
+    let build_compat: BuildCompat = parse_and_validate(&build_toml)?;
+
+    if matches!(build_compat, BuildCompat::V2(_)) {
+        return Ok(());
+    }
+
+    let build: Build = build_compat.into();
+    let pretty_toml = toml::to_string_pretty(&build)?;
+
+    let mut writer =
+        BufWriter::new(File::create(&build_toml).wrap_err_with(|| {
+            format!("Cannot open {} for writing", build_toml.to_string_lossy())
+        })?);
+    writer
+        .write_all(pretty_toml.as_bytes())
+        .wrap_err_with(|| format!("Cannot write to {}", build_toml.to_string_lossy()))?;
 
     Ok(())
 }
@@ -130,15 +196,16 @@ fn check_or_infer_target_dir(
     }
 }
 
-fn validate(build_toml: PathBuf) -> Result<()> {
+fn parse_and_validate(build_toml: impl AsRef<Path>) -> Result<BuildCompat> {
+    let build_toml = build_toml.as_ref();
     let mut toml_data = String::new();
-    File::open(&build_toml)
+    File::open(build_toml)
         .wrap_err_with(|| format!("Cannot open {} for reading", build_toml.to_string_lossy()))?
         .read_to_string(&mut toml_data)
         .wrap_err_with(|| format!("Cannot read from {}", build_toml.to_string_lossy()))?;
 
-    let _: Build = toml::from_str(&toml_data)
+    let build_compat: BuildCompat = toml::from_str(&toml_data)
         .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
 
-    Ok(())
+    Ok(build_compat)
 }

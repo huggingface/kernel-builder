@@ -1,14 +1,17 @@
 [general]
 name = "cutlass_gemm"
+universal = false
 
 [torch]
 src = [
-  "torch-ext/torch_binding.cpp",
-  "torch-ext/torch_binding.h"
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
 ]
 
 [kernel.gemm]
-src = [
-  "gemm.cu",
+backend = "cuda"
+depends = [
+    "torch",
+    "cutlass_3_6",
 ]
-depends = [ "torch", "cutlass_3_6" ]
+src = ["gemm.cu"]

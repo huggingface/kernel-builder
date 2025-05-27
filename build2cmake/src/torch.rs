@@ -8,7 +8,7 @@ use itertools::Itertools;
 use minijinja::{context, Environment};
 use rand::Rng;
 
-use crate::config::{Build, Dependencies, Kernel, Torch};
+use crate::config::{Backend, Build, Dependencies, Kernel, Torch};
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("cmake/utils.cmake");
@@ -316,7 +316,7 @@ pub fn render_kernel(
                 rocm_archs => kernel.rocm_archs,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
-                language => kernel.language.to_string(),
+                supports_hipify => kernel.backend == Backend::Rocm,
                 sources => sources,
             },
             &mut *write,

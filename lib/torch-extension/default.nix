@@ -50,7 +50,9 @@ stdenv.mkDerivation (prevAttrs: {
 
   # Generate build files.
   postPatch = ''
-    build2cmake generate-torch --ops-id ${rev} build.toml
+    build2cmake generate-torch --backend ${
+      if cudaSupport then "cuda" else "rocm"
+    } --ops-id ${rev} build.toml
   '';
 
   # hipify copies files, but its target is run in the CMake build and install

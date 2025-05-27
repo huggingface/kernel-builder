@@ -1,16 +1,18 @@
 [general]
 name = "activation"
+universal = false
 
 [torch]
 src = [
-  "torch-ext/torch_binding.cpp",
-  "torch-ext/torch_binding.h"
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
 ]
 
 [kernel.activation]
+backend = "cuda"
+depends = ["torch"]
 src = [
-  "activation/activation_kernels.cu",
-  "activation/cuda_compat.h",
-  "activation/dispatch_utils.h",
+    "activation/activation_kernels.cu",
+    "activation/cuda_compat.h",
+    "activation/dispatch_utils.h",
 ]
-depends = [ "torch" ]
