@@ -316,7 +316,7 @@ pub fn render_kernel(
                 rocm_archs => kernel.rocm_archs,
                 includes => kernel.include.as_ref().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
-                language => kernel.language.to_string(),
+                supports_hipify => kernel.supports_hipify,
                 sources => sources,
             },
             &mut *write,

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use eyre::{bail, Context, Result};
+use eyre::{Context, Result};
 use minijinja::{context, Environment};
 
 use crate::{
@@ -16,17 +16,17 @@ pub fn write_torch_universal_ext(
     force: bool,
     ops_id: Option<String>,
 ) -> Result<()> {
-    let torch_ext = match build.torch.as_ref() {
-        Some(torch_ext) => torch_ext,
-        None => bail!("Build configuration does not have `torch` section"),
-    };
-
     let mut file_set = FileSet::default();
 
     let ops_name = kernel_ops_identifier(&target_dir, &build.general.name, ops_id);
 
     write_ops_py(env, &build.general.name, &ops_name, &mut file_set)?;
-    write_pyproject_toml(env, torch_ext, &build.general.name, &mut file_set)?;
+    write_pyproject_toml(
+        env,
+        build.torch.as_ref(),
+        &build.general.name,
+        &mut file_set,
+    )?;
 
     file_set.write(&target_dir, force)?;
 
@@ -60,13 +60,13 @@ fn write_ops_py(
 
 fn write_pyproject_toml(
     env: &Environment,
-    torch: &Torch,
+    torch: Option<&Torch>,
     name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let writer = file_set.entry("pyproject.toml");
 
-    let data_globs = torch.data_globs().map(|globs| globs.join(", "));
+    let data_globs = torch.and_then(|torch| torch.data_globs().map(|globs| globs.join(", ")));
 
     env.get_template("pyproject_universal.toml")
         .wrap_err("Cannot get universal pyproject.toml template")?

@@ -22,7 +22,14 @@ rec {
 
   readToml = path: builtins.fromTOML (builtins.readFile path);
 
-  readBuildConfig = path: readToml (path + "/build.toml");
+  validateBuildConfig =
+    buildConfig:
+    assert lib.assertMsg (builtins.hasAttr "compute-framework" buildConfig.general) ''
+      build.toml seems to be of an older version, update it with:
+            build2cmake update-build build.toml'';
+    buildConfig;
+
+  readBuildConfig = path: validateBuildConfig (readToml (path + "/build.toml"));
 
   srcFilter =
     src: name: type:
@@ -31,28 +38,17 @@ rec {
   # Source set function to create a fileset for a path
   mkSourceSet = import ./source-set.nix { inherit lib; };
 
-  languages =
-    buildConfig:
-    let
-      kernels = lib.attrValues (buildConfig.kernel or { });
-      kernelLang = kernel: kernel.language or "cuda";
-      init = {
-        cuda = false;
-        cuda-hipify = false;
-      };
-    in
-    lib.foldl (langs: kernel: langs // { ${kernelLang kernel} = true; }) init kernels;
-
   # Filter buildsets that are applicable to a given kernel build config.
   applicableBuildSets =
     buildConfig: buildSets:
     let
-      languages' = languages buildConfig;
+      kernels = lib.attrValues (buildConfig.kernel or { });
+      hasHipifyKernel = lib.any (kernel: kernel.supports-hipify or false) kernels;
       supportedBuildSet =
         buildSet:
-        (buildSet.gpu == "cuda" && (languages'.cuda || languages'.cuda-hipify))
-        || (buildSet.gpu == "rocm" && languages'.cuda-hipify)
-        || (buildConfig.torch.universal or false);
+        (buildSet.gpu == "cuda" && buildConfig.general.compute-framework == "cuda")
+        || (buildSet.gpu == "rocm" && buildConfig.general.compute-framework == "cuda" && hasHipifyKernel)
+        || (buildConfig.general.compute-framework == "universal");
     in
     builtins.filter supportedBuildSet buildSets;
 
@@ -91,7 +87,7 @@ rec {
       );
       stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
     in
-    if buildConfig.torch.universal or false then
+    if buildConfig.general.compute-framework == "universal" then
       # No torch extension sources? Treat it as a noarch package.
       pkgs.callPackage ./torch-extension-noarch ({
         inherit src rev torch;
@@ -160,7 +156,7 @@ rec {
       };
       buildConfig = readBuildConfig path;
       namePaths =
-        if buildConfig.torch.universal or false then
+        if buildConfig.general.compute-framework == "universal" then
           # Noarch, just get the first extension.
           { "torch-universal" = builtins.head (builtins.attrValues extensions); }
         else

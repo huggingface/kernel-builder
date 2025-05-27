@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::Read,
+    io::{BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -14,7 +14,7 @@ use torch::write_torch_ext;
 mod torch_universal;
 
 mod config;
-use config::Build;
+use config::{Build, BuildCompat, ComputeFramework};
 
 mod fileset;
 use fileset::FileSet;
@@ -49,6 +49,12 @@ enum Commands {
         ops_id: Option<String>,
     },
 
+    /// Update a `build.toml` to the current format.
+    UpdateBuild {
+        #[arg(name = "BUILD_TOML")]
+        build_toml: PathBuf,
+    },
+
     /// Validate the build.toml file.
     Validate {
         #[arg(name = "BUILD_TOML")]
@@ -65,7 +71,11 @@ fn main() -> Result<()> {
             target_dir,
             ops_id,
         } => generate_torch(build_toml, target_dir, force, ops_id),
-        Commands::Validate { build_toml } => validate(build_toml),
+        Commands::UpdateBuild { build_toml } => update_build(build_toml),
+        Commands::Validate { build_toml } => {
+            parse_and_validate(build_toml)?;
+            Ok(())
+        }
     }
 }
 
@@ -77,28 +87,47 @@ fn generate_torch(
 ) -> Result<()> {
     let target_dir = check_or_infer_target_dir(&build_toml, target_dir)?;
 
-    let mut toml_data = String::new();
-    File::open(&build_toml)
-        .wrap_err_with(|| format!("Cannot open {} for reading", build_toml.to_string_lossy()))?
-        .read_to_string(&mut toml_data)
-        .wrap_err_with(|| format!("Cannot read from {}", build_toml.to_string_lossy()))?;
+    let build_compat = parse_and_validate(build_toml)?;
 
-    let build: Build = toml::from_str(&toml_data)
-        .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
+    if matches!(build_compat, BuildCompat::V1(_)) {
+        eprintln!(
+            "build.toml is in the deprecated V1 format, use `build2cmake update-build` to update."
+        )
+    }
+
+    let build: Build = build_compat.into();
 
     let mut env = Environment::new();
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    if let Some(torch_ext) = build.torch.as_ref() {
-        if torch_ext.universal {
-            write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?;
-        } else {
-            write_torch_ext(&env, &build, target_dir, force, ops_id)?;
+    match build.general.compute_framework {
+        ComputeFramework::Cuda => write_torch_ext(&env, &build, target_dir, force, ops_id)?,
+        ComputeFramework::Universal => {
+            write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?
         }
-    } else {
-        bail!("Build configuration does not have `torch` section");
     }
+
+    Ok(())
+}
+
+fn update_build(build_toml: PathBuf) -> Result<()> {
+    let build_compat: BuildCompat = parse_and_validate(&build_toml)?;
+
+    if matches!(build_compat, BuildCompat::V2(_)) {
+        return Ok(());
+    }
+
+    let build: Build = build_compat.into();
+    let pretty_toml = toml::to_string_pretty(&build)?;
+
+    let mut writer =
+        BufWriter::new(File::create(&build_toml).wrap_err_with(|| {
+            format!("Cannot open {} for writing", build_toml.to_string_lossy())
+        })?);
+    writer
+        .write_all(pretty_toml.as_bytes())
+        .wrap_err_with(|| format!("Cannot write to {}", build_toml.to_string_lossy()))?;
 
     Ok(())
 }
@@ -130,15 +159,16 @@ fn check_or_infer_target_dir(
     }
 }
 
-fn validate(build_toml: PathBuf) -> Result<()> {
+fn parse_and_validate(build_toml: impl AsRef<Path>) -> Result<BuildCompat> {
+    let build_toml = build_toml.as_ref();
     let mut toml_data = String::new();
-    File::open(&build_toml)
+    File::open(build_toml)
         .wrap_err_with(|| format!("Cannot open {} for reading", build_toml.to_string_lossy()))?
         .read_to_string(&mut toml_data)
         .wrap_err_with(|| format!("Cannot read from {}", build_toml.to_string_lossy()))?;
 
-    let _: Build = toml::from_str(&toml_data)
+    let build_compat: BuildCompat = toml::from_str(&toml_data)
         .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
 
-    Ok(())
+    Ok(build_compat)
 }

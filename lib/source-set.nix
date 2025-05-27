@@ -9,7 +9,7 @@ let
   buildConfig = readBuildConfig path;
   nameToPath = path: name: path + "/${name}";
   kernels = buildConfig.kernel or { };
-  extConfig = buildConfig.torch;
+  extConfig = buildConfig.torch or { };
   pyExt =
     extConfig.pyext or [
       "py"

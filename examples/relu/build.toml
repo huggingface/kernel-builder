@@ -1,16 +1,25 @@
 [general]
 name = "relu"
+compute-framework = "cuda"
 
 [torch]
 src = [
-  "torch-ext/torch_binding.cpp",
-  "torch-ext/torch_binding.h"
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
 ]
 
 [kernel.activation]
-language = "cuda-hipify"
-rocm-archs = [ "gfx906", "gfx908", "gfx90a", "gfx940", "gfx941", "gfx942", "gfx1030", "gfx1100", "gfx1101" ]
-src = [
-  "relu_kernel/relu.cu",
+supports-hipify = true
+rocm-archs = [
+    "gfx906",
+    "gfx908",
+    "gfx90a",
+    "gfx940",
+    "gfx941",
+    "gfx942",
+    "gfx1030",
+    "gfx1100",
+    "gfx1101",
 ]
-depends = [ "torch" ]
+depends = ["torch"]
+src = ["relu_kernel/relu.cu"]

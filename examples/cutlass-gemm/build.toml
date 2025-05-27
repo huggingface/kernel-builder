@@ -1,14 +1,17 @@
 [general]
 name = "cutlass_gemm"
+compute-framework = "cuda"
 
 [torch]
 src = [
-  "torch-ext/torch_binding.cpp",
-  "torch-ext/torch_binding.h"
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
 ]
 
 [kernel.gemm]
-src = [
-  "gemm.cu",
+supports-hipify = false
+depends = [
+    "torch",
+    "cutlass_3_6",
 ]
-depends = [ "torch", "cutlass_3_6" ]
+src = ["gemm.cu"]
