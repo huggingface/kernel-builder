@@ -115,13 +115,13 @@ impl FromStr for Backend {
 #[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Dependencies {
-    #[serde[rename = "cutlass_2_10"]]
+    #[serde(rename = "cutlass_2_10")]
     Cutlass2_10,
-    #[serde[rename = "cutlass_3_5"]]
+    #[serde(rename = "cutlass_3_5")]
     Cutlass3_5,
-    #[serde[rename = "cutlass_3_6"]]
+    #[serde(rename = "cutlass_3_6")]
     Cutlass3_6,
-    #[serde[rename = "cutlass_3_8"]]
+    #[serde(rename = "cutlass_3_8")]
     Cutlass3_8,
     Torch,
 }
