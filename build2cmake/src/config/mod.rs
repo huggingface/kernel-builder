@@ -1,3 +1,4 @@
+use eyre::Result;
 use serde::Deserialize;
 
 pub mod v1;
@@ -12,11 +13,13 @@ pub enum BuildCompat {
     V2(Build),
 }
 
-impl From<BuildCompat> for Build {
-    fn from(compat: BuildCompat) -> Self {
+impl TryFrom<BuildCompat> for Build {
+    type Error = eyre::Error;
+
+    fn try_from(compat: BuildCompat) -> Result<Self> {
         match compat {
-            BuildCompat::V1(v1_build) => v1_build.into(),
-            BuildCompat::V2(v2_build) => v2_build,
+            BuildCompat::V1(v1_build) => v1_build.try_into(),
+            BuildCompat::V2(v2_build) => Ok(v2_build),
         }
     }
 }

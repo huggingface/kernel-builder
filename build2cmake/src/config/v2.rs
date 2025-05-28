@@ -5,6 +5,7 @@ use std::{
     str::FromStr,
 };
 
+use eyre::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -125,18 +126,20 @@ pub enum Dependencies {
     Torch,
 }
 
-impl From<v1::Build> for Build {
-    fn from(build: v1::Build) -> Self {
+impl TryFrom<v1::Build> for Build {
+    type Error = eyre::Error;
+
+    fn try_from(build: v1::Build) -> Result<Self> {
         let universal = build
             .torch
             .as_ref()
             .map(|torch| torch.universal)
             .unwrap_or(false);
-        Self {
+        Ok(Self {
             general: General::from(build.general, universal),
             torch: build.torch.map(Into::into),
-            kernels: convert_kernels(build.kernels),
-        }
+            kernels: convert_kernels(build.kernels)?,
+        })
     }
 }
 
@@ -149,13 +152,18 @@ impl General {
     }
 }
 
-fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> HashMap<String, Kernel> {
+fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<String, Kernel>> {
     let mut kernels = HashMap::new();
 
     for (name, kernel) in v1_kernels {
         if kernel.language == Language::CudaHipify {
+            // We need to add an affix to avoid confflict with the CUDA kernel.
+            let rocm_name = format!("{name}_rocm");
+            if kernels.contains_key(&rocm_name) {
+                bail!("Found an existing kernel with name `{rocm_name}` while expanding `{name}`")
+            }
+
             kernels.insert(
-                // We need to add an affix to avoid confflict with the CUDA kernel.
                 format!("{name}_rocm"),
                 Kernel {
                     backend: Backend::Rocm,
@@ -181,7 +189,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> HashMap<String, K
         );
     }
 
-    kernels
+    Ok(kernels)
 }
 
 impl From<v1::Torch> for Torch {

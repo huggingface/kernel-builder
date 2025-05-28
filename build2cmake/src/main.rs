@@ -100,7 +100,9 @@ fn generate_torch(
         )
     }
 
-    let build: Build = build_compat.into();
+    let build: Build = build_compat
+        .try_into()
+        .context("Cannot update build configuration")?;
 
     let mut env = Environment::new();
     env.set_trim_blocks(true);
@@ -155,7 +157,9 @@ fn update_build(build_toml: PathBuf) -> Result<()> {
         return Ok(());
     }
 
-    let build: Build = build_compat.into();
+    let build: Build = build_compat
+        .try_into()
+        .context("Cannot update build configuration")?;
     let pretty_toml = toml::to_string_pretty(&build)?;
 
     let mut writer =
