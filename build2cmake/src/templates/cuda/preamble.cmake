@@ -60,12 +60,16 @@ if(GPU_LANG STREQUAL "CUDA")
   if(NVCC_THREADS AND GPU_LANG STREQUAL "CUDA")
     list(APPEND GPU_FLAGS "--threads=${NVCC_THREADS}")
   endif()
+
+  add_compile_definitions(CUDA_KERNEL)
 elseif(GPU_LANG STREQUAL "HIP")
   set(ROCM_ARCHS "${HIP_SUPPORTED_ARCHS}")
   # TODO: remove this once we can set specific archs per source file set.
   override_gpu_arches(GPU_ARCHES
     ${GPU_LANG}
     "${${GPU_LANG}_SUPPORTED_ARCHS}")
+
+  add_compile_definitions(ROCM_KERNEL)
 else()
   override_gpu_arches(GPU_ARCHES
     ${GPU_LANG}

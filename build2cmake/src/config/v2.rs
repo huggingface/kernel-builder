@@ -87,6 +87,7 @@ pub struct Kernel {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Backend {
     Cuda,
+    Metal,
     Rocm,
 }
 
@@ -94,6 +95,7 @@ impl Display for Backend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Backend::Cuda => write!(f, "cuda"),
+            Backend::Metal => write!(f, "metal"),
             Backend::Rocm => write!(f, "rocm"),
         }
     }
@@ -105,6 +107,7 @@ impl FromStr for Backend {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "cuda" => Ok(Backend::Cuda),
+            "metal" => Ok(Backend::Metal),
             "rocm" => Ok(Backend::Rocm),
             _ => Err(format!("Unknown backend: {}", s)),
         }

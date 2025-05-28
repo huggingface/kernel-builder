@@ -51,6 +51,7 @@ pub enum Language {
     #[default]
     Cuda,
     CudaHipify,
+    Metal,
 }
 
 impl Display for Language {
@@ -58,6 +59,7 @@ impl Display for Language {
         match self {
             Language::Cuda => f.write_str("cuda"),
             Language::CudaHipify => f.write_str("cuda-hipify"),
+            Language::Metal => f.write_str("metal"),
         }
     }
 }

@@ -11,7 +11,14 @@ src = [
 [kernel.activation]
 backend = "cuda"
 depends = ["torch"]
-src = ["relu_kernel/relu.cu"]
+src = ["relu_cuda/relu.cu"]
+
+[kernel.activation_metal]
+backend = "metal"
+src = [
+  "relu_metal/relu.mm",
+]
+depends = [ "torch" ]
 
 [kernel.activation_rocm]
 backend = "rocm"
@@ -27,4 +34,4 @@ rocm-archs = [
     "gfx1101",
 ]
 depends = ["torch"]
-src = ["relu_kernel/relu.cu"]
+src = ["relu_cuda/relu.cu"]

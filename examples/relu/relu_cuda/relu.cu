@@ -5,8 +5,7 @@
 #include <cmath>
 
 __global__ void relu_kernel(float *__restrict__ out,
-                            float const *__restrict__ input,
-                            const int d) {
+                            float const *__restrict__ input, const int d) {
   const int64_t token_idx = blockIdx.x;
   for (int64_t idx = threadIdx.x; idx < d; idx += blockDim.x) {
     auto x = input[token_idx * d + idx];
@@ -14,12 +13,24 @@ __global__ void relu_kernel(float *__restrict__ out,
   }
 }
 
-void relu(torch::Tensor &out,
-          torch::Tensor const &input)
-{
+void relu(torch::Tensor &out, torch::Tensor const &input) {
+  TORCH_CHECK(input.device().is_cuda(), "input must be a CUDA tensor");
+  TORCH_CHECK(input.is_contiguous(), "input must be contiguous");
   TORCH_CHECK(input.scalar_type() == at::ScalarType::Float &&
                   input.scalar_type() == at::ScalarType::Float,
               "relu_kernel only supports float32");
+
+  TORCH_CHECK(input.sizes() == out.sizes(),
+              "Tensors must have the same shape. Got input shape: ",
+              input.sizes(), " and output shape: ", out.sizes());
+
+  TORCH_CHECK(input.scalar_type() == out.scalar_type(),
+              "Tensors must have the same data type. Got input dtype: ",
+              input.scalar_type(), " and output dtype: ", out.scalar_type());
+
+  TORCH_CHECK(input.device() == out.device(),
+              "Tensors must be on the same device. Got input device: ",
+              input.device(), " and output device: ", out.device());
 
   int d = input.size(-1);
   int64_t num_tokens = input.numel() / d;

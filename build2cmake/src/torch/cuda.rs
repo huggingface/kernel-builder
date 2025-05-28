@@ -10,8 +10,8 @@ use super::kernel_ops_identifier;
 use crate::config::{Backend, Build, Dependencies, Kernel, Torch};
 use crate::FileSet;
 
-static CMAKE_UTILS: &str = include_str!("../templates/cuda/utils.cmake");
-static REGISTRATION_H: &str = include_str!("../templates/cuda/registration.h");
+static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
+static REGISTRATION_H: &str = include_str!("../templates/registration.h");
 static HIPIFY: &str = include_str!("../templates/cuda/hipify.py");
 static CUDA_SUPPORTED_ARCHS_JSON: &str = include_str!("../cuda_supported_archs.json");
 
@@ -23,6 +23,7 @@ fn cuda_supported_archs() -> String {
 
 pub fn write_torch_ext(
     env: &Environment,
+    backend: Backend,
     build: &Build,
     target_dir: PathBuf,
     force: bool,
@@ -39,6 +40,7 @@ pub fn write_torch_ext(
 
     write_cmake(
         env,
+        backend,
         build,
         torch_ext,
         &build.general.name,
@@ -126,7 +128,7 @@ fn write_ops_py(
     path.push("_ops.py");
     let writer = file_set.entry(path);
 
-    env.get_template("cuda/_ops.py")
+    env.get_template("_ops.py")
         .wrap_err("Cannot get _ops.py template")?
         .render_to_write(
             context! {
@@ -141,6 +143,7 @@ fn write_ops_py(
 
 fn write_cmake(
     env: &Environment,
+    backend: Backend,
     build: &Build,
     torch: &Torch,
     name: &str,
@@ -169,7 +172,11 @@ fn write_cmake(
 
     render_binding(env, torch, name, cmake_writer)?;
 
-    for (kernel_name, kernel) in &build.kernels {
+    for (kernel_name, kernel) in build
+        .kernels
+        .iter()
+        .filter(|(_, kernel)| kernel.backend == backend)
+    {
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 

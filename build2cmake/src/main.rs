@@ -9,7 +9,7 @@ use eyre::{bail, ensure, Context, Result};
 use minijinja::Environment;
 
 mod torch;
-use torch::{write_torch_ext, write_torch_universal_ext};
+use torch::{write_torch_ext, write_torch_ext_metal, write_torch_universal_ext};
 
 mod config;
 use config::{Backend, Build, BuildCompat};
@@ -105,16 +105,15 @@ fn generate_torch(
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    match (backend, build.general.universal) {
-        (None, true) => write_torch_universal_ext(&env, &build, target_dir, force, ops_id)?,
+    let backend = match (backend, build.general.universal) {
+        (None, true) => return write_torch_universal_ext(&env, &build, target_dir, force, ops_id),
         (Some(backend), true) => bail!("Universal kernel, cannot generate for backend {}", backend),
-        // TODO: add check if that type of backend has at least one kernel.
         (Some(backend), false) => {
             if !build.has_kernel_with_backend(&backend) {
                 bail!("No kernels found for backend {}", backend);
             }
 
-            write_torch_ext(&env, &build, target_dir, force, ops_id)?
+            backend
         }
         (None, false) => {
             let mut kernel_backends = build.backends();
@@ -136,15 +135,16 @@ fn generate_torch(
                 );
             }
 
-            match backend {
-                Backend::Cuda | Backend::Rocm => {
-                    write_torch_ext(&env, &build, target_dir, force, ops_id)?
-                }
-            }
+            backend
         }
-    }
+    };
 
-    Ok(())
+    match backend {
+        Backend::Cuda | Backend::Rocm => {
+            write_torch_ext(&env, backend, &build, target_dir, force, ops_id)
+        }
+        Backend::Metal => write_torch_ext_metal(&env, &build, target_dir, force, ops_id),
+    }
 }
 
 fn update_build(build_toml: PathBuf) -> Result<()> {
