@@ -132,6 +132,11 @@
         packages = rec {
           build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
 
+          update-build = pkgs.writeShellScriptBin "update-build" ''
+            echo "Running build2cmake update-build build.toml..."
+            ${build2cmake}/bin/build2cmake update-build build.toml
+          '';
+
           # This package set is exposed so that we can prebuild the Torch versions.
           torch = builtins.listToAttrs (
             map (buildSet: {

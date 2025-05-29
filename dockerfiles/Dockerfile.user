@@ -117,6 +117,9 @@ function build_extension {
   # Check for flake.nix or create one
   ensure_flake_exists
   
+  # Make sure the build is up to date
+  nix run .#update-build
+
   # Pure bundle build
   # TODO: remove the "bundle" after resolving
   echo "Building with Nix..."
