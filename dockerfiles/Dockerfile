@@ -9,7 +9,7 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
     && nix profile install nixpkgs#cachix nixpkgs#git-lfs \
-    && cachix use kernel-builder
+    && cachix use huggingface
 WORKDIR /app
 # Copy builder files
 COPY . /etc/kernel-builder/
