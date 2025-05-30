@@ -42,6 +42,7 @@ rec {
       kernelBackend = kernel: kernel.backend;
       init = {
         cuda = false;
+        metal = false;
         rocm = false;
       };
     in
@@ -65,6 +66,7 @@ rec {
         buildSet:
         (buildSet.gpu == "cuda" && backends'.cuda)
         || (buildSet.gpu == "rocm" && backends'.rocm)
+        || (buildSet.gpu == "metal" && backends'.metal)
         || (buildConfig.general.universal or false);
     in
     builtins.filter supportedBuildSet buildSets;
@@ -102,7 +104,13 @@ rec {
           _: buildConfig: builtins.length (buildConfig.cuda-capabilities or supportedCudaCapabilities)
         ) buildConfig.kernel
       );
-      stdenv = if oldLinuxCompat then pkgs.stdenvGlibc_2_27 else pkgs.cudaPackages.backendStdenv;
+      stdenv =
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          pkgs.stdenv
+        else if oldLinuxCompat then
+          pkgs.stdenvGlibc_2_27
+        else
+          pkgs.cudaPackages.backendStdenv;
     in
     if buildConfig.general.universal then
       # No torch extension sources? Treat it as a noarch package.
