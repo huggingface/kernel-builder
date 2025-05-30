@@ -19,7 +19,7 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
     # Install necessary packages
     && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
-    && cachix use kernel-builder 
+    && cachix use huggingface
 
 # Set permissions for Nix directories
 RUN chown -R nixuser:nixuser /nix
