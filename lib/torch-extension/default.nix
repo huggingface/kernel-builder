@@ -23,6 +23,7 @@
   build2cmake,
   rocmPackages,
 
+  apple-sdk_15,
   extraDeps ? [ ],
   torch,
 
@@ -51,7 +52,12 @@ stdenv.mkDerivation (prevAttrs: {
   # Generate build files.
   postPatch = ''
     build2cmake generate-torch --backend ${
-      if cudaSupport then "cuda" else "rocm"
+      if cudaSupport then
+        "cuda"
+      else if rocmSupport then
+        "rocm"
+      else
+        "metal"
     } --ops-id ${rev} build.toml
   '';
 
@@ -96,6 +102,9 @@ stdenv.mkDerivation (prevAttrs: {
       ]
     )
     #++ lib.optionals rocmSupport (with rocmPackages; [ clr rocm-core ])
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      apple-sdk_15
+    ]
     ++ extraDeps;
 
   env =

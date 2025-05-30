@@ -29,13 +29,22 @@ let
     {
       gpu,
       cudaVersion ? "",
+      metal ? false,
       rocmVersion ? "",
       torchVersion,
       cxx11Abi,
       upstreamVariant ? false,
     }:
     let
-      pkgs = if gpu == "cuda" then pkgsByCudaVer.${cudaVersion} else pkgsByRocmVer.${rocmVersion};
+      pkgs =
+        if gpu == "cuda" then
+          pkgsByCudaVer.${cudaVersion}
+        else if gpu == "rocm" then
+          pkgsByRocmVer.${rocmVersion}
+        else if gpu == "metal" then
+          pkgsForMetal
+        else
+          throw "Unknown compute framework: ${gpu}";
       torch = pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
         inherit cxx11Abi;
       };
@@ -48,6 +57,14 @@ let
         upstreamVariant
         ;
     };
+
+  pkgsForMetal = import nixpkgs {
+    inherit system;
+    overlays = [
+      hf-nix
+      overlay
+    ];
+  };
 
   pkgsForRocm = import nixpkgs {
     inherit system;

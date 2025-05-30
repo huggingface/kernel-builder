@@ -69,6 +69,13 @@ rec {
       cxx11Abi = true;
       upstreamVariant = true;
     }
+    {
+      torchVersion = "2.7";
+      cxx11Abi = true;
+      metal = true;
+      # Set to false for now, needs more testing.
+      upstreamVariant = false;
+    }
 
     # Non-standard versions; not included in bundle builds.
     {
@@ -98,21 +105,27 @@ rec {
       system == "aarch64-linux" && lib.strings.versionAtLeast (torchVersion.cudaVersion or "0.0") "12.6"
     );
 
+  isMetalSupported = system: torchVersion: system == "aarch64-darwin" && torchVersion ? metal;
+
   # ROCm only builds on x86_64.
   isRocmSupported = system: torchVersion: system == "x86_64-linux" && torchVersion ? rocmVersion;
 
   isSupported =
     system: torchVersion:
-    (isCudaSupported system torchVersion) || (isRocmSupported system torchVersion);
+    (isCudaSupported system torchVersion)
+    || (isMetalSupported system torchVersion)
+    || (isRocmSupported system torchVersion);
 
   computeFramework =
     buildConfig:
     if buildConfig ? cudaVersion then
       "cuda"
+    else if buildConfig ? metal then
+      "metal"
     else if buildConfig ? "rocmVersion" then
       "rocm"
     else
-      throw "No CUDA or ROCm version specified";
+      throw "Could not find compute framework: no CUDA or ROCm version specified and Metal is not enabled";
 
   # All build configurations supported by Torch.
   buildConfigs =

@@ -15,4 +15,7 @@ let
   gpuVersion = torch: (if torch.cudaSupport then cudaVersion else rocmVersion) torch;
   torchVersion = torch: flattenVersion torch.version;
 in
-"torch${torchVersion torch}-${abi torch}-${gpuVersion torch}-${targetPlatform}"
+if pkgs.stdenv.hostPlatform.isDarwin then
+  "torch${torchVersion torch}-metal-${targetPlatform}"
+else
+  "torch${torchVersion torch}-${abi torch}-${gpuVersion torch}-${targetPlatform}"

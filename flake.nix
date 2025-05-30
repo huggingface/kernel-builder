@@ -18,6 +18,7 @@
     }:
     let
       systems = with flake-utils.lib.system; [
+        aarch64-darwin
         aarch64-linux
         x86_64-linux
       ];
@@ -60,11 +61,13 @@
               build = libPerSystem.${system};
               revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] rev;
               pkgs = nixpkgs.legacyPackages.${system};
+              shellTorch =
+                if system == "aarch64-darwin" then "torch27-metal-${system}" else "torch27-cxx11-cu126-${system}";
             in
             {
               devShells = rec {
-                default = devShells."torch27-cxx11-cu126-${system}";
-                test = testShells."torch27-cxx11-cu126-${system}";
+                default = devShells.${shellTorch};
+                test = testShells.${shellTorch};
                 devShells = build.torchDevShells {
                   inherit path;
                   rev = revUnderscored;
@@ -172,7 +175,9 @@
                 }) buildSets
               );
             in
-            pkgs.linkFarm "packages-for-cache" (torchOutputs // oldLinuxStdenvs);
+            pkgs.linkFarm "packages-for-cache" (
+              torchOutputs // lib.optionalAttrs nixpkgs.legacyPackages.${system}.stdenv.isLinux oldLinuxStdenvs
+            );
         };
       }
     )
