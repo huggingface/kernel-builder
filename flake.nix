@@ -20,6 +20,8 @@
       systems = with flake-utils.lib.system; [
         aarch64-linux
         x86_64-linux
+        aarch64-darwin
+        x86_64-darwin
       ];
 
       # Create an attrset { "<system>" = [ <buildset> ...]; ... }.
@@ -35,10 +37,15 @@
 
       libPerSystem = builtins.mapAttrs (
         system: buildSet:
-        import lib/build.nix {
-          inherit (nixpkgs) lib;
-          buildSets = buildSetPerSystem.${system};
-        }
+        # Only create lib functions for systems that have buildSets
+        if buildSetPerSystem.${system} != [] then
+          import lib/build.nix {
+            inherit (nixpkgs) lib;
+            buildSets = buildSetPerSystem.${system};
+          }
+        else
+          # For systems without buildSets (Darwin), provide empty lib
+          {}
       ) buildSetPerSystem;
 
       # The lib output consists of two parts:
@@ -60,7 +67,10 @@
               build = libPerSystem.${system};
               revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] rev;
               pkgs = nixpkgs.legacyPackages.${system};
+              # Check if this system has torch support
+              hasTorchSupport = buildSetPerSystem.${system} != [];
             in
+            if hasTorchSupport then
             {
               devShells = rec {
                 default = devShells."torch27-cxx11-cu126-${system}";
@@ -108,6 +118,14 @@
                     '';
               };
             }
+            else
+            {
+              # For systems without torch support (Darwin), only provide build2cmake tools
+              packages = {
+                build2cmake = self.packages.${system}.build2cmake;
+                update-build = self.packages.${system}.update-build;
+              };
+            }
           );
       } // libPerSystem;
 
@@ -133,11 +151,13 @@
           build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
 
           update-build = pkgs.writeShellScriptBin "update-build" ''
-            echo "Running build2cmake update-build build.toml..."
-            ${build2cmake}/bin/build2cmake update-build build.toml
+            BUILD_FILE="''${1:-build.toml}"
+            echo "Running build2cmake update-build on: $BUILD_FILE"
+            ${build2cmake}/bin/build2cmake update-build "$BUILD_FILE"
           '';
 
           # This package set is exposed so that we can prebuild the Torch versions.
+          # Only available on systems with CUDA/ROCm support (Linux)
           torch = builtins.listToAttrs (
             map (buildSet: {
               name = buildVersion buildSet;
@@ -146,7 +166,8 @@
           );
 
           # Dependencies that should be cached.
-          forCache =
+          # Only available on systems with CUDA/ROCm support (Linux)
+          forCache = lib.optionalAttrs (buildSets != []) (
             let
               filterDist = lib.filter (output: output != "dist");
               # Get all `torch` outputs except for `dist`. Not all outputs
@@ -172,7 +193,8 @@
                 }) buildSets
               );
             in
-            pkgs.linkFarm "packages-for-cache" (torchOutputs // oldLinuxStdenvs);
+            pkgs.linkFarm "packages-for-cache" (torchOutputs // oldLinuxStdenvs)
+          );
         };
       }
     )
