@@ -118,7 +118,7 @@ function build_extension {
   ensure_flake_exists
   
   # Make sure the build is up to date
-  nix run .#update-build
+  nix run github:huggingface/kernel-builder#update-build -- build.toml
 
   # Pure bundle build
   # TODO: remove the "bundle" after resolving

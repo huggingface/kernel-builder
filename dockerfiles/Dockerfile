@@ -99,7 +99,7 @@ function build_extension {
   ensure_flake_exists "${work_dir}"
 
   # Make sure the build is up to date
-  nix run .#update-build
+  nix run github:huggingface/kernel-builder#update-build -- build.toml
   
   # Pure bundle build
   echo "Building with Nix..."
