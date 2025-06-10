@@ -195,21 +195,121 @@ rec {
   # Get a development shell with the extension in PYTHONPATH. Handy
   # for running tests.
   torchExtensionShells =
-    { path, rev }:
+    { path, rev, extraPythonPackages ? [] }:
     let
+      buildConfig = readBuildConfig path;
+      # Get extra Python packages from build.toml or parameter
+      configExtraPackages = buildConfig.test.python-packages or [];
+      configGitPackages = buildConfig.test.python-git-packages or [];
+      allExtraPackages = extraPythonPackages ++ configExtraPackages;
+      
       shellForBuildSet =
         { path, rev }:
         buildSet: {
           name = torchBuildVersion buildSet;
           value =
             with buildSet.pkgs;
+            let
+              # Function to resolve regular nixpkgs packages
+              resolvePythonPackage = name:
+                if builtins.hasAttr name python3.pkgs
+                then python3.pkgs.${name}
+                else throw "Python package '${name}' not found in nixpkgs";
+              
+              # Function to build packages from Git URLs
+              buildGitPackage = spec:
+                let
+                  # Parse the spec - can be just URL or { url = "..."; ref = "..."; sha256 = "..."; }
+                  gitSpec = if builtins.isString spec then { url = spec; } else spec;
+                  gitUrl = gitSpec.url;
+                  gitRef = gitSpec.ref or "main";
+                  gitRev = gitSpec.rev or null;
+                  packageName = gitSpec.name or (builtins.baseNameOf (lib.removeSuffix ".git" gitUrl));
+                  
+                  # Require sha256 for Git packages to work in pure evaluation mode
+                  gitSrc = if gitSpec ? sha256 then
+                    if gitRev != null then
+                      fetchgit {
+                        url = gitUrl;
+                        rev = gitRev;
+                        sha256 = gitSpec.sha256;
+                      }
+                    else
+                      # fetchgit doesn't support 'ref', so we need to resolve the ref to a rev first
+                      # For now, we'll require users to use 'rev' instead of 'ref' with fetchgit
+                      throw ''
+                        Git package "${packageName}" uses 'ref' but fetchgit requires 'rev'.
+                        
+                        To fix this, get the commit hash for the ref and use 'rev' instead:
+                        
+                        # Get the commit hash for the tag/branch:
+                        git ls-remote ${gitUrl} ${gitRef}
+                        
+                        # Or use nix-prefetch-git with the commit hash:
+                        nix-prefetch-git --url ${gitUrl} --rev <commit-hash-from-above>
+                        
+                        Then update your build.toml to use 'rev' instead of 'ref':
+                        python-git-packages = [
+                          { url = "${gitUrl}", rev = "<commit-hash>", sha256 = "${gitSpec.sha256}" }
+                        ]
+                      ''
+                  else
+                    throw ''
+                      Git package "${packageName}" is missing required sha256 hash.
+                      
+                      To fix this:
+                      
+                      1. Get the commit hash for your ref:
+                         git ls-remote ${gitUrl} ${if gitRev != null then gitRev else gitRef}
+                      
+                      2. Get the sha256 hash:
+                         nix-prefetch-git --url ${gitUrl} --rev <commit-hash-from-step-1>
+                      
+                      3. Update your build.toml:
+                         python-git-packages = [
+                           { url = "${gitUrl}", rev = "<commit-hash>", sha256 = "<hash-from-step-2>" }
+                         ]
+                    '';
+                in
+                python3.pkgs.buildPythonPackage {
+                  pname = packageName;
+                  version = if gitRev != null then "git-${lib.substring 0 7 gitRev}" else "git-${gitRef}";
+                  src = gitSrc;
+                  
+                  # Use setuptools format for maximum compatibility
+                  format = "setuptools";
+                  
+                  # Basic build dependencies
+                  nativeBuildInputs = with python3.pkgs; [
+                    setuptools
+                    wheel
+                  ];
+                  
+                  # Allow builds to fail gracefully during development
+                  doCheck = false;
+                  
+                  meta = {
+                    description = "Python package from Git: ${gitUrl}";
+                    homepage = gitUrl;
+                  };
+                };
+              
+              # Resolve all regular packages
+              extraPackages = map resolvePythonPackage allExtraPackages;
+              
+              # Build all Git packages
+              gitPackages = map buildGitPackage configGitPackages;
+              
+              # Combine all packages
+              allPackages = extraPackages ++ gitPackages;
+            in
             mkShell {
               buildInputs = [
                 (python3.withPackages (
                   ps: with ps; [
                     buildSet.torch
                     pytest
-                  ]
+                  ] ++ allPackages
                 ))
               ];
               shellHook = ''
@@ -217,7 +317,7 @@ rec {
               '';
             };
         };
-      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
+      filteredBuildSets = applicableBuildSets buildConfig buildSets;
     in
     builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) filteredBuildSets);
 

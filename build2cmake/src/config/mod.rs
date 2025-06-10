@@ -5,7 +5,7 @@ pub mod v1;
 
 mod v2;
 use serde_value::Value;
-pub use v2::{Backend, Build, Dependencies, Kernel, Torch};
+pub use v2::{Backend, Build, Dependencies, GitPackageSpec, Kernel, Test, Torch};
 
 #[derive(Debug)]
 pub enum BuildCompat {

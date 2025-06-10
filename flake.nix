@@ -54,7 +54,7 @@
           in
           builtins.toJSON (nixpkgs.lib.foldl' (acc: system: acc // buildVariants system) { } systems);
         genFlakeOutputs =
-          { path, rev }:
+          { path, rev, extraPythonPackages ? [] }:
           flake-utils.lib.eachSystem systems (
             system:
             let
@@ -73,7 +73,7 @@
                   rev = revUnderscored;
                 };
                 testShells = build.torchExtensionShells {
-                  inherit path;
+                  inherit path extraPythonPackages;
                   rev = revUnderscored;
                 };
               };
@@ -182,5 +182,11 @@
     )
     // {
       inherit lib;
+      # Export the helper function
+      mkShellsWithExtraPackages = extraPythonPackages: {
+        genFlakeOutputs =
+          { path, rev }:
+          lib.genFlakeOutputs { inherit path rev extraPythonPackages; };
+      };
     };
 }
