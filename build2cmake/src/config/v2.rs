@@ -58,7 +58,7 @@ pub struct Torch {
 pub struct Test {
     #[serde(default)]
     pub python_packages: Vec<String>,
-    
+
     #[serde(default)]
     pub python_git_packages: Vec<GitPackageSpec>,
 }
