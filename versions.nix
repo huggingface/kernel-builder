@@ -73,8 +73,7 @@ rec {
       torchVersion = "2.7";
       cxx11Abi = true;
       metal = true;
-      # Set to false for now, needs more testing.
-      upstreamVariant = false;
+      upstreamVariant = true;
     }
 
     # Non-standard versions; not included in bundle builds.
@@ -100,12 +99,13 @@ rec {
   # Upstream only builds aarch64 for CUDA >= 12.6.
   isCudaSupported =
     system: torchVersion:
-    system == "x86_64-linux"
+    (system == "x86_64-linux" && torchVersion ? cudaVersion)
     || (
       system == "aarch64-linux" && lib.strings.versionAtLeast (torchVersion.cudaVersion or "0.0") "12.6"
     );
 
-  isMetalSupported = system: torchVersion: system == "aarch64-darwin" && torchVersion ? metal;
+  isMetalSupported =
+    system: torchVersion: system == "aarch64-darwin" && (torchVersion.metal or false);
 
   # ROCm only builds on x86_64.
   isRocmSupported = system: torchVersion: system == "x86_64-linux" && torchVersion ? rocmVersion;
@@ -146,6 +146,8 @@ rec {
           "cu${flattenVersion (lib.versions.majorMinor buildConfig.cudaVersion)}"
         else if buildConfig.gpu == "rocm" then
           "rocm${flattenVersion (lib.versions.majorMinor buildConfig.rocmVersion)}"
+        else if buildConfig.gpu == "metal" then
+          "metal"
         else
           throw "Unknown compute framework: ${buildConfig.gpu}";
       buildName =
