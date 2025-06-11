@@ -1,5 +1,9 @@
 {
-  "aarch64-darwin": {},
+  "aarch64-darwin": {
+    "metal": [
+      "torch27-cxx11-metal-aarch64-darwin"
+    ]
+  },
   "aarch64-linux": {
     "cuda": [
       "torch26-cxx11-cu126-aarch64-linux",

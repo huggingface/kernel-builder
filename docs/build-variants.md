@@ -5,6 +5,10 @@ architecture (e.g. x86_64). For compliance with a compute framework and
 architecture combination, all the build variants listed below must be
 available. This list will be updated as new PyTorch versions are released.
 
+## Metal aarch64-darwin
+
+- `torch27-cxx11-metal-aarch64-darwin`
+
 ## CUDA aarch64-linux
 
 - `torch26-cxx11-cu126-aarch64-linux`
