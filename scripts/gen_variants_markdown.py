@@ -5,6 +5,7 @@ from pathlib import Path
 
 _PLATFORM_NAMES = {
     "cuda": "CUDA",
+    "metal": "Metal",
     "rocm": "ROCm",
 }
 
