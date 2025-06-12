@@ -206,9 +206,22 @@ rec {
           value =
             with buildSet.pkgs;
             let
-              # Function to resolve nixpkgs packages
+              # Function to resolve nixpkgs packages or build from git
               resolvePythonPackage = name:
-                if builtins.hasAttr name python3.pkgs
+                if lib.hasPrefix "git+" name then
+                  let
+                    gitUrl = lib.removePrefix "git+" name;
+                    # Extract repo name from URL for package name
+                    repoName = lib.last (lib.splitString "/" (lib.removeSuffix ".git" gitUrl));
+                  in
+                  python3.pkgs.buildPythonPackage {
+                    pname = repoName;
+                    version = "git";
+                    src = fetchGit { url = gitUrl; };
+                    doCheck = false;
+                    nativeBuildInputs = [ python3.pkgs.setuptools python3.pkgs.wheel ];
+                  }
+                else if builtins.hasAttr name python3.pkgs
                 then python3.pkgs.${name}
                 else throw "Python package '${name}' not found in nixpkgs";
               
@@ -255,7 +268,19 @@ rec {
               (python3.withPackages (ps: with ps; [
                 pytest 
               ] ++ (map (name: 
-                if builtins.hasAttr name python3.pkgs
+                if lib.hasPrefix "git+" name then
+                  let
+                    gitUrl = lib.removePrefix "git+" name;
+                    repoName = lib.last (lib.splitString "/" (lib.removeSuffix ".git" gitUrl));
+                  in
+                  python3.pkgs.buildPythonPackage {
+                    pname = repoName;
+                    version = "git";
+                    src = fetchGit { url = gitUrl; };
+                    doCheck = false;
+                    nativeBuildInputs = [ python3.pkgs.setuptools python3.pkgs.wheel ];
+                  }
+                else if builtins.hasAttr name python3.pkgs
                 then python3.pkgs.${name}
                 else throw "Python package '${name}' not found in nixpkgs"
               ) extraPythonPackages)))
