@@ -20,7 +20,7 @@ pub struct Build {
     #[serde(rename = "kernel", default)]
     pub kernels: HashMap<String, Kernel>,
 
-    pub test: Option<Test>,
+
 }
 
 impl Build {
@@ -53,29 +53,7 @@ pub struct Torch {
     pub src: Vec<PathBuf>,
 }
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub struct Test {
-    #[serde(default)]
-    pub python_packages: Vec<String>,
 
-    #[serde(default)]
-    pub python_git_packages: Vec<GitPackageSpec>,
-}
-
-#[derive(Debug, Deserialize, Clone, Serialize)]
-#[serde(untagged)]
-pub enum GitPackageSpec {
-    Url(String),
-    Detailed {
-        url: String,
-        #[serde(rename = "ref")]
-        git_ref: Option<String>,
-        rev: Option<String>,
-        sha256: Option<String>,
-        name: Option<String>,
-    },
-}
 
 impl Torch {
     pub fn data_globs(&self) -> Option<Vec<String>> {
@@ -168,7 +146,7 @@ impl TryFrom<v1::Build> for Build {
             general: General::from(build.general, universal),
             torch: build.torch.map(Into::into),
             kernels: convert_kernels(build.kernels)?,
-            test: None,
+
         })
     }
 }
