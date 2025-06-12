@@ -15,6 +15,6 @@
       path = ./.;
       rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
       # Example of adding Python test dependencies directly in the flake
-      pythonTestDeps = [ "numpy" "pytest-benchmark" ];
+      pythonTestDeps = [ "pytest-benchmark" ];
     };
 }
