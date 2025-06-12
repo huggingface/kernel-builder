@@ -58,7 +58,8 @@
             path, 
             rev, 
             pythonTestDeps ? [], 
-            pythonDevDeps ? [] 
+            pythonDevDeps ? [],
+            customPythonPackages ? {}
           }:
           flake-utils.lib.eachSystem systems (
             system:
@@ -77,11 +78,13 @@
                   inherit path;
                   rev = revUnderscored;
                   extraPythonPackages = pythonDevDeps;
+                  inherit customPythonPackages;
                 };
                 testShells = build.torchExtensionShells {
                   inherit path;
                   rev = revUnderscored;
                   extraPythonPackages = pythonTestDeps;
+                  inherit customPythonPackages;
                 };
               };
               packages = rec {
