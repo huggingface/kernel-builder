@@ -19,8 +19,6 @@ pub struct Build {
 
     #[serde(rename = "kernel", default)]
     pub kernels: HashMap<String, Kernel>,
-
-
 }
 
 impl Build {
@@ -52,8 +50,6 @@ pub struct Torch {
     #[serde(default)]
     pub src: Vec<PathBuf>,
 }
-
-
 
 impl Torch {
     pub fn data_globs(&self) -> Option<Vec<String>> {
@@ -146,7 +142,6 @@ impl TryFrom<v1::Build> for Build {
             general: General::from(build.general, universal),
             torch: build.torch.map(Into::into),
             kernels: convert_kernels(build.kernels)?,
-
         })
     }
 }
