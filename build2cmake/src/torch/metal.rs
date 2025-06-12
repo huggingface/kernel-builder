@@ -12,6 +12,7 @@ use crate::{
 
 static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
 static REGISTRATION_H: &str = include_str!("../templates/registration.h");
+static COMPILE_METAL_CMAKE: &str = include_str!("../templates/metal/compile-metal.cmake");
 
 pub fn write_torch_ext_metal(
     env: &Environment,
@@ -71,6 +72,13 @@ fn write_cmake(
     file_set
         .entry(utils_path.clone())
         .extend_from_slice(CMAKE_UTILS.as_bytes());
+
+    let mut compile_metal_path = PathBuf::new();
+    compile_metal_path.push("cmake");
+    compile_metal_path.push("compile-metal.cmake");
+    file_set
+        .entry(compile_metal_path)
+        .extend_from_slice(COMPILE_METAL_CMAKE.as_bytes());
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 

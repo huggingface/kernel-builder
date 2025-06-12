@@ -26,3 +26,6 @@ append_cmake_prefix_path("torch" "torch.utils.cmake_prefix_path")
 find_package(Torch REQUIRED)
 
 add_compile_definitions(METAL_KERNEL)
+
+# Initialize list for Metal shader sources
+set(ALL_METAL_SOURCES)
