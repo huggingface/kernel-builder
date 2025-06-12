@@ -10,18 +10,35 @@ function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
     set(METALLIB_OUTPUT_DIR "${CMAKE_BINARY_DIR}/metallib")
     file(MAKE_DIRECTORY ${METALLIB_OUTPUT_DIR})
     
-    # Compile each .metal file to .air
+    # Separate .metal files from .h files and compile .metal files to .air
     set(AIR_FILES)
-    foreach(METAL_FILE ${METAL_SOURCES})
+    set(METAL_FILES)
+    set(HEADER_FILES)
+    
+    foreach(SOURCE_FILE ${METAL_SOURCES})
+        if(SOURCE_FILE MATCHES "\\.metal$")
+            list(APPEND METAL_FILES ${SOURCE_FILE})
+        elseif(SOURCE_FILE MATCHES "\\.h$")
+            list(APPEND HEADER_FILES ${SOURCE_FILE})
+        endif()
+    endforeach()
+    
+    foreach(METAL_FILE ${METAL_FILES})
         get_filename_component(METAL_NAME ${METAL_FILE} NAME_WE)
         set(AIR_FILE "${CMAKE_BINARY_DIR}/${METAL_NAME}.air")
+        
+        # Include header files as dependencies
+        set(ALL_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/${METAL_FILE})
+        foreach(HEADER_FILE ${HEADER_FILES})
+            list(APPEND ALL_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER_FILE})
+        endforeach()
         
         add_custom_command(
             OUTPUT ${AIR_FILE}
             COMMAND ${METAL_COMPILER} -sdk macosx metal ${METAL_FLAGS}
                     -c ${CMAKE_CURRENT_SOURCE_DIR}/${METAL_FILE}
                     -o ${AIR_FILE}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${METAL_FILE}
+            DEPENDS ${ALL_DEPENDENCIES}
             COMMENT "Compiling Metal shader ${METAL_FILE} to ${AIR_FILE}"
             VERBATIM
         )

@@ -18,6 +18,7 @@ backend = "metal"
 src = [
   "relu_metal/relu.mm",
   "relu_metal/relu.metal",
+  "relu_metal/common.h",
 ]
 depends = [ "torch" ]
 

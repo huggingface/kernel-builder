@@ -7,7 +7,7 @@ set({{kernel_name}}_METAL_SRC)
 set({{kernel_name}}_CPP_SRC)
 
 foreach(src_file IN LISTS {{kernel_name}}_SRC)
-  if(src_file MATCHES "\\.metal$")
+  if(src_file MATCHES "\\.(metal|h)$")
     list(APPEND {{kernel_name}}_METAL_SRC ${src_file})
   else()
     list(APPEND {{kernel_name}}_CPP_SRC ${src_file})
