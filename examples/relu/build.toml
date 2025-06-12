@@ -17,6 +17,7 @@ src = ["relu_cuda/relu.cu"]
 backend = "metal"
 src = [
   "relu_metal/relu.mm",
+  "relu_metal/relu.metal",
 ]
 depends = [ "torch" ]
 

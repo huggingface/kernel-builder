@@ -93,7 +93,7 @@ fn write_cmake(
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
-    render_extension(env, ops_name, cmake_writer)?;
+    render_extension(env, name, ops_name, cmake_writer)?;
 
     Ok(())
 }
@@ -121,11 +121,12 @@ fn render_binding(
     Ok(())
 }
 
-pub fn render_extension(env: &Environment, ops_name: &str, write: &mut impl Write) -> Result<()> {
+pub fn render_extension(env: &Environment, name: &str, ops_name: &str, write: &mut impl Write) -> Result<()> {
     env.get_template("metal/torch-extension.cmake")
         .wrap_err("Cannot get Torch extension template")?
         .render_to_write(
             context! {
+                name => name,
                 ops_name => ops_name,
             },
             &mut *write,

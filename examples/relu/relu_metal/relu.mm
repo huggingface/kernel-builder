@@ -3,28 +3,23 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #include <string>
-
-char const *CUSTOM_KERNEL = R"(
-        #include <metal_stdlib>
-        using namespace metal;
-
-        kernel void relu_forward_kernel_float(device const float *inA [[buffer(0)]],
-                                        device float *outC [[buffer(1)]],
-                                        uint index [[thread_position_in_grid]]) {
-            // Explicitly write to output
-            outC[index] = max(0.0f, inA[index]);
-        }
-
-        kernel void relu_forward_kernel_half(device const half *inA [[buffer(0)]],
-                                        device half *outC [[buffer(1)]],
-                                        uint index [[thread_position_in_grid]]) {
-            // Explicitly write to output
-            outC[index] = max(static_cast<half>(0.0), inA[index]);
-        }
-)";
+#include <dlfcn.h>
+#include <mach-o/dyld.h>
 
 static inline id<MTLBuffer> getMTLBufferStorage(const torch::Tensor &tensor) {
   return __builtin_bit_cast(id<MTLBuffer>, tensor.storage().data());
+}
+
+static std::string getModuleDirectory() {
+  Dl_info dl_info;
+  if (dladdr((void*)getModuleDirectory, &dl_info)) {
+    std::string path(dl_info.dli_fname);
+    size_t pos = path.find_last_of('/');
+    if (pos != std::string::npos) {
+      return path.substr(0, pos);
+    }
+  }
+  return ".";
 }
 
 torch::Tensor &dispatchReluKernel(torch::Tensor const &input,
@@ -35,13 +30,16 @@ torch::Tensor &dispatchReluKernel(torch::Tensor const &input,
 
     int numThreads = input.numel();
 
-    id<MTLLibrary> customKernelLibrary = [device
-        newLibraryWithSource:[NSString stringWithUTF8String:CUSTOM_KERNEL]
-                     options:nil
-                       error:&error];
-    TORCH_CHECK(customKernelLibrary,
-                "Failed to to create custom kernel library, error: ",
-                error.localizedDescription.UTF8String);
+    // Construct the full path to the metallib file
+    std::string moduleDir = getModuleDirectory();
+    std::string metallibPath = moduleDir + "/" + METALLIB_PATH;
+    
+    NSString *metallibPathStr = [NSString stringWithUTF8String:metallibPath.c_str()];
+    NSURL *metallibURL = [NSURL fileURLWithPath:metallibPathStr];
+    id<MTLLibrary> customKernelLibrary = [device newLibraryWithURL:metallibURL error:&error];
+    if (!customKernelLibrary) {
+      NSLog(@"[relu.mm] Failed to load pre-compiled Metal library at %@, will fall back to runtime compilation. Error: %@", metallibPathStr, error.localizedDescription);
+    }
 
     std::string kernel_name =
         std::string("relu_forward_kernel_") +
