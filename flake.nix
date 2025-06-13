@@ -58,8 +58,8 @@
             path,
             rev,
 
-            checkInputs ? pkgs: [ ],
-            nativeCheckInputs ? pkgs: [ ],
+            pythonCheckInputs ? pkgs: [ ],
+            pythonNativeCheckInputs ? pkgs: [ ],
           }:
           flake-utils.lib.eachSystem systems (
             system:
@@ -75,11 +75,11 @@
                 default = devShells.${shellTorch};
                 test = testShells.${shellTorch};
                 devShells = build.torchDevShells {
-                  inherit checkInputs nativeCheckInputs path;
+                  inherit path pythonCheckInputs pythonNativeCheckInputs;
                   rev = revUnderscored;
                 };
                 testShells = build.torchExtensionShells {
-                  inherit checkInputs nativeCheckInputs path;
+                  inherit path pythonCheckInputs pythonNativeCheckInputs;
                   rev = revUnderscored;
                 };
               };

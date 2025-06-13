@@ -198,8 +198,8 @@ rec {
     {
       path,
       rev,
-      checkInputs,
-      nativeCheckInputs,
+      pythonCheckInputs,
+      pythonNativeCheckInputs,
     }:
     let
       shellForBuildSet =
@@ -214,7 +214,7 @@ rec {
         {
           name = torchBuildVersion buildSet;
           value = mkShell {
-            nativeBuildInputs = with pkgs; nativeCheckInputs python3.pkgs;
+            nativeBuildInputs = with pkgs; pythonNativeCheckInputs python3.pkgs;
 
             buildInputs =
               with pkgs;
@@ -222,7 +222,7 @@ rec {
                 buildSet.torch
                 python3.pkgs.pytest
               ]
-              ++ (checkInputs python3.pkgs);
+              ++ (pythonCheckInputs python3.pkgs);
             shellHook = ''
               export PYTHONPATH=''${PYTHONPATH}:${buildTorchExtension buildSet { inherit path rev; }}
             '';
@@ -236,8 +236,8 @@ rec {
     {
       path,
       rev,
-      checkInputs,
-      nativeCheckInputs,
+      pythonCheckInputs,
+      pythonNativeCheckInputs,
     }:
     let
       shellForBuildSet =
@@ -257,8 +257,8 @@ rec {
                 build2cmake
                 kernel-abi-check
               ]
-              ++ (nativeCheckInputs python3.pkgs);
-            buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (checkInputs python3.pkgs);
+              ++ (pythonNativeCheckInputs python3.pkgs);
+            buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (pythonCheckInputs python3.pkgs);
             inputsFrom = [ (buildTorchExtension buildSet { inherit path rev; }) ];
             env = lib.optionalAttrs rocmSupport {
               PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
