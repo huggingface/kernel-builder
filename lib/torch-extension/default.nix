@@ -18,6 +18,7 @@
   cmake,
   cmakeNvccThreadsHook,
   ninja,
+  writeScriptBin,
   python3,
   kernel-abi-check,
   build2cmake,
@@ -42,6 +43,14 @@ let
       };
     }
   );
+
+  # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
+  # t's not supported by the nixpkgs shim.
+  xcrunHost = writeScriptBin "xcrunHost" ''
+    # Use system SDK for Metal files.
+    unset DEVELOPER_DIR
+    /usr/bin/xcrun $@
+  '';
 
 in
 stdenv.mkDerivation (prevAttrs: {
@@ -135,6 +144,10 @@ stdenv.mkDerivation (prevAttrs: {
       # the symlink-joined ROCm toolkit.
       (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
       (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      # Use host compiler for Metal. Not included in the redistributable SDK.
+      (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
     ];
 
   postInstall =
@@ -152,6 +165,9 @@ stdenv.mkDerivation (prevAttrs: {
     '';
 
   doInstallCheck = true;
+
+  # We need access to the host system on Darwin for the Metal compiler.
+  __noChroot = stdenv.hostPlatform.isDarwin;
 
   passthru = {
     inherit torch;
