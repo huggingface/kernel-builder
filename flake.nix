@@ -54,7 +54,13 @@
           in
           builtins.toJSON (nixpkgs.lib.foldl' (acc: system: acc // buildVariants system) { } systems);
         genFlakeOutputs =
-          { path, rev }:
+          {
+            path,
+            rev,
+
+            checkInputs ? pkgs: [ ],
+            nativeCheckInputs ? pkgs: [ ],
+          }:
           flake-utils.lib.eachSystem systems (
             system:
             let
@@ -69,11 +75,11 @@
                 default = devShells.${shellTorch};
                 test = testShells.${shellTorch};
                 devShells = build.torchDevShells {
-                  inherit path;
+                  inherit checkInputs nativeCheckInputs path;
                   rev = revUnderscored;
                 };
                 testShells = build.torchExtensionShells {
-                  inherit path;
+                  inherit checkInputs nativeCheckInputs path;
                   rev = revUnderscored;
                 };
               };
