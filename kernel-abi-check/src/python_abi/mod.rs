@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use eyre::Result;
-use object::{ObjectSymbol, Symbol};
+use object::{BinaryFormat, ObjectSymbol, Symbol};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
@@ -70,6 +70,7 @@ pub enum PythonAbiViolation {
 /// Check for violations of the Python ABI policy.
 pub fn check_python_abi<'a>(
     python_abi: &Version,
+    binary_format: BinaryFormat,
     symbols: impl IntoIterator<Item = Symbol<'a, 'a>>,
 ) -> Result<BTreeSet<PythonAbiViolation>> {
     let mut violations = BTreeSet::new();
@@ -78,7 +79,12 @@ pub fn check_python_abi<'a>(
             continue;
         }
 
-        let symbol_name = symbol.name()?;
+        let mut symbol_name = symbol.name()?;
+
+        if matches!(binary_format, BinaryFormat::MachO) {
+            // Mach-O C symbol mangling adds an underscore.
+            symbol_name = symbol_name.strip_prefix("_").unwrap_or(symbol_name);
+        }
 
         match PYTHON_STABLE_ABI.get(symbol_name) {
             Some(abi_info) => {

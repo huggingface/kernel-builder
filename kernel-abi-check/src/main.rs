@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     )?;
     print_manylinux_violations(&many_linux_violations, &args.manylinux)?;
 
-    let python_abi_violations = check_python_abi(&args.python_abi, file.symbols())?;
+    let python_abi_violations = check_python_abi(&args.python_abi, file.format(), file.symbols())?;
     print_python_abi_violations(&python_abi_violations, &args.python_abi);
 
     if !(many_linux_violations.is_empty() && python_abi_violations.is_empty()) {
