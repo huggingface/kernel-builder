@@ -54,12 +54,12 @@
           in
           builtins.toJSON (nixpkgs.lib.foldl' (acc: system: acc // buildVariants system) { } systems);
         genFlakeOutputs =
-          { 
-            path, 
-            rev, 
-            pythonTestDeps ? [], 
-            pythonDevDeps ? [],
-            customPythonPackages ? {}
+          {
+            path,
+            rev,
+            pythonTestDeps ? [ ],
+            pythonDevDeps ? [ ],
+            customPythonPackages ? { },
           }:
           flake-utils.lib.eachSystem systems (
             system:
@@ -193,12 +193,22 @@
     // {
       inherit lib;
       # Export the helper function
-      mkShellsWithExtraPackages = { pythonTestDeps ? [], pythonDevDeps ? [] }: {
-        genFlakeOutputs =
-          { path, rev }:
-          lib.genFlakeOutputs { 
-            inherit path rev pythonTestDeps pythonDevDeps; 
-          };
-      };
+      mkShellsWithExtraPackages =
+        {
+          pythonTestDeps ? [ ],
+          pythonDevDeps ? [ ],
+        }:
+        {
+          genFlakeOutputs =
+            { path, rev }:
+            lib.genFlakeOutputs {
+              inherit
+                path
+                rev
+                pythonTestDeps
+                pythonDevDeps
+                ;
+            };
+        };
     };
 }
