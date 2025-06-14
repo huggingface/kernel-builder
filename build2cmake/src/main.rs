@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
@@ -60,6 +60,24 @@ enum Commands {
         #[arg(name = "BUILD_TOML")]
         build_toml: PathBuf,
     },
+
+    /// Clean generated artifacts.
+    Clean {
+        #[arg(name = "BUILD_TOML")]
+        build_toml: PathBuf,
+
+        /// The directory to clean from (directory of `BUILD_TOML` when absent).
+        #[arg(name = "TARGET_DIR")]
+        target_dir: Option<PathBuf>,
+
+        /// Show what would be deleted without actually deleting.
+        #[arg(short, long)]
+        dry_run: bool,
+
+        /// Force deletion without confirmation.
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -77,6 +95,12 @@ fn main() -> Result<()> {
             parse_and_validate(build_toml)?;
             Ok(())
         }
+        Commands::Clean {
+            build_toml,
+            target_dir,
+            dry_run,
+            force,
+        } => clean(build_toml, target_dir, dry_run, force),
     }
 }
 
@@ -209,4 +233,143 @@ fn parse_and_validate(build_toml: impl AsRef<Path>) -> Result<BuildCompat> {
         .wrap_err_with(|| format!("Cannot parse TOML in {}", build_toml.to_string_lossy()))?;
 
     Ok(build_compat)
+}
+
+fn clean(
+    build_toml: PathBuf,
+    target_dir: Option<PathBuf>,
+    dry_run: bool,
+    force: bool,
+) -> Result<()> {
+    let target_dir = check_or_infer_target_dir(&build_toml, target_dir)?;
+    let build_compat = parse_and_validate(&build_toml)?;
+    let build: Build = build_compat
+        .try_into()
+        .context("Cannot parse build configuration")?;
+
+    let generated_files = get_generated_files(&build, &target_dir);
+
+    if generated_files.is_empty() {
+        println!("No generated artifacts found to clean.");
+        return Ok(());
+    }
+
+    if dry_run {
+        println!("Files that would be deleted:");
+        for file in &generated_files {
+            if file.exists() {
+                println!("  {}", file.to_string_lossy());
+            }
+        }
+        return Ok(());
+    }
+
+    let existing_files: Vec<_> = generated_files.iter().filter(|f| f.exists()).collect();
+
+    if existing_files.is_empty() {
+        println!("No generated artifacts found to clean.");
+        return Ok(());
+    }
+
+    if !force {
+        println!("Files to be deleted:");
+        for file in &existing_files {
+            println!("  {}", file.to_string_lossy());
+        }
+        print!("Continue? [y/N] ");
+        std::io::stdout().flush()?;
+
+        let mut response = String::new();
+        std::io::stdin().read_line(&mut response)?;
+        let response = response.trim().to_lowercase();
+
+        if response != "y" && response != "yes" {
+            println!("Aborted.");
+            return Ok(());
+        }
+    }
+
+    let mut deleted_count = 0;
+    let mut errors = Vec::new();
+
+    for file in existing_files {
+        match fs::remove_file(file) {
+            Ok(_) => {
+                deleted_count += 1;
+                println!("Deleted: {}", file.to_string_lossy());
+            }
+            Err(e) => {
+                errors.push(format!(
+                    "Failed to delete {}: {}",
+                    file.to_string_lossy(),
+                    e
+                ));
+            }
+        }
+    }
+
+    // Clean up empty directories
+    let dirs_to_check = [
+        target_dir.join("cmake"),
+        target_dir.join("torch-ext").join(&build.general.name),
+        target_dir.join("torch-ext"),
+    ];
+
+    for dir in dirs_to_check {
+        if dir.exists() && is_empty_dir(&dir)? {
+            match fs::remove_dir(&dir) {
+                Ok(_) => println!("Removed empty directory: {}", dir.to_string_lossy()),
+                Err(e) => eyre::bail!("Failed to remove directory `{}`: {e:?}", dir.display()),
+            }
+        }
+    }
+
+    if !errors.is_empty() {
+        for error in errors {
+            eprintln!("Error: {}", error);
+        }
+        bail!("Some files could not be deleted");
+    }
+
+    println!("Cleaned {} generated artifacts.", deleted_count);
+    Ok(())
+}
+
+fn get_generated_files(build: &Build, target_dir: &Path) -> Vec<PathBuf> {
+    let files = vec![
+        target_dir.join("CMakeLists.txt"),
+        target_dir.join("setup.py"),
+        target_dir.join("pyproject.toml"),
+        target_dir.join("cmake").join("utils.cmake"),
+        target_dir.join("cmake").join("hipify.py"),
+        target_dir.join("cmake").join("compile-metal.cmake"),
+        target_dir.join("torch-ext").join("registration.h"),
+        target_dir
+            .join("torch-ext")
+            .join(&build.general.name)
+            .join("_ops.py"),
+    ];
+
+    // Add backend-specific files if they exist
+    for backend in build.backends() {
+        match backend {
+            Backend::Cuda | Backend::Rocm => {
+                // These backends share the same generated files
+            }
+            Backend::Metal => {
+                // Metal-specific files are already included above
+            }
+        }
+    }
+
+    files
+}
+
+fn is_empty_dir(dir: &Path) -> Result<bool> {
+    if !dir.is_dir() {
+        return Ok(false);
+    }
+
+    let mut entries = fs::read_dir(dir)?;
+    Ok(entries.next().is_none())
 }
