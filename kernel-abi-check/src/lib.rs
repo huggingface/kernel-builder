@@ -1,5 +1,8 @@
 //! Functions for checking kernel ABI compatibility.
 
+mod macos;
+pub use macos::{check_macos, MacOSViolation};
+
 mod manylinux;
 pub use manylinux::{check_manylinux, ManylinuxViolation};
 

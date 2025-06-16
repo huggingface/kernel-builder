@@ -91,7 +91,7 @@ pub fn check_python_abi<'a>(
                 if &abi_info.added > python_abi {
                     violations.insert(PythonAbiViolation::IncompatibleAbi3Symbol {
                         name: symbol_name.to_string(),
-                        added: abi_info.added.clone(),
+                        added: abi_info.added,
                     });
                 }
             }
