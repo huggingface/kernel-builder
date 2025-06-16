@@ -276,7 +276,7 @@ fn clean(
     let generated_files = get_generated_files(&env, &build, target_dir.clone(), ops_id)?;
 
     if generated_files.is_empty() {
-        println!("No generated artifacts found to clean.");
+        eprintln!("No generated artifacts found to clean.");
         return Ok(());
     }
 
@@ -293,7 +293,7 @@ fn clean(
     let existing_files: Vec<_> = generated_files.iter().filter(|f| f.exists()).collect();
 
     if existing_files.is_empty() {
-        println!("No generated artifacts found to clean.");
+        eprintln!("No generated artifacts found to clean.");
         return Ok(());
     }
 
@@ -310,7 +310,7 @@ fn clean(
         let response = response.trim().to_lowercase();
 
         if response != "y" && response != "yes" {
-            println!("Aborted.");
+            eprintln!("Aborted.");
             return Ok(());
         }
     }
@@ -372,10 +372,10 @@ fn get_generated_files(
     for backend in build.backends() {
         let set = match backend {
             Backend::Cuda | Backend::Rocm => {
-                write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id.clone())?
+                write_torch_ext_cuda(env, backend, build, target_dir.clone(), ops_id.clone())?
             }
             Backend::Metal => {
-                write_torch_ext_metal(&env, &build, target_dir.clone(), ops_id.clone())?
+                write_torch_ext_metal(env, build, target_dir.clone(), ops_id.clone())?
             }
         };
 
@@ -383,7 +383,7 @@ fn get_generated_files(
     }
 
     if build.general.universal {
-        let set = write_torch_ext_universal(&env, build, target_dir, ops_id)?;
+        let set = write_torch_ext_universal(env, build, target_dir, ops_id)?;
 
         all_set.extend(set);
     }

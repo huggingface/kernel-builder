@@ -48,7 +48,7 @@ impl FileSet {
     }
 
     pub fn extend(&mut self, other: FileSet) {
-        self.0.extend(other.0.into_iter());
+        self.0.extend(other.0);
     }
 
     pub fn into_names(self) -> Vec<PathBuf> {
