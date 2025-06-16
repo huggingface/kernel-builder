@@ -46,6 +46,14 @@ impl FileSet {
 
         Ok(())
     }
+
+    pub fn extend(&mut self, other: FileSet) {
+        self.0.extend(other.0.into_iter());
+    }
+
+    pub fn into_names(self) -> Vec<PathBuf> {
+        self.0.into_keys().collect()
+    }
 }
 
 impl Default for FileSet {

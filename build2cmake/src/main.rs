@@ -9,7 +9,7 @@ use eyre::{bail, ensure, Context, Result};
 use minijinja::Environment;
 
 mod torch;
-use torch::{write_torch_ext, write_torch_ext_metal, write_torch_universal_ext};
+use torch::{write_torch_ext_cuda, write_torch_ext_metal, write_torch_ext_universal};
 
 mod config;
 use config::{Backend, Build, BuildCompat};
@@ -77,6 +77,11 @@ enum Commands {
         /// Force deletion without confirmation.
         #[arg(short, long)]
         force: bool,
+
+        /// This is an optional unique identifier that is suffixed to the
+        /// kernel name to avoid name collisions. (e.g. Git SHA)
+        #[arg(long)]
+        ops_id: Option<String>,
     },
 }
 
@@ -100,7 +105,8 @@ fn main() -> Result<()> {
             target_dir,
             dry_run,
             force,
-        } => clean(build_toml, target_dir, dry_run, force),
+            ops_id,
+        } => clean(build_toml, target_dir, dry_run, force, ops_id),
     }
 }
 
@@ -130,7 +136,11 @@ fn generate_torch(
     minijinja_embed::load_templates!(&mut env);
 
     let backend = match (backend, build.general.universal) {
-        (None, true) => return write_torch_universal_ext(&env, &build, target_dir, force, ops_id),
+        (None, true) => {
+            let file_set = write_torch_ext_universal(&env, &build, target_dir.clone(), ops_id)?;
+            file_set.write(&target_dir, force)?;
+            return Ok(());
+        }
         (Some(backend), true) => bail!("Universal kernel, cannot generate for backend {}", backend),
         (Some(backend), false) => {
             if !build.has_kernel_with_backend(&backend) {
@@ -163,12 +173,15 @@ fn generate_torch(
         }
     };
 
-    match backend {
+    let file_set = match backend {
         Backend::Cuda | Backend::Rocm => {
-            write_torch_ext(&env, backend, &build, target_dir, force, ops_id)
+            write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id)?
         }
-        Backend::Metal => write_torch_ext_metal(&env, &build, target_dir, force, ops_id),
-    }
+        Backend::Metal => write_torch_ext_metal(&env, &build, target_dir.clone(), ops_id)?,
+    };
+    file_set.write(&target_dir, force)?;
+
+    Ok(())
 }
 
 fn update_build(build_toml: PathBuf) -> Result<()> {
@@ -240,14 +253,27 @@ fn clean(
     target_dir: Option<PathBuf>,
     dry_run: bool,
     force: bool,
+    ops_id: Option<String>,
 ) -> Result<()> {
     let target_dir = check_or_infer_target_dir(&build_toml, target_dir)?;
-    let build_compat = parse_and_validate(&build_toml)?;
+
+    let build_compat = parse_and_validate(build_toml)?;
+
+    if matches!(build_compat, BuildCompat::V1(_)) {
+        eprintln!(
+            "build.toml is in the deprecated V1 format, use `build2cmake update-build` to update."
+        )
+    }
+
     let build: Build = build_compat
         .try_into()
-        .context("Cannot parse build configuration")?;
+        .context("Cannot update build configuration")?;
 
-    let generated_files = get_generated_files(&build, &target_dir);
+    let mut env = Environment::new();
+    env.set_trim_blocks(true);
+    minijinja_embed::load_templates!(&mut env);
+
+    let generated_files = get_generated_files(&env, &build, target_dir.clone(), ops_id)?;
 
     if generated_files.is_empty() {
         println!("No generated artifacts found to clean.");
@@ -335,34 +361,34 @@ fn clean(
     Ok(())
 }
 
-fn get_generated_files(build: &Build, target_dir: &Path) -> Vec<PathBuf> {
-    let files = vec![
-        target_dir.join("CMakeLists.txt"),
-        target_dir.join("setup.py"),
-        target_dir.join("pyproject.toml"),
-        target_dir.join("cmake").join("utils.cmake"),
-        target_dir.join("cmake").join("hipify.py"),
-        target_dir.join("cmake").join("compile-metal.cmake"),
-        target_dir.join("torch-ext").join("registration.h"),
-        target_dir
-            .join("torch-ext")
-            .join(&build.general.name)
-            .join("_ops.py"),
-    ];
+fn get_generated_files(
+    env: &Environment,
+    build: &Build,
+    target_dir: PathBuf,
+    ops_id: Option<String>,
+) -> Result<Vec<PathBuf>> {
+    let mut all_set = FileSet::new();
 
-    // Add backend-specific files if they exist
     for backend in build.backends() {
-        match backend {
+        let set = match backend {
             Backend::Cuda | Backend::Rocm => {
-                // These backends share the same generated files
+                write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id.clone())?
             }
             Backend::Metal => {
-                // Metal-specific files are already included above
+                write_torch_ext_metal(&env, &build, target_dir.clone(), ops_id.clone())?
             }
-        }
+        };
+
+        all_set.extend(set);
     }
 
-    files
+    if build.general.universal {
+        let set = write_torch_ext_universal(&env, build, target_dir, ops_id)?;
+
+        all_set.extend(set);
+    }
+
+    Ok(all_set.into_names())
 }
 
 fn is_empty_dir(dir: &Path) -> Result<bool> {

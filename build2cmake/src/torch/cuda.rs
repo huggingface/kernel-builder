@@ -21,14 +21,13 @@ fn cuda_supported_archs() -> String {
     supported_archs.join(";")
 }
 
-pub fn write_torch_ext(
+pub fn write_torch_ext_cuda(
     env: &Environment,
     backend: Backend,
     build: &Build,
     target_dir: PathBuf,
-    force: bool,
     ops_id: Option<String>,
-) -> Result<()> {
+) -> Result<FileSet> {
     let torch_ext = match build.torch.as_ref() {
         Some(torch_ext) => torch_ext,
         None => bail!("Build configuration does not have `torch` section"),
@@ -62,9 +61,7 @@ pub fn write_torch_ext(
 
     write_torch_registration_macros(&mut file_set)?;
 
-    file_set.write(&target_dir, force)?;
-
-    Ok(())
+    Ok(file_set)
 }
 
 fn write_torch_registration_macros(file_set: &mut FileSet) -> Result<()> {

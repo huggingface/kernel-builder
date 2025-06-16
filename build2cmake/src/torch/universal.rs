@@ -9,13 +9,12 @@ use crate::{
     torch::kernel_ops_identifier,
 };
 
-pub fn write_torch_universal_ext(
+pub fn write_torch_ext_universal(
     env: &Environment,
     build: &Build,
     target_dir: PathBuf,
-    force: bool,
     ops_id: Option<String>,
-) -> Result<()> {
+) -> Result<FileSet> {
     let mut file_set = FileSet::default();
 
     let ops_name = kernel_ops_identifier(&target_dir, &build.general.name, ops_id);
@@ -28,9 +27,7 @@ pub fn write_torch_universal_ext(
         &mut file_set,
     )?;
 
-    file_set.write(&target_dir, force)?;
-
-    Ok(())
+    Ok(file_set)
 }
 
 fn write_ops_py(

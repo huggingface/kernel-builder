@@ -18,9 +18,8 @@ pub fn write_torch_ext_metal(
     env: &Environment,
     build: &Build,
     target_dir: PathBuf,
-    force: bool,
     ops_id: Option<String>,
-) -> Result<()> {
+) -> Result<FileSet> {
     let torch_ext = match build.torch.as_ref() {
         Some(torch_ext) => torch_ext,
         None => bail!("Build configuration does not have `torch` section"),
@@ -53,9 +52,7 @@ pub fn write_torch_ext_metal(
 
     write_torch_registration_macros(&mut file_set)?;
 
-    file_set.write(&target_dir, force)?;
-
-    Ok(())
+    Ok(file_set)
 }
 
 fn write_cmake(
