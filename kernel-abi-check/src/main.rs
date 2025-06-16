@@ -53,8 +53,8 @@ fn main() -> Result<()> {
     )?;
     print_manylinux_violations(&many_linux_violations, &args.manylinux)?;
 
-    let macos_violations = check_macos(&file, args.macos)?;
-    print_macos_violations(&macos_violations, args.macos);
+    let macos_violations = check_macos(&file, &args.macos)?;
+    print_macos_violations(&macos_violations, &args.macos);
 
     let python_abi_violations = check_python_abi(&args.python_abi, file.format(), file.symbols())?;
     print_python_abi_violations(&python_abi_violations, &args.python_abi);
@@ -91,7 +91,7 @@ fn print_manylinux_violations(
     Ok(())
 }
 
-fn print_macos_violations(violations: &BTreeSet<MacOSViolation>, macos_version: Version) {
+fn print_macos_violations(violations: &BTreeSet<MacOSViolation>, macos_version: &Version) {
     if !violations.is_empty() {
         for violation in violations {
             match violation {

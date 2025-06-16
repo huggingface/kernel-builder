@@ -9,6 +9,14 @@ use serde::Deserialize;
 
 use crate::Version;
 
+#[derive(Debug, Deserialize, Eq, Hash, PartialEq)]
+#[serde(untagged)]
+enum ManyLinuxSymbolVersion {
+    Version(Version),
+    // Work with symbol versions like `TM_1`.
+    Raw(String),
+}
+
 #[derive(Debug, Deserialize)]
 struct ManyLinux {
     name: String,
@@ -16,7 +24,7 @@ struct ManyLinux {
     aliases: Vec<String>,
     #[allow(dead_code)]
     priority: u32,
-    symbol_versions: HashMap<String, HashMap<String, HashSet<String>>>,
+    symbol_versions: HashMap<String, HashMap<String, HashSet<ManyLinuxSymbolVersion>>>,
     #[allow(dead_code)]
     lib_whitelist: Vec<String>,
     #[allow(dead_code)]
@@ -89,7 +97,7 @@ pub fn check_manylinux<'a>(
             };
 
             if let Some(versions) = symbol_versions.get(dep) {
-                if !versions.contains(&version.to_string()) {
+                if !versions.contains(&ManyLinuxSymbolVersion::Version(version.clone())) {
                     violations.insert(ManylinuxViolation::Symbol {
                         name: symbol_name.to_string(),
                         dep: dep.to_string(),

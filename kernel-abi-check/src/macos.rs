@@ -25,11 +25,7 @@ fn build_version<Mach: MachHeader>(macho64: &MachOFile<Mach>) -> Result<Option<V
             let minor = ((version_u32 >> 8) as u8) as usize;
             let patch = (version_u32 as u8) as usize;
 
-            return Ok(Some(Version {
-                major,
-                minor,
-                patch,
-            }));
+            return Ok(Some(Version::from(vec![major, minor, patch])));
         }
     }
 
@@ -37,7 +33,7 @@ fn build_version<Mach: MachHeader>(macho64: &MachOFile<Mach>) -> Result<Option<V
 }
 
 /// Check that kernel binary is compatible with the given macOS version.
-pub fn check_macos(file: &File, macos_version: Version) -> Result<BTreeSet<MacOSViolation>> {
+pub fn check_macos(file: &File, macos_version: &Version) -> Result<BTreeSet<MacOSViolation>> {
     let mut violations = BTreeSet::new();
 
     let minos = if let File::MachO64(macho64) = &file {
@@ -48,7 +44,7 @@ pub fn check_macos(file: &File, macos_version: Version) -> Result<BTreeSet<MacOS
 
     match minos {
         Some(object_version) => {
-            if object_version > macos_version {
+            if &object_version > macos_version {
                 violations.insert(MacOSViolation::IncompatibleMinOS {
                     version: object_version,
                 });
