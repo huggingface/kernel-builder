@@ -291,11 +291,13 @@ pub fn render_kernel(
         .collect_vec()
         .join("\n");
 
-    let (cuda_capabilities, rocm_archs) = match kernel {
-        Kernel::Rocm { rocm_archs, .. } => (None, rocm_archs.as_deref()),
+    let (cuda_capabilities, rocm_archs, cuda_flags) = match kernel {
         Kernel::Cuda {
-            cuda_capabilities, ..
-        } => (cuda_capabilities.as_deref(), None),
+            cuda_capabilities,
+            cuda_flags,
+            ..
+        } => (cuda_capabilities.as_deref(), None, cuda_flags.as_deref()),
+        Kernel::Rocm { rocm_archs, .. } => (None, rocm_archs.as_deref(), None),
         _ => unreachable!("Unsupported kernel type for CUDA rendering"),
     };
 
@@ -304,6 +306,7 @@ pub fn render_kernel(
         .render_to_write(
             context! {
                 cuda_capabilities => cuda_capabilities,
+                cuda_flags => cuda_flags.map(|flags| flags.join(";")),
                 rocm_archs => rocm_archs,
                 includes => kernel.include().map(prefix_and_join_includes),
                 kernel_name => kernel_name,

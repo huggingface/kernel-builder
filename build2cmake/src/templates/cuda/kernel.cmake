@@ -18,6 +18,20 @@ if(GPU_LANG STREQUAL "CUDA")
   {% endif %}
   message(STATUS "Capabilities for kernel {{kernel_name}}: {{ '${' + kernel_name + '_ARCHS}'}}")
   set_gencode_flags_for_srcs(SRCS {{'"${' + kernel_name + '_SRC}"'}} CUDA_ARCHS "{{ '${' + kernel_name + '_ARCHS}'}}")
+
+  {% if cuda_flags %}
+
+  foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
+    if(_KERNEL_SRC MATCHES ".*\.cu$")
+      set_source_files_properties(
+        ${_KERNEL_SRC}
+        PROPERTIES
+        COMPILE_OPTIONS "{{ cuda_flags }}"
+      )
+    endif()
+  endforeach()
+  {% endif %}
+
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% if supports_hipify %}
 elseif(GPU_LANG STREQUAL "HIP")

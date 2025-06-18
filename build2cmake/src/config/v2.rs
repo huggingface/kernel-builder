@@ -83,6 +83,7 @@ pub enum Kernel {
     #[serde(rename_all = "kebab-case")]
     Cuda {
         cuda_capabilities: Option<Vec<String>>,
+        cuda_flags: Option<Vec<String>>,
         depends: Vec<Dependencies>,
         include: Option<Vec<String>>,
         src: Vec<String>,
@@ -236,6 +237,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
             name,
             Kernel::Cuda {
                 cuda_capabilities: kernel.cuda_capabilities,
+                cuda_flags: None,
                 depends: kernel.depends,
                 include: kernel.include,
                 src: kernel.src,
