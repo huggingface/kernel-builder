@@ -23,13 +23,18 @@ pub struct Build {
 
 impl Build {
     pub fn has_kernel_with_backend(&self, backend: &Backend) -> bool {
-        self.kernels
-            .values()
-            .any(|kernel| kernel.backend == *backend)
+        self.backends().contains(backend)
     }
 
     pub fn backends(&self) -> BTreeSet<Backend> {
-        self.kernels.values().map(|kernel| kernel.backend).collect()
+        self.kernels
+            .values()
+            .map(|kernel| match kernel {
+                Kernel::Cuda { .. } => Backend::Cuda,
+                Kernel::Metal { .. } => Backend::Metal,
+                Kernel::Rocm { .. } => Backend::Rocm,
+            })
+            .collect()
     }
 }
 
@@ -73,14 +78,62 @@ impl Torch {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub struct Kernel {
-    pub backend: Backend,
-    pub cuda_capabilities: Option<Vec<String>>,
-    pub rocm_archs: Option<Vec<String>>,
-    pub depends: Vec<Dependencies>,
-    pub include: Option<Vec<String>>,
-    pub src: Vec<String>,
+#[serde(deny_unknown_fields, rename_all = "kebab-case", tag = "backend")]
+pub enum Kernel {
+    #[serde(rename_all = "kebab-case")]
+    Cuda {
+        cuda_capabilities: Option<Vec<String>>,
+        depends: Vec<Dependencies>,
+        include: Option<Vec<String>>,
+        src: Vec<String>,
+    },
+    #[serde(rename_all = "kebab-case")]
+    Metal {
+        depends: Vec<Dependencies>,
+        include: Option<Vec<String>>,
+        src: Vec<String>,
+    },
+    #[serde(rename_all = "kebab-case")]
+    Rocm {
+        depends: Vec<Dependencies>,
+        rocm_archs: Option<Vec<String>>,
+        include: Option<Vec<String>>,
+        src: Vec<String>,
+    },
+}
+
+impl Kernel {
+    pub fn include(&self) -> Option<&[String]> {
+        match self {
+            Kernel::Cuda { include, .. } => include.as_deref(),
+            Kernel::Metal { include, .. } => include.as_deref(),
+            Kernel::Rocm { include, .. } => include.as_deref(),
+        }
+    }
+
+    pub fn backend(&self) -> Backend {
+        match self {
+            Kernel::Cuda { .. } => Backend::Cuda,
+            Kernel::Metal { .. } => Backend::Metal,
+            Kernel::Rocm { .. } => Backend::Rocm,
+        }
+    }
+
+    pub fn depends(&self) -> &[Dependencies] {
+        match self {
+            Kernel::Cuda { depends, .. } => depends,
+            Kernel::Metal { depends, .. } => depends,
+            Kernel::Rocm { depends, .. } => depends,
+        }
+    }
+
+    pub fn src(&self) -> &[String] {
+        match self {
+            Kernel::Cuda { src, .. } => src,
+            Kernel::Metal { src, .. } => src,
+            Kernel::Rocm { src, .. } => src,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -170,9 +223,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
 
             kernels.insert(
                 format!("{name}_rocm"),
-                Kernel {
-                    backend: Backend::Rocm,
-                    cuda_capabilities: None,
+                Kernel::Rocm {
                     rocm_archs: kernel.rocm_archs,
                     depends: kernel.depends.clone(),
                     include: kernel.include.clone(),
@@ -183,10 +234,8 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
 
         kernels.insert(
             name,
-            Kernel {
-                backend: Backend::Cuda,
+            Kernel::Cuda {
                 cuda_capabilities: kernel.cuda_capabilities,
-                rocm_archs: None,
                 depends: kernel.depends,
                 include: kernel.include,
                 src: kernel.src,

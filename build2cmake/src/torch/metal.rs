@@ -148,7 +148,7 @@ pub fn render_kernel(
 ) -> Result<()> {
     // Easier to do in Rust than Jinja.
     let sources = kernel
-        .src
+        .src()
         .iter()
         .map(|src| format!("\"{src}\""))
         .collect_vec()
@@ -158,7 +158,7 @@ pub fn render_kernel(
         .wrap_err("Cannot get kernel template")?
         .render_to_write(
             context! {
-                includes => kernel.include.as_ref().map(prefix_and_join_includes),
+                includes => kernel.include().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
                 sources => sources,
             },

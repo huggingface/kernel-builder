@@ -172,7 +172,7 @@ fn write_cmake(
     for (kernel_name, kernel) in build
         .kernels
         .iter()
-        .filter(|(_, kernel)| kernel.backend == backend)
+        .filter(|(_, kernel)| kernel.backend() == backend)
     {
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
@@ -207,8 +207,9 @@ pub fn render_binding(
 
 fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Result<()> {
     let mut deps = HashSet::new();
+
     for kernel in build.kernels.values() {
-        deps.extend(&kernel.depends);
+        deps.extend(kernel.depends());
     }
 
     for dep in deps {
@@ -284,21 +285,29 @@ pub fn render_kernel(
 ) -> Result<()> {
     // Easier to do in Rust than Jinja.
     let sources = kernel
-        .src
+        .src()
         .iter()
         .map(|src| format!("\"{src}\""))
         .collect_vec()
         .join("\n");
 
+    let (cuda_capabilities, rocm_archs) = match kernel {
+        Kernel::Rocm { rocm_archs, .. } => (None, rocm_archs.as_deref()),
+        Kernel::Cuda {
+            cuda_capabilities, ..
+        } => (cuda_capabilities.as_deref(), None),
+        _ => unreachable!("Unsupported kernel type for CUDA rendering"),
+    };
+
     env.get_template("cuda/kernel.cmake")
         .wrap_err("Cannot get kernel template")?
         .render_to_write(
             context! {
-                cuda_capabilities => kernel.cuda_capabilities,
-                rocm_archs => kernel.rocm_archs,
-                includes => kernel.include.as_ref().map(prefix_and_join_includes),
+                cuda_capabilities => cuda_capabilities,
+                rocm_archs => rocm_archs,
+                includes => kernel.include().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
-                supports_hipify => kernel.backend == Backend::Rocm,
+                supports_hipify => matches!(kernel, Kernel::Rocm{ .. }),
                 sources => sources,
             },
             &mut *write,
