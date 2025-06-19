@@ -76,6 +76,7 @@ src = [
 ]
 
 [kernel.activation]
+backend = "cuda"
 src = [
   "relu_kernel/relu.cu",
 ]
@@ -88,18 +89,21 @@ depends = [ "torch" ]
 
 ### `general`
 
-`name` defines the name of the kernel. The Python code for a Torch extension
-must be stored in `torch-ext/<name>`.
+- `name` (required): the name of the kernel. The Python code for a Torch
+  extension must be stored in `torch-ext/<name>`.
+- `universal`: the kernel is a universal kernel when set to `true`. A
+  universal kernel is a pure Python package (no compiled files).
+  Universal kernels do not use the other sections described below.
+  A good example of a universal kernel is a Triton kernel.
+  Default: `false`
 
 ### `torch`
 
 This section describes the Torch extension. In the future, there may be
-similar sections for other frameworks. This section can contain the
-following options:
+similar sections for other frameworks. This section has the following
+options:
 
 - `src` (required): a list of source files and headers.
-- `universal` (optional): set to `true` when the extension is a pure
-  Python extension, such as a Triton kernel. Default: `false`.
 - `pyext` (optional): the list of extensions for Python files. Default:
   `["py", "pyi"]`.
 - `include` (optional): include directories relative to the project root.
@@ -107,31 +111,41 @@ following options:
 
 ### `kernel.<name>`
 
-Specification of a kernel with the name `<name>`. This section can contain
-the following options:
+Specification of a kernel with the name `<name>`. Multiple `kernel.<name>`
+sections can be defined in the same `build.toml`.
+See for example [`kernels-community/quantization`](https://huggingface.co/kernels-community/quantization/)
+for an example with multiple kernel sections.
 
-- `rocm-archs` (required when `language` is set to `cuda-hipify`): a list
-  of ROCm architectures that the kernel should be compiled for.
+The following options can be set for a kernel:
+
+- `backend` (required): the compute backend of the kernel. The currently
+  supported backends are `cuda`, `metal`, and `rocm`.
 - `depends` (required): a list of dependencies. The supported dependencies
-  are listed in [`deps.nix`](../lib/deps.nix].
+  are listed in [`deps.nix`](../lib/deps.nix).
 - `src` (required): a list of source files and headers.
+- `include` (optional): include directories relative to the project root.
+  Default: `[]`.
+
+Besides these shared options, the following backend-specific options
+are available:
+
+#### cuda
+
 - `cuda-capabilities` (optional): a list of CUDA capabilities that the
   kernel should be compiled for. When absent, the kernel will be built
   using all capabilities that the builder supports. The effective
   capabilities are the intersection of this list and the capabilities
   supported by the CUDA compiler. It is recommended to leave this option
   unspecified **unless** a kernel requires specific capabilities.
-- `include` (optional): include directories relative to the project root.
-  Default: `[]`.
-- `language` (optional): the language used for the kernel. Must be `cuda`
-  or `cuda-hipify`. `cuda-hipify` is for CUDA kernels that can also be
-  compiled for ROCm using hipify. **Warning:** `cuda-hipify` is currently
-  experimental and does not produce conforming kernels yet.
-  Default: `"cuda"`
+- `cuda_flags` (optional): additional flags to be passed to `nvcc`.
+  **Warning**: this option should only be used in exceptional circumstances.
+  Custom compile flags can interfere with the build process or break
+  compatibility requirements.
 
-Multiple `kernel.<name>` sections can be defined in the same `build.toml`.
-See for example [`kernels-community/quantization`](https://huggingface.co/kernels-community/quantization/)
-for an example with multiple kernel sections.
+#### rocm
+
+- `rocm-archs`: a list of ROCm architectures that the kernel should be
+  compiled for.
 
 ## Torch bindings
 
