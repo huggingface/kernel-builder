@@ -179,8 +179,15 @@ done
 # Execute the command
 case $COMMAND in
   build)
+    # we can use the current working dir as the source and the build directory
+    SRC_DIR=$(pwd)
+    # add /build to the source directory
+    BUILD_DIR="${SRC_DIR}/build"
+    # Ensure the build directory exists
+    mkdir -p "${BUILD_DIR}"
+
     # When building existing code, use the mounted directory
-    build_extension "/kernelcode" "/kernelcode/build"
+    build_extension "${SRC_DIR}" "${BUILD_DIR}"
     ;;
   dev)
     start_dev_shell
