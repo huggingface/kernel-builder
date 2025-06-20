@@ -22,11 +22,11 @@ if(GPU_LANG STREQUAL "CUDA")
   {% if cuda_flags %}
 
   foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
-    if(_KERNEL_SRC MATCHES ".*\.cu$")
-      set_source_files_properties(
-        ${_KERNEL_SRC}
-        PROPERTIES
-        COMPILE_OPTIONS "{{ cuda_flags }}"
+    if(_KERNEL_SRC MATCHES ".*\\.cu$")
+      set_property(
+        SOURCE ${_KERNEL_SRC}
+        APPEND PROPERTY
+        COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CUDA>:{{ cuda_flags }}>"
       )
     endif()
   endforeach()
