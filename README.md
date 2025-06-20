@@ -43,8 +43,8 @@ See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including
 # 📚 Documentation
 
 - [Writing Hub kernels](./docs/writing-kernels.md)
-- [Building kernels with Docker](./docs/docker.md)
 - [Building kernels with Nix](./docs/nix.md)
+- [Building kernels with Docker](./docs/docker.md) (for systems without Nix)
 - [Local kernel development](docs/local-dev.md) (IDE integration)
 - [Why Nix?](./docs/why-nix.md)
 

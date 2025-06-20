@@ -1,6 +1,7 @@
 # Using the kernel builder with Docker
 
 <!-- toc -->
+
 - [Using the kernel builder with Docker](#using-the-kernel-builder-with-docker)
   - [Quick Start](#quick-start)
   - [CLI Interface](#cli-interface)
@@ -16,7 +17,12 @@
   - [Building from URL](#building-from-url)
   - [Available Docker Images](#available-docker-images)
   - [Development](#development)
-<!-- tocstop -->
+  <!-- tocstop -->
+
+**Warning**: we strongly recommend [building kernels with Nix](nix.md).
+Using Nix directly makes it easier to cache all dependencies and is more
+robust. We provide a Docker image for systems where Nix cannot be
+installed.
 
 ## Quick Start
 
@@ -204,12 +210,13 @@ docker run --rm \
 
 The kernel-builder is available in different variants with specific tags:
 
-| Tag | Description |
-| --- | ----------- |
-| `[SHA]` | Specific commit hash version (example: `ghcr.io/huggingface/kernel-builder:abc123`) |
-| `user-[SHA]` | Non root user variant (use when specific permissions are needed) |
+| Tag          | Description                                                                         |
+| ------------ | ----------------------------------------------------------------------------------- |
+| `[SHA]`      | Specific commit hash version (example: `ghcr.io/huggingface/kernel-builder:abc123`) |
+| `user-[SHA]` | Non root user variant (use when specific permissions are needed)                    |
 
 All images are available from the GitHub Container Registry:
+
 ```
 ghcr.io/huggingface/kernel-builder
 ```

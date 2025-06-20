@@ -1,9 +1,11 @@
 # Using the kernel builder with Nix
 
 The kernel builder uses Nix for building kernels. You can build or
-run the kernels directly if you have [Nix installed](https://nixos.org/download/)
-on your system. On systems without Nix you can use the [Docker](./docker.md)
-image, which is a wrapper around Nix.
+run the kernels directly if you have Nix installed on your system.
+We recommend installing Nix in the following way:
+
+- Linux: use the [official Nix installer](https://nixos.org/download/).
+- macOS: use the [Determinate Nix installer](https://docs.determinate.systems/determinate-nix/).
 
 ## Getting started
 
@@ -34,9 +36,6 @@ For example:
 cd examples/activation
 nix build . -L
 ```
-
-You can put this `flake.nix` in your own kernel's root directory to
-get add Nix support to your kernel.
 
 ## Shell for local development
 
@@ -81,6 +80,39 @@ cd examples/activation
 nix develop -L .#test
 python -m pytest tests
 ```
+
+## Adding test dependencies to development shells
+
+You can add test dependencies to a development or testing shell. Adapt
+the kernel's `flake.nix` to use the `pythonCheckInputs` option:
+
+```nix
+{
+  description = "Flake for my kernel";
+
+  inputs = {
+    kernel-builder.url = "github:huggingface/kernel-builder";
+  };
+
+  outputs =
+    {
+      self,
+      kernel-builder,
+    }:
+    kernel-builder.lib.genFlakeOutputs {
+      path = ./.;
+      rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
+
+      # The einops and numpy test dependencies are added here:
+      pythonCheckInputs = pkgs: with pkgs; [ einops numpy ];
+    };
+}
+```
+
+The available packages can be found on [search.nixos.org](https://search.nixos.org/packages?channel=25.05&query=python312Packages).
+
+Keep in mind that these additional dependencies will only be available to
+the Nix shells, not the final kernel uploaded to the Hub.
 
 ## Building a kernel without `flake.nix`
 
