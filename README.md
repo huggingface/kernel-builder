@@ -29,7 +29,7 @@ We recommend using [Nix](https://nixos.org/download.html) to build kernels. Quic
 ```bash
 cd examples/activation
 nix build . \
-  --override-input kernel-builder github:huggingface/kernel-builder
+  --override-input kernel-builder github:huggingface/kernel-builder \
   --max-jobs 8 \
   -j 8 \
   -L
