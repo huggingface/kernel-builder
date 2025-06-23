@@ -36,6 +36,13 @@ endif()
 
 if (NOT HIP_FOUND AND CUDA_FOUND)
   set(GPU_LANG "CUDA")
+
+  {% if cuda_minver %}
+    if (CUDA_VERSION VERSION_LESS {{ cuda_minver }})
+      message(FATAL_ERROR "CUDA version ${CUDA_VERSION} is too old. "
+        "Minimum required version is {{ cuda_minver }}.")
+    endif()
+  {% endif %}
 elseif(HIP_FOUND)
   set(GPU_LANG "HIP")
 

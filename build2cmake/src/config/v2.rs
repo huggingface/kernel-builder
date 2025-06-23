@@ -9,6 +9,8 @@ use eyre::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
+use crate::version::Version;
+
 use super::v1::{self, Language};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -44,6 +46,8 @@ pub struct General {
     pub name: String,
     #[serde(default)]
     pub universal: bool,
+
+    pub cuda_minver: Option<Version>,
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -207,6 +211,7 @@ impl General {
         Self {
             name: general.name,
             universal,
+            cuda_minver: None,
         }
     }
 }

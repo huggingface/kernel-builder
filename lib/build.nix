@@ -62,12 +62,20 @@ rec {
     buildConfig: buildSets:
     let
       backends' = backends buildConfig;
+      requiredCuda = buildConfig.general.cuda-minver or "11.8";
       supportedBuildSet =
         buildSet:
-        (buildSet.gpu == "cuda" && backends'.cuda)
-        || (buildSet.gpu == "rocm" && backends'.rocm)
-        || (buildSet.gpu == "metal" && backends'.metal)
-        || (buildConfig.general.universal or false);
+        let
+          backendSupported =
+            (buildSet.gpu == "cuda" && backends'.cuda)
+            || (buildSet.gpu == "rocm" && backends'.rocm)
+            || (buildSet.gpu == "metal" && backends'.metal)
+            || (buildConfig.general.universal or false);
+          cudaVersionSupported =
+            buildSet.gpu != "cuda"
+            || (lib.strings.versionAtLeast buildSet.pkgs.cudaPackages.cudaMajorMinorVersion requiredCuda);
+        in
+        backendSupported && cudaVersionSupported;
     in
     builtins.filter supportedBuildSet buildSets;
 

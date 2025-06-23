@@ -17,6 +17,8 @@ use config::{Backend, Build, BuildCompat};
 mod fileset;
 use fileset::FileSet;
 
+mod version;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {

@@ -96,6 +96,11 @@ depends = [ "torch" ]
   Universal kernels do not use the other sections described below.
   A good example of a universal kernel is a Triton kernel.
   Default: `false`
+- `cuda-minver`: the minimum required CUDA toolkit version. This option
+  _must not_ be set under normal circumstances, since it can exclude Torch
+  build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
+  This option is provided for kernels that require functionality only
+  provided by newer CUDA toolkits.
 
 ### `torch`
 

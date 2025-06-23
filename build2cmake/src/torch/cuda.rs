@@ -8,6 +8,7 @@ use minijinja::{context, Environment};
 
 use super::kernel_ops_identifier;
 use crate::config::{Backend, Build, Dependencies, Kernel, Torch};
+use crate::version::Version;
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
@@ -163,7 +164,7 @@ fn write_cmake(
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, name, cmake_writer)?;
+    render_preamble(env, name, build.general.cuda_minver.as_ref(), cmake_writer)?;
 
     render_deps(env, build, cmake_writer)?;
 
@@ -338,12 +339,18 @@ pub fn render_extension(env: &Environment, ops_name: &str, write: &mut impl Writ
     Ok(())
 }
 
-pub fn render_preamble(env: &Environment, name: &str, write: &mut impl Write) -> Result<()> {
+pub fn render_preamble(
+    env: &Environment,
+    name: &str,
+    cuda_minver: Option<&Version>,
+    write: &mut impl Write,
+) -> Result<()> {
     env.get_template("cuda/preamble.cmake")
         .wrap_err("Cannot get CMake prelude template")?
         .render_to_write(
             context! {
                 name => name,
+                cuda_minver => cuda_minver.map(|v| v.to_string()),
                 cuda_supported_archs => cuda_supported_archs(),
 
             },
