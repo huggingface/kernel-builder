@@ -17,7 +17,6 @@
   - [Building from URL](#building-from-url)
   - [Available Docker Images](#available-docker-images)
   - [Development](#development)
-  <!-- tocstop -->
 
 **Warning**: we strongly recommend [building kernels with Nix](nix.md).
 Using Nix directly makes it easier to cache all dependencies and is more
@@ -55,11 +54,12 @@ The kernel builder includes a command-line interface for easier interaction. The
 ### Examples
 
 ```bash
-# Build the kernel (same as the Quick Start example)
-docker run --rm -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest build
+# Build the example kernel in this directory
+docker run --rm -v $(pwd):/kernel-builder -w /kernel-builder/examples/activation ghcr.io/huggingface/kernel-builder:main build 
+
 
 # Start an ephemeral development shell
-docker run --rm -it -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
+docker run --rm -it -v $(pwd):/home/nixuser/kernelcode -w /home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
 
 # Build from a Git URL
 docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
