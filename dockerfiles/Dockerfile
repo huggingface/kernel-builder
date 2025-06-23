@@ -8,7 +8,7 @@ ARG CORES=4
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
-    && nix profile install nixpkgs#cachix nixpkgs#git-lfs \
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
     && cachix use huggingface
 WORKDIR /app
 # Copy builder files
@@ -100,11 +100,27 @@ function build_extension {
 
   # Make sure the build is up to date
   nix run github:huggingface/kernel-builder#update-build -- build.toml
-  
-  # Pure bundle build
+
+  # only do the following if flake.lock exists
+
+  # if the lock file exists
+  override=""
+  if [ -f flake.lock ]; then
+    # check the type of kernel-builder in flake.lock
+    kernel_url_type=$(cat flake.lock | jq -r '.nodes["kernel-builder"].locked.type')
+    echo "Kernel URL type: $kernel_url_type"
+
+    # If the type is "path", compute the nar hash and set override
+    if [ "$kernel_url_type" = "path" ]; then
+      kernel_url_path=$(cat flake.lock | jq -r '.nodes["kernel-builder"].locked.path')
+      nar_hash=$(nix-hash --type sha256 --base64 "$kernel_url_path")
+      override="--override-input kernel-builder path:../..?narHash=sha256-$nar_hash"
+    fi
+  fi
+
   echo "Building with Nix..."
-  nix build \
-    . \
+  nix build . \
+    $override \
     --max-jobs $MAX_JOBS \
     -j $CORES \
     -L
