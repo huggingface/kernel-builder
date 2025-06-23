@@ -6,6 +6,7 @@
   - [Quick Start](#quick-start)
   - [CLI Interface](#cli-interface)
     - [Examples](#examples)
+  - [Volume Mounting and Working Directory](#volume-mounting-and-working-directory)
   - [Configuration](#configuration)
     - [1. Environment Variables](#1-environment-variables)
     - [2. Command-line Options](#2-command-line-options)
@@ -16,7 +17,6 @@
     - [Accessing kernel in expected format](#accessing-kernel-in-expected-format)
   - [Building from URL](#building-from-url)
   - [Available Docker Images](#available-docker-images)
-  - [Development](#development)
 
 **Warning**: we strongly recommend [building kernels with Nix](nix.md).
 Using Nix directly makes it easier to cache all dependencies and is more
@@ -33,8 +33,9 @@ cd examples/activation
 
 # then run the following command to build the kernel
 docker run --rm \
-    -v $(pwd):/home/nixuser/kernelcode \
-    ghcr.io/huggingface/kernel-builder:latest
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main
 ```
 
 This will build the kernel and save the output in the `build` directory in
@@ -54,19 +55,47 @@ The kernel builder includes a command-line interface for easier interaction. The
 ### Examples
 
 ```bash
-# Build the example kernel in this directory
-docker run --rm -v $(pwd):/kernel-builder -w /kernel-builder/examples/activation ghcr.io/huggingface/kernel-builder:main build 
+# Build the example activation kernel from the root of the repository
+docker run --rm \
+  -v $(pwd):/kernel-builder \
+  -w /kernel-builder/examples/activation \
+  ghcr.io/huggingface/kernel-builder:main \
+  build
 
+# Build from the current directory (assuming it contains a kernel)
+docker run --rm \
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  build
 
 # Start an ephemeral development shell
-docker run --rm -it -v $(pwd):/home/nixuser/kernelcode -w /home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest dev
+docker run --rm \
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  dev
 
 # Build from a Git URL
-docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
+docker run --rm \
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  fetch \
+  https://huggingface.co/kernels-community/activation.git
 
 # Show help information
 docker run --rm ghcr.io/huggingface/kernel-builder:latest help
 ```
+
+## Volume Mounting and Working Directory
+
+When running the Docker container, you must mount your local volume containing the kernel code to the container and set the working directory appropriately. This is done using the `-v` and `-w` flags in the `docker run` command.
+
+| Flag | Description                                    |
+| ---- | ---------------------------------------------- |
+| `-v` | Mount a local directory to the container       |
+| `-w` | Set the working directory inside the container |
 
 ## Configuration
 
@@ -81,10 +110,11 @@ The kernel builder can be configured in two ways:
 
 ```bash
 docker run --rm \
-    -v $(pwd):/home/nixuser/kernelcode \
-    -e MAX_JOBS=8 \
-    -e CORES=8 \
-    ghcr.io/huggingface/kernel-builder:latest
+  -v $(pwd):/app \
+  -w /app \
+  -e MAX_JOBS=8 \
+  -e CORES=8 \
+  ghcr.io/huggingface/kernel-builder:main
 ```
 
 ### 2. Command-line Options
@@ -98,8 +128,10 @@ You can also specify these parameters using command-line options:
 
 ```bash
 docker run --rm \
-    -v $(pwd):/home/nixuser/kernelcode \
-    ghcr.io/huggingface/kernel-builder:latest build --jobs 8 --cores 4
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  build --jobs 8 --cores 4
 ```
 
 ## Development Shell
@@ -109,8 +141,10 @@ For development purposes, you can start an interactive shell with:
 ```bash
 docker run -it \
   --name my-dev-env \
-  -v "$(pwd)":/home/nixuser/kernelcode \
-  ghcr.io/huggingface/kernel-builder:latest dev
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  dev
 ```
 
 This will drop you into a Nix development shell with all the necessary tools installed.
@@ -123,8 +157,10 @@ For iterative development, you can create a persistent container to maintain the
 # Create a persistent container and start a development shell
 docker run -it \
   --name my-persistent-dev-env \
-  -v "$(pwd)":/home/nixuser/kernelcode \
-  ghcr.io/huggingface/kernel-builder:latest dev
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  dev
 ```
 
 You can restart and attach to this container in subsequent sessions without losing the Nix store cache or the kernel build:
@@ -180,8 +216,10 @@ git clone git@hf.co:kernels-community/activation
 cd activation
 # then run the build command
 docker run --rm \
-    -v $(pwd):/home/nixuser/kernelcode \
-    ghcr.io/huggingface/kernel-builder:latest
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  build
 # we should now have the built kernels on our host
 ls result
 # torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
@@ -195,16 +233,15 @@ ls result
 You can also directly build kernels from a Git repository URL:
 
 ```bash
-docker run --rm ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
+docker run --rm \
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:main \
+  fetch \
+  https://huggingface.co/kernels-community/activation.git
 ```
 
 This will clone the repository into the container, build the kernels, and save the output in the container's `/home/nixuser/kernelcode/build` directory. You can mount a volume to access the results:
-
-```bash
-docker run --rm \
-    -v /path/to/output:/home/nixuser/kernelcode/build \
-    ghcr.io/huggingface/kernel-builder:latest fetch https://huggingface.co/kernels-community/activation.git
-```
 
 ## Available Docker Images
 
@@ -219,25 +256,4 @@ All images are available from the GitHub Container Registry:
 
 ```
 ghcr.io/huggingface/kernel-builder
-```
-
-## Development
-
-The Docker image can be built locally when making changes to the kernel builder
-using the provided [Dockerfile](../Dockerfile):
-
-```bash
-docker build -t ghcr.io/huggingface/kernel-builder:latest .
-
-# You can build a kernel using this development container:
-cd examples/activation
-docker run --rm -v $(pwd):/home/nixuser/kernelcode ghcr.io/huggingface/kernel-builder:latest
-
-# copying path '/nix/store/1b79df96k9npmrdgwcljfh3v36f7vazb-source' from 'https://cache.nixos.org'...
-# ...
-ls result
-# torch24-cxx11-cu118-x86_64-linux  torch24-cxx98-cu121-x86_64-linux  torch25-cxx11-cu124-x86_64-linux
-# torch24-cxx11-cu121-x86_64-linux  torch24-cxx98-cu124-x86_64-linux  torch25-cxx98-cu118-x86_64-linux
-# torch24-cxx11-cu124-x86_64-linux  torch25-cxx11-cu118-x86_64-linux  torch25-cxx98-cu121-x86_64-linux
-# torch24-cxx98-cu118-x86_64-linux  torch25-cxx11-cu121-x86_64-linux  torch25-cxx98-cu124-x86_64-linux
 ```

@@ -10,15 +10,14 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
     && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
     && cachix use huggingface
-WORKDIR /app
-# Copy builder files
-COPY . /etc/kernel-builder/
+# Copy external files
+COPY . /etc/src/
 # Set environment variables
 ENV MAX_JOBS=${MAX_JOBS}
 ENV CORES=${CORES}
 # Create directory and setup script
-RUN mkdir -p /etc/kernel-builder && \
-    cat <<'EOF' > /etc/kernel-builder/cli.sh
+RUN mkdir -p /etc/src && \
+    cat <<'EOF' > /etc/src/cli.sh
 #!/bin/sh
 set -e
 # Default values
@@ -195,12 +194,33 @@ done
 # Execute the command
 case $COMMAND in
   build)
-    # we can use the current working dir as the source and the build directory
+
+    # First check if the working directory was set by the cli
+    # if it is == "/" then we assume the user did not explictly set it
+    if [ "$(pwd)" = "/" ]; then
+      # set the working dir as /etc/src
+      cd /etc/src
+
+      echo "No working directory set, defaulting to /etc/src"
+    fi
+
+    # In the case only a volume is mounted, use that as the source, and in the 
+    # case a working directory is set we should be in the correct directory by now
+    # get the current directory as the source directory
     SRC_DIR=$(pwd)
-    # add /build to the source directory
+
+    # Add a /build to the source directory
     BUILD_DIR="${SRC_DIR}/build"
+
     # Ensure the build directory exists
     mkdir -p "${BUILD_DIR}"
+
+    # Log the directories being used to user
+    echo "Building from source directory: ${SRC_DIR}"
+    echo "Output will be placed in: ${BUILD_DIR}"
+
+    # dump the top of the ls
+    ls -la "${SRC_DIR}" | head -20
 
     # When building existing code, use the mounted directory
     build_extension "${SRC_DIR}" "${BUILD_DIR}"
@@ -221,10 +241,10 @@ case $COMMAND in
     ;;
 esac
 EOF
-RUN chmod +x /etc/kernel-builder/cli.sh
-# Create output directory structure
-RUN mkdir -p /kernelcode/build
-# Set up volume for kernelcode
-VOLUME /kernelcode
+RUN chmod +x /etc/src/cli.sh
+# # Create output directory structure
+# RUN mkdir -p /kernelcode/build
+# # Set up volume for kernelcode
+# VOLUME /kernelcode
 
-ENTRYPOINT ["/etc/kernel-builder/cli.sh"]
+ENTRYPOINT ["/etc/src/cli.sh"]
