@@ -241,7 +241,7 @@ docker run --rm \
   https://huggingface.co/kernels-community/activation.git
 ```
 
-This will clone the repository into the container, build the kernels, and save the output in the container's `/home/nixuser/kernelcode/build` directory. You can mount a volume to access the results:
+This will clone the repository into the container, build the kernels, and save the output in the container's `/home/nixuser/kernelcode/build` directory.
 
 ## Available Docker Images
 
