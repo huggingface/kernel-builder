@@ -24,18 +24,27 @@ is updated for the final release.
 
 ## 🚀 Quick Start
 
-We provide Docker containers for building kernels. For a quick build:
+We recommend using [Nix](https://nixos.org/download.html) to build kernels. Quick start a build with:
+
+```bash
+cd examples/activation
+nix build . \
+  --override-input kernel-builder github:huggingface/kernel-builder
+  --max-jobs 8 \
+  -j 8 \
+  -L
+```
+
+we also provide Docker containers for CI builds. For a quick build:
 
 ```bash
 # Using the prebuilt container
-docker run --mount type=bind,source=$(pwd),target=/kernelcode ghcr.io/huggingface/kernel-builder:{SHA}
-```
-
-or build the container locally:
-
-```bash
-docker build -t kernel-builder:local -f dockerfiles/Dockerfile .
-docker run --mount type=bind,source=$(pwd),target=/kernelcode kernel-builder:local
+cd examples/activation
+docker run --rm \
+  -v $(pwd):/app \
+  -w /app \
+  ghcr.io/huggingface/kernel-builder:{SHA} \
+  build
 ```
 
 See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.
