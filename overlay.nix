@@ -7,5 +7,7 @@ final: prev: {
 
   build2cmake = prev.callPackage ./pkgs/build2cmake { };
 
+  rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
+
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 }

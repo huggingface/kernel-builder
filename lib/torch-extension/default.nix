@@ -18,11 +18,12 @@
   cmake,
   cmakeNvccThreadsHook,
   ninja,
-  writeScriptBin,
-  python3,
-  kernel-abi-check,
   build2cmake,
+  kernel-abi-check,
+  python3,
+  rewrite-nix-paths-macho,
   rocmPackages,
+  writeScriptBin,
 
   apple-sdk_15,
   extraDeps ? [ ],
@@ -90,6 +91,9 @@ stdenv.mkDerivation (prevAttrs: {
     ]
     ++ lib.optionals rocmSupport [
       clr
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      rewrite-nix-paths-macho
     ];
 
   buildInputs =
@@ -159,9 +163,17 @@ stdenv.mkDerivation (prevAttrs: {
       cp $out/_${extensionName}_*/* $out/${extensionName}
       rm -rf $out/_${extensionName}_*
     ''
-    + lib.optionalString stripRPath ''
+    + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
       find $out/${extensionName} -name '*.so' \
         -exec patchelf --set-rpath "" {} \;
+    ''
+    + (lib.optionalString (stripRPath && stdenv.hostPlatform.isDarwin)) ''
+      find $out/${extensionName} -name '*.so' \
+        -exec rewrite-nix-paths-macho {} \;
+
+      # Stub some rpath.
+      find $out/${extensionName} -name '*.so' \
+        -exec install_name_tool -add_rpath "@loader_path/lib" {} \;
     '';
 
   doInstallCheck = true;
