@@ -67,9 +67,4 @@ function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
     set_target_properties(${TARGET_NAME} PROPERTIES
         METALLIB_FILE ${METALLIB_FILE}
     )
-    
-    # Install the metallib
-    install(FILES ${METALLIB_FILE}
-            DESTINATION lib
-            COMPONENT metal_shaders)
 endfunction()
