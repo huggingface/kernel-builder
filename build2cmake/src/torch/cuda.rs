@@ -314,6 +314,7 @@ pub fn render_kernel(
             context! {
                 cuda_capabilities => cuda_capabilities,
                 cuda_flags => cuda_flags.map(|flags| flags.join(";")),
+                cxx_flags => kernel.cxx_flags().map(|flags| flags.join(";")),
                 rocm_archs => rocm_archs,
                 includes => kernel.include().map(prefix_and_join_includes),
                 kernel_name => kernel_name,

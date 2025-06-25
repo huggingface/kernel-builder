@@ -32,6 +32,16 @@ if(GPU_LANG STREQUAL "CUDA")
   endforeach()
   {% endif %}
 
+  {% if cxx_flags %}
+  foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
+    set_property(
+      SOURCE ${_KERNEL_SRC}
+      APPEND PROPERTY
+      COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CXX>:{{ cxx_flags }}>"
+    )
+  endforeach()
+  {% endif %}
+
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% if supports_hipify %}
 elseif(GPU_LANG STREQUAL "HIP")

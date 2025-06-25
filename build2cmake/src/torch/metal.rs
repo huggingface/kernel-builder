@@ -158,6 +158,7 @@ pub fn render_kernel(
         .wrap_err("Cannot get kernel template")?
         .render_to_write(
             context! {
+                cxx_flags => kernel.cxx_flags().map(|flags| flags.join(";")),
                 includes => kernel.include().map(prefix_and_join_includes),
                 kernel_name => kernel_name,
                 sources => sources,

@@ -22,6 +22,16 @@ set_source_files_properties(
   PROPERTIES INCLUDE_DIRECTORIES "{{ includes }}")
 {% endif %}
 
+{% if cxx_flags %}
+foreach(_KERNEL_SRC {{'${' + kernel_name + '_CPP_SRC}'}})
+  set_property(
+    SOURCE ${_KERNEL_SRC}
+    APPEND PROPERTY
+    COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CXX>:{{ cxx_flags }}>"
+  )
+endforeach()
+{% endif %}
+
 # Add C++ sources to main source list
 list(APPEND SRC {{'"${' + kernel_name + '_CPP_SRC}"'}})
 
