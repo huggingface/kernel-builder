@@ -45,7 +45,7 @@ if (NOT HIP_FOUND AND CUDA_FOUND)
   {% endif %}
 
   {% if cuda_maxver %}
-    if (CUDA_VERSION VERSION_MORE {{ cuda_maxver }})
+    if (CUDA_VERSION VERSION_GREATER {{ cuda_maxver }})
       message(FATAL_ERROR "CUDA version ${CUDA_VERSION} is too new. "
         "Maximum version is {{ cuda_maxver }}.")
     endif()
