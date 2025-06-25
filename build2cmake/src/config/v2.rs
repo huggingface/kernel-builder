@@ -115,17 +115,17 @@ pub enum Kernel {
 impl Kernel {
     pub fn cxx_flags(&self) -> Option<&[String]> {
         match self {
-            Kernel::Cuda { cxx_flags, .. } => cxx_flags.as_deref(),
-            Kernel::Metal { cxx_flags, .. } => cxx_flags.as_deref(),
-            Kernel::Rocm { cxx_flags, .. } => cxx_flags.as_deref(),
+            Kernel::Cuda { cxx_flags, .. }
+            | Kernel::Metal { cxx_flags, .. }
+            | Kernel::Rocm { cxx_flags, .. } => cxx_flags.as_deref(),
         }
     }
 
     pub fn include(&self) -> Option<&[String]> {
         match self {
-            Kernel::Cuda { include, .. } => include.as_deref(),
-            Kernel::Metal { include, .. } => include.as_deref(),
-            Kernel::Rocm { include, .. } => include.as_deref(),
+            Kernel::Cuda { include, .. }
+            | Kernel::Metal { include, .. }
+            | Kernel::Rocm { include, .. } => include.as_deref(),
         }
     }
 
@@ -139,17 +139,15 @@ impl Kernel {
 
     pub fn depends(&self) -> &[Dependencies] {
         match self {
-            Kernel::Cuda { depends, .. } => depends,
-            Kernel::Metal { depends, .. } => depends,
-            Kernel::Rocm { depends, .. } => depends,
+            Kernel::Cuda { depends, .. }
+            | Kernel::Metal { depends, .. }
+            | Kernel::Rocm { depends, .. } => depends,
         }
     }
 
     pub fn src(&self) -> &[String] {
         match self {
-            Kernel::Cuda { src, .. } => src,
-            Kernel::Metal { src, .. } => src,
-            Kernel::Rocm { src, .. } => src,
+            Kernel::Cuda { src, .. } | Kernel::Metal { src, .. } | Kernel::Rocm { src, .. } => src,
         }
     }
 }
