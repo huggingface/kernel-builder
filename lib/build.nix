@@ -62,7 +62,11 @@ rec {
     buildConfig: buildSets:
     let
       backends' = backends buildConfig;
-      requiredCuda = buildConfig.general.cuda-minver or "11.8";
+      minCuda = buildConfig.general.cuda-minver or "11.8";
+      maxCuda = buildConfig.general.cuda-minver or "99.9";
+      versionBetween =
+        minver: maxver: ver:
+        builtins.compareVersions ver minver >= 0 && builtins.compareVersions ver maxver <= 0;
       supportedBuildSet =
         buildSet:
         let
@@ -73,7 +77,7 @@ rec {
             || (buildConfig.general.universal or false);
           cudaVersionSupported =
             buildSet.gpu != "cuda"
-            || (lib.strings.versionAtLeast buildSet.pkgs.cudaPackages.cudaMajorMinorVersion requiredCuda);
+            || versionBetween minCuda maxCuda buildSet.pkgs.cudaPackages.cudaMajorMinorVersion;
         in
         backendSupported && cudaVersionSupported;
     in

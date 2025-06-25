@@ -47,6 +47,8 @@ pub struct General {
     #[serde(default)]
     pub universal: bool,
 
+    pub cuda_maxver: Option<Version>,
+
     pub cuda_minver: Option<Version>,
 }
 
@@ -211,6 +213,7 @@ impl General {
         Self {
             name: general.name,
             universal,
+            cuda_maxver: None,
             cuda_minver: None,
         }
     }

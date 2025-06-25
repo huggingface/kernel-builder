@@ -164,7 +164,13 @@ fn write_cmake(
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, name, build.general.cuda_minver.as_ref(), cmake_writer)?;
+    render_preamble(
+        env,
+        name,
+        build.general.cuda_minver.as_ref(),
+        build.general.cuda_maxver.as_ref(),
+        cmake_writer,
+    )?;
 
     render_deps(env, build, cmake_writer)?;
 
@@ -343,6 +349,7 @@ pub fn render_preamble(
     env: &Environment,
     name: &str,
     cuda_minver: Option<&Version>,
+    cuda_maxver: Option<&Version>,
     write: &mut impl Write,
 ) -> Result<()> {
     env.get_template("cuda/preamble.cmake")
@@ -351,6 +358,7 @@ pub fn render_preamble(
             context! {
                 name => name,
                 cuda_minver => cuda_minver.map(|v| v.to_string()),
+                cuda_maxver => cuda_maxver.map(|v| v.to_string()),
                 cuda_supported_archs => cuda_supported_archs(),
 
             },
