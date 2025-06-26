@@ -63,7 +63,7 @@ rec {
     let
       backends' = backends buildConfig;
       minCuda = buildConfig.general.cuda-minver or "11.8";
-      maxCuda = buildConfig.general.cuda-minver or "99.9";
+      maxCuda = buildConfig.general.cuda-maxver or "99.9";
       versionBetween =
         minver: maxver: ver:
         builtins.compareVersions ver minver >= 0 && builtins.compareVersions ver maxver <= 0;
