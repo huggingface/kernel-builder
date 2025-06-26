@@ -7,7 +7,7 @@ available. This list will be updated as new PyTorch versions are released.
 
 ## Metal aarch64-darwin
 
-- `torch27-cxx11-metal-aarch64-darwin`
+- `torch27-metal-aarch64-darwin`
 
 ## CUDA aarch64-linux
 

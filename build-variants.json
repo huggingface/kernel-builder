@@ -1,7 +1,7 @@
 {
   "aarch64-darwin": {
     "metal": [
-      "torch27-cxx11-metal-aarch64-darwin"
+      "torch27-metal-aarch64-darwin"
     ]
   },
   "aarch64-linux": {
