@@ -2,6 +2,7 @@
   nixpkgs,
   system,
   hf-nix,
+  torchVersions,
 }:
 
 let
@@ -9,8 +10,34 @@ let
 
   overlay = import ../overlay.nix;
 
-  # Get versions.
-  inherit (import ../versions.nix { inherit lib; }) buildConfigs cudaVersions rocmVersions;
+  inherit (import ./torch-version-utils.nix { inherit lib; })
+    flattenSystems
+    isCuda
+    isMetal
+    isRocm
+    ;
+
+  # All build configurations supported by Torch.
+  buildConfigs =
+    system:
+    let
+      filterMap = f: xs: builtins.filter (x: x != null) (builtins.map f xs);
+    in
+    filterMap (version: if version.system == system then version else null) (
+      flattenSystems torchVersions
+    );
+
+  cudaVersions =
+    let
+      withCuda = builtins.filter (torchVersion: torchVersion ? cudaVersion) torchVersions;
+    in
+    builtins.map (torchVersion: torchVersion.cudaVersion) withCuda;
+
+  rocmVersions =
+    let
+      withRocm = builtins.filter (torchVersion: torchVersion ? rocmVersion) torchVersions;
+    in
+    builtins.map (torchVersion: torchVersion.rocmVersion) withRocm;
 
   flattenVersion = version: lib.replaceStrings [ "." ] [ "_" ] (lib.versions.pad 2 version);
 
@@ -25,33 +52,32 @@ let
 
   # Construct the nixpkgs package set for the given versions.
   pkgsForVersions =
-    pkgsByCudaVer:
-    {
-      gpu,
-      cudaVersion ? "",
+    buildConfig@{
+      cudaVersion ? null,
       metal ? false,
-      rocmVersion ? "",
+      rocmVersion ? null,
       torchVersion,
       cxx11Abi,
+      system,
       upstreamVariant ? false,
     }:
     let
       pkgs =
-        if gpu == "cuda" then
+        if isCuda buildConfig then
           pkgsByCudaVer.${cudaVersion}
-        else if gpu == "rocm" then
+        else if isRocm buildConfig then
           pkgsByRocmVer.${rocmVersion}
-        else if gpu == "metal" then
+        else if isMetal buildConfig then
           pkgsForMetal
         else
-          throw "Unknown compute framework: ${gpu}";
+          throw "No compute framework set in Torch version";
       torch = pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
         inherit cxx11Abi;
       };
     in
     {
       inherit
-        gpu
+        buildConfig
         pkgs
         torch
         upstreamVariant
@@ -125,4 +151,4 @@ let
   pkgsByRocmVer = pkgsForRocmVersions rocmVersions;
 
 in
-map (pkgsForVersions pkgsByCudaVer) (buildConfigs system)
+map pkgsForVersions (buildConfigs system)

@@ -1,5 +1,5 @@
 {
-  gpu,
+  buildConfig,
   pkgs,
   torch,
   upstreamVariant,

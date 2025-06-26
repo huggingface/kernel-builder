@@ -23,12 +23,14 @@
         x86_64-linux
       ];
 
+      torchVersions = import ./versions.nix;
+
       # Create an attrset { "<system>" = [ <buildset> ...]; ... }.
       buildSetPerSystem = builtins.listToAttrs (
         builtins.map (system: {
           name = system;
-          value = import ./lib/buildsets.nix {
-            inherit nixpkgs system;
+          value = import ./lib/build-sets.nix {
+            inherit nixpkgs system torchVersions;
             hf-nix = hf-nix.overlays.default;
           };
         }) systems
@@ -50,9 +52,13 @@
       lib = {
         allBuildVariantsJSON =
           let
-            buildVariants = (import ./versions.nix { inherit (nixpkgs) lib; }).buildVariants;
+            buildVariants =
+              (import ./lib/build-variants.nix {
+                inherit (nixpkgs) lib;
+                inherit torchVersions;
+              }).buildVariants;
           in
-          builtins.toJSON (nixpkgs.lib.foldl' (acc: system: acc // buildVariants system) { } systems);
+          builtins.toJSON buildVariants;
         genFlakeOutputs =
           {
             path,

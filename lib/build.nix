@@ -16,6 +16,7 @@ let
   supportedCudaCapabilities = builtins.fromJSON (
     builtins.readFile ../build2cmake/src/cuda_supported_archs.json
   );
+  inherit (import ./torch-version-utils.nix { inherit lib; }) isCuda isMetal isRocm;
 in
 rec {
   resolveDeps = import ./deps.nix { inherit lib; };
@@ -71,12 +72,12 @@ rec {
         buildSet:
         let
           backendSupported =
-            (buildSet.gpu == "cuda" && backends'.cuda)
-            || (buildSet.gpu == "rocm" && backends'.rocm)
-            || (buildSet.gpu == "metal" && backends'.metal)
+            (isCuda buildSet.buildConfig && backends'.cuda)
+            || (isRocm buildSet.buildConfig && backends'.rocm)
+            || (isMetal buildSet.buildConfig && backends'.metal)
             || (buildConfig.general.universal or false);
           cudaVersionSupported =
-            buildSet.gpu != "cuda"
+            isCuda buildSet.buildConfig
             || versionBetween minCuda maxCuda buildSet.pkgs.cudaPackages.cudaMajorMinorVersion;
         in
         backendSupported && cudaVersionSupported;
@@ -86,7 +87,7 @@ rec {
   # Build a single Torch extension.
   buildTorchExtension =
     {
-      gpu,
+      buildConfig,
       pkgs,
       torch,
       upstreamVariant,
