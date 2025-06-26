@@ -38,6 +38,10 @@ jobs:
       - name: Copy relu kernel
         run: cp -rL examples/relu/result relu-kernel
 
+      # Just test that we build with the extra torchVersions argument.
+      - name: Build relu kernel (specific Torch version)
+        run: ( cd examples/relu-specific-torch && nix build . )
+
       - name: Build silu-and-mul-universal kernel
         run: ( cd examples/silu-and-mul-universal && nix build .\#redistributable.torch26-cxx98-cu124-x86_64-linux )
       - name: Copy silu-and-mul-universal kernel
