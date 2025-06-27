@@ -77,7 +77,7 @@ rec {
             || (isMetal buildSet.buildConfig && backends'.metal)
             || (buildConfig.general.universal or false);
           cudaVersionSupported =
-            isCuda buildSet.buildConfig
+            !(isCuda buildSet.buildConfig)
             || versionBetween minCuda maxCuda buildSet.pkgs.cudaPackages.cudaMajorMinorVersion;
         in
         backendSupported && cudaVersionSupported;
