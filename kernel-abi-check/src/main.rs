@@ -76,14 +76,11 @@ fn print_manylinux_violations(
     manylinux_version: &str,
 ) -> Result<()> {
     if !violations.is_empty() {
-        eprintln!(
-            "\n⛔ Symbols incompatible with `{}` found:\n",
-            manylinux_version
-        );
+        eprintln!("\n⛔ Symbols incompatible with `{manylinux_version}` found:\n",);
         for violation in violations {
             match violation {
                 ManylinuxViolation::Symbol { name, dep, version } => {
-                    eprintln!("{}_{}: {}", name, dep, version);
+                    eprintln!("{name}_{dep}: {version}");
                 }
             }
         }
@@ -100,8 +97,7 @@ fn print_macos_violations(violations: &BTreeSet<MacOSViolation>, macos_version: 
                 }
                 MacOSViolation::IncompatibleMinOS { version } => {
                     eprintln!(
-                        "\n⛔ shared library requires macOS version {}, which is newer than {}",
-                        version, macos_version
+                        "\n⛔ shared library requires macOS version {version}, which is newer than {macos_version}",
                     );
                 }
             }
@@ -121,10 +117,10 @@ fn print_python_abi_violations(violations: &BTreeSet<PythonAbiViolation>, python
             .collect::<BTreeSet<_>>();
 
         if !newer_abi3_symbols.is_empty() {
-            eprintln!("\n⛔ Symbols >= Python ABI {} found:\n", python_abi);
+            eprintln!("\n⛔ Symbols >= Python ABI {python_abi} found:\n",);
             for violation in newer_abi3_symbols {
                 if let PythonAbiViolation::IncompatibleAbi3Symbol { name, added } = violation {
-                    eprintln!("{}: {}", name, added);
+                    eprintln!("{name}: {added}");
                 }
             }
         }
@@ -133,7 +129,7 @@ fn print_python_abi_violations(violations: &BTreeSet<PythonAbiViolation>, python
             eprintln!("\n⛔ Non-ABI3 symbols found:\n");
             for violation in &non_abi3_symbols {
                 if let PythonAbiViolation::NonAbi3Symbol { name } = violation {
-                    eprintln!("{}", name);
+                    eprintln!("{name}");
                 }
             }
         }

@@ -59,7 +59,7 @@ impl FromStr for Version {
         for part in version.split('.') {
             let version_part: usize = part
                 .parse()
-                .context(format!("Version must consist of numbers: {}", version))?;
+                .context(format!("Version must consist of numbers: {version}"))?;
             version_parts.push(version_part);
         }
 

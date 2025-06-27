@@ -4,6 +4,10 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -11,11 +15,21 @@
       self,
       flake-utils,
       nixpkgs,
+      rust-overlay,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ rust-overlay.overlays.default ];
+        };
+        rust = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [
+            "rust-analyzer"
+            "rust-src"
+          ];
+        };
       in
       {
 
@@ -23,16 +37,12 @@
           with pkgs;
           mkShell {
             buildInputs = [
-              cargo
-              clippy
               openssl.dev
               pkg-config
-              rustc
-              rustfmt
-              rust-analyzer
+              rust
             ];
 
-            RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
+            RUST_SRC_PATH = "${rust}/lib/rustlib/src/rust/library";
           };
       }
     );

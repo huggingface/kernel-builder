@@ -61,12 +61,11 @@ pub fn check_manylinux<'a>(
     let arch_str = architecture.arch_str(endianness)?;
     let symbol_versions = MANYLINUX_VERSIONS
         .get(manylinux_version)
-        .context(format!("Unknown manylinux version: {}", manylinux_version))?
+        .context(format!("Unknown manylinux version: {manylinux_version}"))?
         .symbol_versions
         .get(&arch_str)
         .context(format!(
-            "Cannot find arch `{}` for: {}`",
-            arch_str, manylinux_version
+            "Cannot find arch `{arch_str}` for: {manylinux_version}`"
         ))?;
 
     let mut violations = BTreeSet::new();

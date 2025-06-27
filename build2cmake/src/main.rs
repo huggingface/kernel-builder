@@ -354,12 +354,12 @@ fn clean(
 
     if !errors.is_empty() {
         for error in errors {
-            eprintln!("Error: {}", error);
+            eprintln!("Error: {error}");
         }
         bail!("Some files could not be deleted");
     }
 
-    println!("Cleaned {} generated artifacts.", deleted_count);
+    println!("Cleaned {deleted_count} generated artifacts.");
     Ok(())
 }
 

@@ -69,7 +69,7 @@ impl Torch {
                 let globs = exts
                     .iter()
                     .filter(|&ext| ext != "py" && ext != "pyi")
-                    .map(|ext| format!("\"**/*.{}\"", ext))
+                    .map(|ext| format!("\"**/*.{ext}\""))
                     .collect_vec();
                 if globs.is_empty() {
                     None
@@ -178,7 +178,7 @@ impl FromStr for Backend {
             "cuda" => Ok(Backend::Cuda),
             "metal" => Ok(Backend::Metal),
             "rocm" => Ok(Backend::Rocm),
-            _ => Err(format!("Unknown backend: {}", s)),
+            _ => Err(format!("Unknown backend: {s}")),
         }
     }
 }
