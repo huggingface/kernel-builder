@@ -1,3 +1,7 @@
+{% if cuda_minver %}
+if (CUDA_VERSION VERSION_GREATER_EQUAL {{ cuda_minver }})
+{% endif %}
+
 set({{kernel_name}}_SRC
   {{ sources }}
 )
@@ -50,3 +54,6 @@ elseif(GPU_LANG STREQUAL "HIP")
 {% endif %}
 endif()
 
+{% if cuda_minver %}
+endif()
+{% endif %}

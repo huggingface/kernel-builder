@@ -90,6 +90,7 @@ pub enum Kernel {
     Cuda {
         cuda_capabilities: Option<Vec<String>>,
         cuda_flags: Option<Vec<String>>,
+        cuda_minver: Option<Version>,
         cxx_flags: Option<Vec<String>>,
         depends: Vec<Dependencies>,
         include: Option<Vec<String>>,
@@ -256,6 +257,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
             Kernel::Cuda {
                 cuda_capabilities: kernel.cuda_capabilities,
                 cuda_flags: None,
+                cuda_minver: None,
                 cxx_flags: None,
                 depends: kernel.depends,
                 include: kernel.include,
