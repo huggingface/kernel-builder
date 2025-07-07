@@ -19,8 +19,22 @@ and `flake.lock` to your repository, this will ensure that kernel
 builds are reproducible.
 
 Since the kernel builder depends on many packages (e.g. every supported
-PyTorch version), it is recommended to [enable the huggingface cache](https://app.cachix.org/cache/huggingface)
+PyTorch version), it is recommended to enable the huggingface cache
 to avoid expensive rebuilds.
+
+To use the cache, you can either install cachix and configure it:
+
+```bash
+# Install cachix and configure the cache
+cachix use huggingface
+```
+
+Or run it once without installing cachix permanently:
+
+```bash
+# Use cachix without installing it
+nix run nixpkgs#cachix -- use huggingface
+```
 
 The kernel builder also provides Nix development shells with all Torch
 and CUDA/ROCm dependencies needed to develop kernels (see below). If

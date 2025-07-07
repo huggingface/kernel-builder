@@ -24,7 +24,17 @@ is updated for the final release.
 
 ## 🚀 Quick Start
 
-We recommend using [Nix](https://nixos.org/download.html) to build kernels. Quick start a build with:
+We recommend using [Nix](https://nixos.org/download.html) to build kernels. To speed up builds, first enable the Hugging Face binary cache:
+
+```bash
+# Install cachix and configure the cache
+cachix use huggingface
+
+# Or run once without installing cachix
+nix run nixpkgs#cachix -- use huggingface
+```
+
+Then quick start a build with:
 
 ```bash
 cd examples/activation
