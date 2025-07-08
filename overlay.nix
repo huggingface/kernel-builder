@@ -3,9 +3,11 @@ final: prev: {
 
   # Local packages
 
-  kernel-abi-check = prev.callPackage ./pkgs/kernel-abi-check { };
-
   build2cmake = prev.callPackage ./pkgs/build2cmake { };
+
+  get-kernel-check = prev.callPackage ./pkgs/get-kernel-check { };
+
+  kernel-abi-check = prev.callPackage ./pkgs/kernel-abi-check { };
 
   rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
 

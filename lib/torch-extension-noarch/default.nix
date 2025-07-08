@@ -4,6 +4,7 @@
   rev,
 
   build2cmake,
+  get-kernel-check,
   torch,
 
   src,
@@ -18,7 +19,10 @@ stdenv.mkDerivation (prevAttrs: {
   # also get torch as a build input.
   buildInputs = [ torch ];
 
-  nativeBuildInputs = [ build2cmake ];
+  nativeBuildInputs = [
+    build2cmake
+    get-kernel-check
+  ];
 
   dontBuild = true;
 
@@ -33,4 +37,8 @@ stdenv.mkDerivation (prevAttrs: {
     mkdir -p $out
     cp -r torch-ext/${extensionName} $out/
   '';
+
+  doInstallCheck = true;
+
+  getKernelCheck = extensionName;
 })

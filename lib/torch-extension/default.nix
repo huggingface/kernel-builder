@@ -19,6 +19,7 @@
   cmakeNvccThreadsHook,
   ninja,
   build2cmake,
+  get-kernel-check,
   kernel-abi-check,
   python3,
   rewrite-nix-paths-macho,
@@ -80,6 +81,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   nativeBuildInputs =
     [
+      get-kernel-check
       kernel-abi-check
       cmake
       ninja
@@ -177,6 +179,8 @@ stdenv.mkDerivation (prevAttrs: {
     '';
 
   doInstallCheck = true;
+
+  getKernelCheck = extensionName;
 
   # We need access to the host system on Darwin for the Metal compiler.
   __noChroot = stdenv.hostPlatform.isDarwin;
