@@ -2,15 +2,15 @@
 import sys
 import os
 
-def convert_metallib_to_header(metallib_path, header_path, target_name):
+def convert_metallib_to_header(metallib_path: str, header_path: str, target_name: str) -> None:
     """Convert a metallib binary file to a C++ header with embedded data."""
     
     # Read the metallib binary data
     with open(metallib_path, 'rb') as f:
-        data = f.read()
+        data: bytes = f.read()
     
     # Generate the header content
-    header_content = """// Auto-generated file containing embedded Metal library
+    header_content: str = """// Auto-generated file containing embedded Metal library
 #pragma once
 #include <cstddef>
 
@@ -19,10 +19,10 @@ namespace """ + target_name + """_metal {
 """
     
     # Convert binary data to C array format
-    bytes_per_line = 16
+    bytes_per_line: int = 16
     for i in range(0, len(data), bytes_per_line):
-        chunk = data[i:i + bytes_per_line]
-        hex_values = ', '.join('0x{:02x}'.format(b) for b in chunk)
+        chunk: bytes = data[i:i + bytes_per_line]
+        hex_values: str = ', '.join('0x{:02x}'.format(b) for b in chunk)
         header_content += "        " + hex_values + ","
         if i + bytes_per_line < len(data):
             header_content += "\n"
@@ -34,7 +34,7 @@ namespace """ + target_name + """_metal {
 """
     
     # Write the header file
-    dir_path = os.path.dirname(header_path)
+    dir_path: str = os.path.dirname(header_path)
     if dir_path:
         os.makedirs(dir_path, exist_ok=True)
     with open(header_path, 'w') as f:
@@ -47,8 +47,8 @@ if __name__ == "__main__":
         print("Usage: metallib_to_header.py <metallib_path> <header_path> <target_name>")
         sys.exit(1)
     
-    metallib_path = sys.argv[1]
-    header_path = sys.argv[2]
-    target_name = sys.argv[3]
+    metallib_path: str = sys.argv[1]
+    header_path: str = sys.argv[2]
+    target_name: str = sys.argv[3]
     
     convert_metallib_to_header(metallib_path, header_path, target_name)
