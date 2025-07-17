@@ -57,14 +57,30 @@ function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
         VERBATIM
     )
     
+    # Generate C++ header with embedded metallib data
+    set(METALLIB_HEADER "${CMAKE_BINARY_DIR}/${TARGET_NAME}_metallib.h")
+    set(METALLIB_TO_HEADER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/metallib_to_header.py")
+    
+    add_custom_command(
+        OUTPUT ${METALLIB_HEADER}
+        COMMAND ${Python_EXECUTABLE} ${METALLIB_TO_HEADER_SCRIPT} ${METALLIB_FILE} ${METALLIB_HEADER} ${TARGET_NAME}
+        DEPENDS ${METALLIB_FILE} ${METALLIB_TO_HEADER_SCRIPT}
+        COMMENT "Generating embedded Metal library header ${METALLIB_HEADER}"
+        VERBATIM
+    )
+    
     # Create a custom target for the metallib
-    add_custom_target(${TARGET_NAME}_metallib ALL DEPENDS ${METALLIB_FILE})
+    add_custom_target(${TARGET_NAME}_metallib ALL DEPENDS ${METALLIB_FILE} ${METALLIB_HEADER})
     
     # Add dependency to main target
     add_dependencies(${TARGET_NAME} ${TARGET_NAME}_metallib)
     
-    # Set property so we can access the metallib path later
-    set_target_properties(${TARGET_NAME} PROPERTIES
-        METALLIB_FILE ${METALLIB_FILE}
+    # Add the generated header to include directories
+    target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_BINARY_DIR})
+    
+    # Pass the metallib header and namespace as compile definitions
+    target_compile_definitions(${TARGET_NAME} PRIVATE 
+        EMBEDDED_METALLIB_HEADER="${TARGET_NAME}_metallib.h"
+        EMBEDDED_METALLIB_NAMESPACE=${TARGET_NAME}_metal
     )
 endfunction()

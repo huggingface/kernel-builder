@@ -2,4 +2,9 @@
 
 #include <torch/torch.h>
 
-void relu(torch::Tensor &out, torch::Tensor const &input);
+namespace relu {
+
+// Kernel implementation function
+void relu(torch::Tensor &out, const torch::Tensor &input);
+
+} // namespace relu
