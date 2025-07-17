@@ -88,9 +88,7 @@ torch::Tensor &dispatchReluKernel(torch::Tensor const &input,
   return output;
 }
 
-namespace relu {
-
-void relu(torch::Tensor &out, const torch::Tensor &input) {
+void relu(torch::Tensor &out, torch::Tensor const &input) {
   TORCH_CHECK(input.device().is_mps(), "input must be a MPS tensor");
   TORCH_CHECK(input.is_contiguous(), "input must be contiguous");
   TORCH_CHECK(input.scalar_type() == torch::kFloat ||
@@ -111,5 +109,3 @@ void relu(torch::Tensor &out, const torch::Tensor &input) {
 
   dispatchReluKernel(input, out);
 }
-
-} // namespace relu
