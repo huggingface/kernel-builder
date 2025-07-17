@@ -13,6 +13,7 @@ def convert_metallib_to_header(metallib_path: str, header_path: str, target_name
     header_content: str = """// Auto-generated file containing embedded Metal library
 #pragma once
 #include <cstddef>
+#include <Metal/Metal.h>
 
 namespace """ + target_name + """_metal {
     static const unsigned char metallib_data[] = {
@@ -30,6 +31,24 @@ namespace """ + target_name + """_metal {
     header_content += """
     };
     static const size_t metallib_data_len = """ + str(len(data)) + """;
+    
+    // Convenience function to create Metal library from embedded data
+    inline id<MTLLibrary> createLibrary(id<MTLDevice> device, NSError** error = nullptr) {
+        dispatch_data_t libraryData = dispatch_data_create(
+            metallib_data,
+            metallib_data_len,
+            dispatch_get_main_queue(),
+            ^{ /* No cleanup needed for static data */ });
+        
+        NSError* localError = nil;
+        id<MTLLibrary> library = [device newLibraryWithData:libraryData error:&localError];
+        
+        if (error) {
+            *error = localError;
+        }
+        
+        return library;
+    }
 } // namespace """ + target_name + """_metal
 """
     

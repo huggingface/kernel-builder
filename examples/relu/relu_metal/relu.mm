@@ -19,18 +19,12 @@ torch::Tensor &dispatchReluKernel(torch::Tensor const &input,
                                   torch::Tensor &output) {
   @autoreleasepool {
     id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-    NSError *error = nil;
 
     int numThreads = input.numel();
 
     // Load the embedded Metal library from memory
-    dispatch_data_t libraryData = dispatch_data_create(
-        EMBEDDED_METALLIB_NAMESPACE::metallib_data,
-        EMBEDDED_METALLIB_NAMESPACE::metallib_data_len,
-        dispatch_get_main_queue(),
-        ^{ /* No cleanup needed for static data */ });
-    
-    id<MTLLibrary> customKernelLibrary = [device newLibraryWithData:libraryData error:&error];
+    NSError *error = nil;
+    id<MTLLibrary> customKernelLibrary = EMBEDDED_METALLIB_NAMESPACE::createLibrary(device, &error);
     TORCH_CHECK(customKernelLibrary,
                 "Failed to create Metal library from embedded data: ",
                 error.localizedDescription.UTF8String);
