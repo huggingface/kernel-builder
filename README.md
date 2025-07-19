@@ -66,6 +66,7 @@ See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including
 - [Building kernels with Docker](./docs/docker.md) (for systems without Nix)
 - [Local kernel development](docs/local-dev.md) (IDE integration)
 - [Why Nix?](./docs/why-nix.md)
+- [Documentation Generator](./docs/documentation-generator.md)
 
 ## Credits
 
