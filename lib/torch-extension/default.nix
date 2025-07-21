@@ -121,7 +121,7 @@ stdenv.mkDerivation (prevAttrs: {
         libcusparse
       ]
     )
-    #++ lib.optionals rocmSupport (with rocmPackages; [ clr rocm-core ])
+    ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
     ++ lib.optionals stdenv.hostPlatform.isDarwin [
       apple-sdk_15
     ]
