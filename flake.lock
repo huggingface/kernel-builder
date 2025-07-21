@@ -73,16 +73,15 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1753021998,
-        "narHash": "sha256-MpJ0K8CNlEaff9eCLjjQ6mg7gaoo9mBfO5783MAmpTQ=",
+        "lastModified": 1753093209,
+        "narHash": "sha256-R87pTyd9IK3283aHX5PYfDznz8ta6AgfM/hwCYLISHw=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "d95136ec78fb718ed7413082adfc01ecb9ebf5c2",
+        "rev": "a1a615948e0a40f8b6baff38c78cc2d3e26c1bc0",
         "type": "github"
       },
       "original": {
         "owner": "huggingface",
-        "ref": "torch-2.8-updates",
         "repo": "hf-nix",
         "type": "github"
       }
