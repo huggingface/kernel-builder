@@ -81,7 +81,7 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
       # Copy over include directories from the original CUDA file.
       set_source_files_properties(
         ${SRC}
-        PROPERTIES INCLUDE_DIRECTORIES ${include_dirs})
+        PROPERTIES INCLUDE_DIRECTORIES "${include_dirs}")
     endif()
 
     list(APPEND HIP_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${SRC}")
