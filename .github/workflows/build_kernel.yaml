@@ -24,17 +24,17 @@ jobs:
         env:
           USER: github_runner
       - name: Build activation kernel
-        run: ( cd examples/activation && nix build .\#redistributable.torch26-cxx98-cu124-x86_64-linux )
+        run: ( cd examples/activation && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
       - name: Copy activation kernel
         run: cp -rL examples/activation/result activation-kernel
 
       - name: Build cutlass GEMM kernel
-        run: ( cd examples/cutlass-gemm && nix build .\#redistributable.torch26-cxx98-cu124-x86_64-linux )
+        run: ( cd examples/cutlass-gemm && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
       - name: Copy cutlass GEMM kernel
         run: cp -rL examples/cutlass-gemm/result cutlass-gemm-kernel
 
       - name: Build relu kernel
-        run: ( cd examples/relu && nix build .\#redistributable.torch26-cxx98-cu124-x86_64-linux )
+        run: ( cd examples/relu && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
       - name: Copy relu kernel
         run: cp -rL examples/relu/result relu-kernel
 
@@ -43,7 +43,7 @@ jobs:
         run: ( cd examples/relu-specific-torch && nix build . )
 
       - name: Build silu-and-mul-universal kernel
-        run: ( cd examples/silu-and-mul-universal && nix build .\#redistributable.torch26-cxx98-cu124-x86_64-linux )
+        run: ( cd examples/silu-and-mul-universal && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
       - name: Copy silu-and-mul-universal kernel
         run: cp -rL examples/silu-and-mul-universal/result silu-and-mul-universal-kernel
 
