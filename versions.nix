@@ -103,4 +103,14 @@
       "aarch64-linux"
     ];
   }
+  {
+    torchVersion = "2.8";
+    cudaVersion = "12.4";
+    cxx11Abi = true;
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  }
+
 ]
