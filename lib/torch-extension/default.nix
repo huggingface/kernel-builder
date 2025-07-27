@@ -63,15 +63,6 @@ stdenv.mkDerivation (prevAttrs: {
 
   inherit doAbiCheck nvccThreads src;
 
-  # Something is really broken, ninja/make somehow seem to have to recompile
-  # CUDA files. make finds issues like:
-  #
-  # Prerequisite '/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-12.4.0/include/c++/12.4.0/vector' of target 'CMakeFiles/_relu_524b628_dirty.dir/relu_cuda/relu.cu.o' does not exist.
-  #
-  # This happens since the nixpkgs bump for CUDA 12.9. For now we skip the
-  # build phase to avoid building twice.
-  dontBuild = true;
-
   # Generate build files.
   postPatch = ''
     build2cmake generate-torch --backend ${
