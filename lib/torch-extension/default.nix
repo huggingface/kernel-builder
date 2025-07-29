@@ -3,6 +3,9 @@
   nvccThreads,
   rev,
 
+  # Whether to run get-kernel-check.
+  doGetKernelCheck ? true,
+
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
 
@@ -81,11 +84,13 @@ stdenv.mkDerivation (prevAttrs: {
 
   nativeBuildInputs =
     [
-      get-kernel-check
       kernel-abi-check
       cmake
       ninja
       build2cmake
+    ]
+    ++ lib.optionals doGetKernelCheck [
+      get-kernel-check
     ]
     ++ lib.optionals cudaSupport [
       cmakeNvccThreadsHook
