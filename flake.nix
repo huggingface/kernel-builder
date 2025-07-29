@@ -72,6 +72,13 @@
             path,
             rev,
 
+            # This option is not documented on purpose. You should not use it,
+            # if a kernel cannot be imported, it is non-compliant. This is for
+            # one exceptional case: packaging a third-party kernel (where you
+            # want to stay close to upstream) where importing the kernel will
+            # fail in a GPU-less sandbox. Even in that case, it's better to lazily
+            # load the part with this functionality.
+            doGetKernelCheck ? true,
             pythonCheckInputs ? pkgs: [ ],
             pythonNativeCheckInputs ? pkgs: [ ],
             torchVersions ? torchVersions',
@@ -94,22 +101,32 @@
                 default = devShells.${shellTorch};
                 test = testShells.${shellTorch};
                 devShells = build.torchDevShells {
-                  inherit path pythonCheckInputs pythonNativeCheckInputs;
+                  inherit
+                    path
+                    doGetKernelCheck
+                    pythonCheckInputs
+                    pythonNativeCheckInputs
+                    ;
                   rev = revUnderscored;
                 };
                 testShells = build.torchExtensionShells {
-                  inherit path pythonCheckInputs pythonNativeCheckInputs;
+                  inherit
+                    path
+                    doGetKernelCheck
+                    pythonCheckInputs
+                    pythonNativeCheckInputs
+                    ;
                   rev = revUnderscored;
                 };
               };
               packages = rec {
                 default = bundle;
                 bundle = build.buildTorchExtensionBundle {
-                  inherit path;
+                  inherit path doGetKernelCheck;
                   rev = revUnderscored;
                 };
                 redistributable = build.buildDistTorchExtensions {
-                  inherit path;
+                  inherit path doGetKernelCheck;
                   buildSets = buildSetPerSystem'.${system};
                   rev = revUnderscored;
                 };

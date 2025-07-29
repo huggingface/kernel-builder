@@ -95,6 +95,7 @@ rec {
     {
       path,
       rev,
+      doGetKernelCheck,
       stripRPath ? false,
       oldLinuxCompat ? false,
     }:
@@ -128,12 +129,18 @@ rec {
     if buildConfig.general.universal then
       # No torch extension sources? Treat it as a noarch package.
       pkgs.callPackage ./torch-extension-noarch ({
-        inherit src rev torch;
+        inherit
+          src
+          rev
+          torch
+          doGetKernelCheck
+          ;
         extensionName = buildConfig.general.name;
       })
     else
       pkgs.callPackage ./torch-extension ({
         inherit
+          doGetKernelCheck
           extraDeps
           nvccThreads
           src
@@ -166,6 +173,7 @@ rec {
       buildSets,
       path,
       rev,
+      doGetKernelCheck,
     }:
     let
       extensionForTorch =
@@ -173,7 +181,7 @@ rec {
         buildSet: {
           name = torchBuildVersion buildSet;
           value = buildTorchExtension buildSet {
-            inherit path rev;
+            inherit path rev doGetKernelCheck;
             stripRPath = true;
             oldLinuxCompat = true;
           };
@@ -183,13 +191,17 @@ rec {
     builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
 
   buildTorchExtensionBundle =
-    { path, rev }:
+    {
+      path,
+      rev,
+      doGetKernelCheck,
+    }:
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
       upstreamBuildSets = builtins.filter (buildSet: buildSet.upstreamVariant) buildSets;
       extensions = buildDistTorchExtensions {
-        inherit path rev;
+        inherit path rev doGetKernelCheck;
         buildSets = upstreamBuildSets;
       };
       buildConfig = readBuildConfig path;
@@ -211,6 +223,7 @@ rec {
     {
       path,
       rev,
+      doGetKernelCheck,
       pythonCheckInputs,
       pythonNativeCheckInputs,
     }:
@@ -237,7 +250,9 @@ rec {
               ]
               ++ (pythonCheckInputs python3.pkgs);
             shellHook = ''
-              export PYTHONPATH=''${PYTHONPATH}:${buildTorchExtension buildSet { inherit path rev; }}
+              export PYTHONPATH=''${PYTHONPATH}:${
+                buildTorchExtension buildSet { inherit path rev doGetKernelCheck; }
+              }
             '';
           };
         };
@@ -249,6 +264,7 @@ rec {
     {
       path,
       rev,
+      doGetKernelCheck,
       pythonCheckInputs,
       pythonNativeCheckInputs,
     }:
@@ -272,7 +288,7 @@ rec {
               ]
               ++ (pythonNativeCheckInputs python3.pkgs);
             buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (pythonCheckInputs python3.pkgs);
-            inputsFrom = [ (buildTorchExtension buildSet { inherit path rev; }) ];
+            inputsFrom = [ (buildTorchExtension buildSet { inherit path rev doGetKernelCheck; }) ];
             env = lib.optionalAttrs rocmSupport {
               PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
               HIP_PATH = pkgs.rocmPackages.clr;

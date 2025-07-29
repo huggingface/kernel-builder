@@ -3,6 +3,10 @@
   extensionName,
   rev,
 
+  # Whether to run get-kernel-check.
+  doGetKernelCheck ? true,
+
+  lib,
   build2cmake,
   get-kernel-check,
   torch,
@@ -19,10 +23,13 @@ stdenv.mkDerivation (prevAttrs: {
   # also get torch as a build input.
   buildInputs = [ torch ];
 
-  nativeBuildInputs = [
-    build2cmake
-    get-kernel-check
-  ];
+  nativeBuildInputs =
+    [
+      build2cmake
+    ]
+    ++ lib.optionals doGetKernelCheck [
+      get-kernel-check
+    ];
 
   dontBuild = true;
 
