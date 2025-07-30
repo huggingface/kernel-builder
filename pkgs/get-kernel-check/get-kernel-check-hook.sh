@@ -19,6 +19,10 @@ _getKernelCheckHook() {
     TMPDIR=$(mktemp -d -t test.XXXXXX) || exit 1
     trap "rm -rf '$TMPDIR'" EXIT
 
+    # Some kernels want to write stuff (especially when they use Triton).
+    HOME=$(mktemp -d -t test.XXXXXX) || exit 1
+    trap "rm -rf '$HOME'" EXIT
+
     # Emulate the bundle layout that kernels expects. This even works
     # for universal kernels, since kernels checks the non-universal
     # path first.
