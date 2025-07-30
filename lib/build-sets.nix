@@ -31,7 +31,7 @@ let
     let
       withCuda = builtins.filter (torchVersion: torchVersion ? cudaVersion) torchVersions;
     in
-    builtins.map (torchVersion: torchVersion.cudaVersion) withCuda;
+    lib.unique (builtins.map (torchVersion: torchVersion.cudaVersion) withCuda);
 
   rocmVersions =
     let
