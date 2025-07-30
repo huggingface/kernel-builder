@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fs};
 
 use clap::Parser;
 use eyre::{Context, Result};
-use object::Object;
+use object::{File, Object};
 
 use kernel_abi_check::{
     check_macos, check_manylinux, check_python_abi, MacOSViolation, ManylinuxViolation,
@@ -37,29 +37,45 @@ fn main() -> Result<()> {
     // Parse command-line arguments
     let args = Cli::parse();
 
-    eprintln!(
-        "🐍 Checking for compatibility with {}, macOS {}, and Python ABI version {}",
-        args.manylinux, args.macos, args.python_abi
-    );
-
     let binary_data = fs::read(args.object).context("Cannot open object file")?;
     let file = object::File::parse(&*binary_data).context("Cannot parse object")?;
 
-    let many_linux_violations = check_manylinux(
-        &args.manylinux,
-        file.architecture(),
-        file.endianness(),
-        file.symbols(),
-    )?;
-    print_manylinux_violations(&many_linux_violations, &args.manylinux)?;
+    let mut manylinux_violations = BTreeSet::new();
+    let mut macos_violations = BTreeSet::new();
 
-    let macos_violations = check_macos(&file, &args.macos)?;
-    print_macos_violations(&macos_violations, &args.macos);
+    match file {
+        File::Elf32(_) | File::Elf64(_) => {
+            // Assume for now that ELF is Linux.
+            eprintln!(
+                "🐍 Checking for compatibility with {} and Python ABI version {}",
+                args.manylinux, args.python_abi
+            );
+
+            manylinux_violations = check_manylinux(
+                &args.manylinux,
+                file.architecture(),
+                file.endianness(),
+                file.symbols(),
+            )?;
+            print_manylinux_violations(&manylinux_violations, &args.manylinux)?;
+        }
+        File::MachO32(_) | File::MachO64(_) => {
+            eprintln!(
+                "🐍 Checking for compatibility with macOS {}, and Python ABI version {}",
+                args.macos, args.python_abi
+            );
+            macos_violations = check_macos(&file, &args.macos)?;
+            print_macos_violations(&macos_violations, &args.macos);
+        }
+        _ => {
+            return Err(eyre::eyre!("Unsupported file format: {:?}", file.format()));
+        }
+    }
 
     let python_abi_violations = check_python_abi(&args.python_abi, file.format(), file.symbols())?;
     print_python_abi_violations(&python_abi_violations, &args.python_abi);
 
-    if !(many_linux_violations.is_empty()
+    if !(manylinux_violations.is_empty()
         && macos_violations.is_empty()
         && python_abi_violations.is_empty())
     {
