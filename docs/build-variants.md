@@ -12,10 +12,7 @@ available. This list will be updated as new PyTorch versions are released.
 
 ## CUDA aarch64-linux
 
-- `torch27-cxx11-cu126-aarch64-linux`
 - `torch27-cxx11-cu128-aarch64-linux`
-- `torch28-cxx11-cu126-aarch64-linux`
-- `torch28-cxx11-cu128-aarch64-linux`
 - `torch28-cxx11-cu129-aarch64-linux`
 
 ## CUDA x86_64-linux
