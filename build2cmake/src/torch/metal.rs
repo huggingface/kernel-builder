@@ -94,7 +94,11 @@ fn write_cmake(
 
     render_binding(env, torch, name, cmake_writer)?;
 
-    for (kernel_name, kernel) in &build.kernels {
+    for (kernel_name, kernel) in build
+        .kernels
+        .iter()
+        .filter(|(_, kernel)| matches!(kernel, Kernel::Metal { .. }))
+    {
         render_kernel(env, kernel_name, kernel, cmake_writer)?;
     }
 
