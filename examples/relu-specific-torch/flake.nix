@@ -13,7 +13,7 @@
     kernel-builder.lib.genFlakeOutputs {
       path = ./.;
       rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
-      torchVersions = [
+      torchVersions = defaultVersions: [
         {
           torchVersion = "2.7";
           cudaVersion = "12.8";
