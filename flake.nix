@@ -97,7 +97,7 @@
               revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] rev;
               pkgs = nixpkgs.legacyPackages.${system};
               shellTorch =
-                if system == "aarch64-darwin" then "torch27-metal-${system}" else "torch27-cxx11-cu126-${system}";
+                if system == "aarch64-darwin" then "torch28-metal-${system}" else "torch28-cxx11-cu126-${system}";
             in
             {
               devShells = rec {
