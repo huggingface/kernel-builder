@@ -81,10 +81,13 @@
             doGetKernelCheck ? true,
             pythonCheckInputs ? pkgs: [ ],
             pythonNativeCheckInputs ? pkgs: [ ],
-            torchVersions ? torchVersions',
+            torchVersions ? _: torchVersions',
           }:
+          assert
+            (builtins.isFunction torchVersions)
+            || abort "`torchVersions` must be a function taking one argument (the default version set)";
           let
-            buildSetPerSystem' = mkBuildSetsPerSystem torchVersions;
+            buildSetPerSystem' = mkBuildSetsPerSystem (torchVersions torchVersions');
             buildPerSystem = mkBuildPerSystem buildSetPerSystem';
           in
           flake-utils.lib.eachSystem systems (
