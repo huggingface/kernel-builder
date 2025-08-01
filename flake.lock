@@ -73,16 +73,15 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1753987509,
+        "lastModified": 1754038838,
         "narHash": "sha256-oHigCT4z0ayyLyEuxdZooSXRAZP8lfOkZHzY1lx1U50=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "6c35193144ab4afdfe3ea2bc82aa223b17a27754",
+        "rev": "336f781fa284e193baa3d4c3ce3f95fb34e9ffad",
         "type": "github"
       },
       "original": {
         "owner": "huggingface",
-        "ref": "rocm-6.4.2",
         "repo": "hf-nix",
         "type": "github"
       }
