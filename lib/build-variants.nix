@@ -19,7 +19,7 @@ rec {
     else
       throw "Could not find compute framework: no CUDA or ROCm version specified and Metal is not enabled";
 
-  # Upstream build variants.
+  # Build variants included in bundle builds.
   buildVariants =
     let
       inherit (import ./version-utils.nix { inherit lib; }) abiString flattenVersion;
@@ -39,7 +39,7 @@ rec {
           "torch${flattenVersion version.torchVersion}-${computeString version}-${version.system}"
         else
           "torch${flattenVersion version.torchVersion}-${abiString version.cxx11Abi}-${computeString version}-${version.system}";
-      upstreamVersions = lib.filter (version: version.upstreamVariant or false);
+      bundleBuildVersions = lib.filter (version: version.bundleBuild or false);
     in
     lib.foldl' (
       acc: version:
@@ -51,5 +51,5 @@ rec {
         pathVersions = lib.attrByPath path [ ] acc ++ [ (buildName version) ];
       in
       lib.recursiveUpdate acc (lib.setAttrByPath path pathVersions)
-    ) { } (flattenSystems (upstreamVersions torchVersions));
+    ) { } (flattenSystems (bundleBuildVersions torchVersions));
 }

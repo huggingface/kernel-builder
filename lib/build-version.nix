@@ -2,7 +2,7 @@
   buildConfig,
   pkgs,
   torch,
-  upstreamVariant,
+  bundleBuild,
 }:
 let
   inherit (pkgs) lib;

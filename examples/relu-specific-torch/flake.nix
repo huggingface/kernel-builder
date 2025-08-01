@@ -22,7 +22,7 @@
             "x86_64-linux"
             "aarch64-linux"
           ];
-          upstreamVariant = true;
+          bundleBuild = true;
         }
       ];
     };

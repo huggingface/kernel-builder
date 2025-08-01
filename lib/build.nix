@@ -90,7 +90,7 @@ rec {
       buildConfig,
       pkgs,
       torch,
-      upstreamVariant,
+      bundleBuild,
     }:
     {
       path,
@@ -199,10 +199,10 @@ rec {
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
-      upstreamBuildSets = builtins.filter (buildSet: buildSet.upstreamVariant) buildSets;
+      bundleBuildSets = builtins.filter (buildSet: buildSet.bundleBuild) buildSets;
       extensions = buildDistTorchExtensions {
         inherit path rev doGetKernelCheck;
-        buildSets = upstreamBuildSets;
+        buildSets = bundleBuildSets;
       };
       buildConfig = readBuildConfig path;
       namePaths =

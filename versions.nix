@@ -4,7 +4,7 @@
     cudaVersion = "11.8";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.7";
@@ -13,7 +13,7 @@
     systems = [
       "x86_64-linux"
     ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.7";
@@ -23,21 +23,21 @@
       "x86_64-linux"
       "aarch64-linux"
     ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.7";
     rocmVersion = "6.3.4";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.7";
     rocmVersion = "6.4.2";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
-    upstreamVariant = false;
+    bundleBuild = false;
   }
 
   {
@@ -45,7 +45,7 @@
     cxx11Abi = true;
     metal = true;
     systems = [ "aarch64-darwin" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
 
   {
@@ -55,7 +55,7 @@
     systems = [
       "x86_64-linux"
     ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.8";
@@ -64,7 +64,7 @@
     systems = [
       "x86_64-linux"
     ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.8";
@@ -74,28 +74,28 @@
       "x86_64-linux"
       "aarch64-linux"
     ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.8";
     rocmVersion = "6.3.4";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.8";
     rocmVersion = "6.4.2";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
   {
     torchVersion = "2.8";
     cxx11Abi = true;
     metal = true;
     systems = [ "aarch64-darwin" ];
-    upstreamVariant = true;
+    bundleBuild = true;
   }
 
   # Non-standard versions; not included in bundle builds.
