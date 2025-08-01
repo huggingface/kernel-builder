@@ -34,6 +34,14 @@
   }
   {
     torchVersion = "2.7";
+    rocmVersion = "6.4.2";
+    cxx11Abi = true;
+    systems = [ "x86_64-linux" ];
+    upstreamVariant = false;
+  }
+
+  {
+    torchVersion = "2.7";
     cxx11Abi = true;
     metal = true;
     systems = [ "aarch64-darwin" ];
@@ -77,7 +85,7 @@
   }
   {
     torchVersion = "2.8";
-    rocmVersion = "6.4.1";
+    rocmVersion = "6.4.2";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
     upstreamVariant = true;
