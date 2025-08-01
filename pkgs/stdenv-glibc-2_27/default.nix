@@ -6,6 +6,7 @@
   system,
   wrapBintoolsWith,
   wrapCCWith,
+  writeClosure,
   gcc12Stdenv,
   stdenv,
   bintools-unwrapped,
@@ -71,5 +72,11 @@ let
     in
     overrideCC stdenv compilerWrapped;
 
+  # Workaround for: https://github.com/NixOS/nixpkgs/issues/428546
+  ccWithoutHook = ((if cudaSupport then cudaPackages.backendStdenv else gcc12Stdenv).cc.cc).override {
+    # Just some null derivation to disable the hook.
+    sanitiseHeaderPathsHook = writeClosure [ ];
+  };
+
 in
-stdenvWith glibc_2_27 (if cudaSupport then cudaPackages.backendStdenv else gcc12Stdenv).cc.cc stdenv
+stdenvWith glibc_2_27 ccWithoutHook stdenv
