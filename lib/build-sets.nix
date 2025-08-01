@@ -59,7 +59,7 @@ let
       torchVersion,
       cxx11Abi,
       system,
-      upstreamVariant ? false,
+      bundleBuild ? false,
     }:
     let
       pkgs =
@@ -80,7 +80,7 @@ let
         buildConfig
         pkgs
         torch
-        upstreamVariant
+        bundleBuild
         ;
     };
 
