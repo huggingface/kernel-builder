@@ -20,7 +20,7 @@ jobs:
       - uses: cachix/cachix-action@v14
         with:
           name: huggingface
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          #authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: github_runner
       - name: Build activation kernel
