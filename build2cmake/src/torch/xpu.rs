@@ -147,7 +147,7 @@ fn write_cmake(
 
     render_preamble(env, name, cmake_writer)?;
 
-    render_deps(build, cmake_writer)?;
+    render_deps(env, build, cmake_writer)?;
 
     render_binding(env, torch, name, cmake_writer)?;
 
@@ -187,7 +187,7 @@ fn render_binding(
     Ok(())
 }
 
-fn render_deps(build: &Build, write: &mut impl Write) -> Result<()> {
+fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Result<()> {
     let mut deps = HashSet::new();
 
     for kernel in build.kernels.values() {
@@ -196,11 +196,22 @@ fn render_deps(build: &Build, write: &mut impl Write) -> Result<()> {
 
     for dep in deps {
         match dep {
+            Dependencies::CutlassSycl3_9 => {
+                env.get_template("xpu/dep-cutlass-sycl.cmake")
+                    .wrap_err("Cannot get CUTLASS-SYCL dependency template")?
+                    .render_to_write(
+                        context! {
+                            version => "3.9-0.3",
+                        },
+                        &mut *write,
+                    )
+                    .wrap_err("Cannot render CUTLASS-SYCL dependency template")?;
+            }
             Dependencies::Torch => (),
             _ => {
-                // XPU doesn't support CUTLASS dependencies yet
-                eprintln!("Warning: XPU backend doesn't support dependency: {dep:?}");
-            }
+                // XPU supports CUTLASS-SYCL instead of CUTLASS
+                eprintln!("Warning: XPU backend doesn't need/support dependency: {dep:?}");
+            },
         }
         write.write_all(b"\n")?;
     }

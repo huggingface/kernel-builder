@@ -277,6 +277,9 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
                     .wrap_err("Cannot render CUTLASS dependency template")?;
             }
             Dependencies::Torch => (),
+            _ => {
+                eprintln!("Warning: CUDA backend doesn't need/support dependency: {dep:?}");
+            },
         };
         write.write_all(b"\n")?;
     }
