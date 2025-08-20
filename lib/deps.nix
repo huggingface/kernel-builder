@@ -25,6 +25,9 @@ let
     "cutlass_3_9" = [
       pkgs.cutlass_3_9
     ];
+    "cutlass_sycl_3_9" = [
+      pkgs.cutlass_sycl_3_9
+    ];
     "torch" = [
       torch
       torch.cxxdev
