@@ -211,7 +211,7 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
             _ => {
                 // XPU supports CUTLASS-SYCL instead of CUTLASS
                 eprintln!("Warning: XPU backend doesn't need/support dependency: {dep:?}");
-            },
+            }
         }
         write.write_all(b"\n")?;
     }
