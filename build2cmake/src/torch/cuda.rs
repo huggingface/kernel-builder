@@ -276,6 +276,17 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
                     )
                     .wrap_err("Cannot render CUTLASS dependency template")?;
             }
+            Dependencies::Cutlass4_0 => {
+                env.get_template("cuda/dep-cutlass.cmake")
+                    .wrap_err("Cannot get CUTLASS dependency template")?
+                    .render_to_write(
+                        context! {
+                            version => "4.0.0",
+                        },
+                        &mut *write,
+                    )
+                    .wrap_err("Cannot render CUTLASS dependency template")?;
+            }
             Dependencies::Torch => (),
             _ => {
                 eprintln!("Warning: CUDA backend doesn't need/support dependency: {dep:?}");
