@@ -32,11 +32,9 @@ let
 
     outputs = prevAttrs.outputs ++ [ "getent" ];
 
-    postInstall =
-      prevAttrs.postInstall
-      + ''
-        install -Dm755 $bin/bin/getent -t $getent/bin
-      '';
+    postInstall = prevAttrs.postInstall + ''
+      install -Dm755 $bin/bin/getent -t $getent/bin
+    '';
 
     passthru = prevAttrs.passthru // {
       # Should be stdenv's gcc, but we don't have access to it.

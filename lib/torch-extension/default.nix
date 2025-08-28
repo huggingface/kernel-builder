@@ -82,50 +82,48 @@ stdenv.mkDerivation (prevAttrs: {
     chmod -R u+w .
   '';
 
-  nativeBuildInputs =
-    [
-      kernel-abi-check
-      cmake
-      ninja
-      build2cmake
-    ]
-    ++ lib.optionals doGetKernelCheck [
-      get-kernel-check
-    ]
-    ++ lib.optionals cudaSupport [
-      cmakeNvccThreadsHook
-      cudaPackages.cuda_nvcc
-    ]
-    ++ lib.optionals rocmSupport [
-      clr
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      rewrite-nix-paths-macho
-    ];
+  nativeBuildInputs = [
+    kernel-abi-check
+    cmake
+    ninja
+    build2cmake
+  ]
+  ++ lib.optionals doGetKernelCheck [
+    get-kernel-check
+  ]
+  ++ lib.optionals cudaSupport [
+    cmakeNvccThreadsHook
+    cudaPackages.cuda_nvcc
+  ]
+  ++ lib.optionals rocmSupport [
+    clr
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    rewrite-nix-paths-macho
+  ];
 
-  buildInputs =
+  buildInputs = [
+    torch
+    torch.cxxdev
+  ]
+  ++ lib.optionals cudaSupport (
+    with cudaPackages;
     [
-      torch
-      torch.cxxdev
-    ]
-    ++ lib.optionals cudaSupport (
-      with cudaPackages;
-      [
-        cuda_cudart
+      cuda_cudart
 
-        # Make dependent on build configuration dependencies once
-        # the Torch dependency is gone.
-        cuda_cccl
-        libcublas
-        libcusolver
-        libcusparse
-      ]
-    )
-    ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      apple-sdk_15
+      # Make dependent on build configuration dependencies once
+      # the Torch dependency is gone.
+      cuda_cccl
+      libcublas
+      libcusolver
+      libcusparse
     ]
-    ++ extraDeps;
+  )
+  ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    apple-sdk_15
+  ]
+  ++ extraDeps;
 
   env =
     lib.optionalAttrs cudaSupport {
@@ -143,45 +141,43 @@ stdenv.mkDerivation (prevAttrs: {
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
   dontSetupCUDAToolkitCompilers = true;
 
-  cmakeFlags =
-    [
-      (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
-    ]
-    ++ lib.optionals cudaSupport [
-      (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
-    ]
-    ++ lib.optionals rocmSupport [
-      # Ensure sure that we use HIP from our CLR override and not HIP from
-      # the symlink-joined ROCm toolkit.
-      (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
-      (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      # Use host compiler for Metal. Not included in the redistributable SDK.
-      (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
-    ];
+  cmakeFlags = [
+    (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
+  ]
+  ++ lib.optionals cudaSupport [
+    (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
+  ]
+  ++ lib.optionals rocmSupport [
+    # Ensure sure that we use HIP from our CLR override and not HIP from
+    # the symlink-joined ROCm toolkit.
+    (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
+    (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # Use host compiler for Metal. Not included in the redistributable SDK.
+    (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
+  ];
 
-  postInstall =
-    ''
-      (
-        cd ..
-        cp -r torch-ext/${extensionName} $out/
-      )
-      cp $out/_${extensionName}_*/* $out/${extensionName}
-      rm -rf $out/_${extensionName}_*
-    ''
-    + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
-      find $out/${extensionName} -name '*.so' \
-        -exec patchelf --set-rpath "" {} \;
-    ''
-    + (lib.optionalString (stripRPath && stdenv.hostPlatform.isDarwin)) ''
-      find $out/${extensionName} -name '*.so' \
-        -exec rewrite-nix-paths-macho {} \;
+  postInstall = ''
+    (
+      cd ..
+      cp -r torch-ext/${extensionName} $out/
+    )
+    cp $out/_${extensionName}_*/* $out/${extensionName}
+    rm -rf $out/_${extensionName}_*
+  ''
+  + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
+    find $out/${extensionName} -name '*.so' \
+      -exec patchelf --set-rpath "" {} \;
+  ''
+  + (lib.optionalString (stripRPath && stdenv.hostPlatform.isDarwin)) ''
+    find $out/${extensionName} -name '*.so' \
+      -exec rewrite-nix-paths-macho {} \;
 
-      # Stub some rpath.
-      find $out/${extensionName} -name '*.so' \
-        -exec install_name_tool -add_rpath "@loader_path/lib" {} \;
-    '';
+    # Stub some rpath.
+    find $out/${extensionName} -name '*.so' \
+      -exec install_name_tool -add_rpath "@loader_path/lib" {} \;
+  '';
 
   doInstallCheck = true;
 
