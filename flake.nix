@@ -180,6 +180,8 @@
         packages = rec {
           build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
 
+          kernel-abi-check = pkgs.callPackage ./pkgs/kernel-abi-check { };
+
           update-build = pkgs.writeShellScriptBin "update-build" ''
             ${build2cmake}/bin/build2cmake update-build ''${1:-build.toml}
           '';
@@ -220,7 +222,11 @@
               );
             in
             pkgs.linkFarm "packages-for-cache" (
-              torchOutputs // lib.optionalAttrs nixpkgs.legacyPackages.${system}.stdenv.isLinux oldLinuxStdenvs
+              {
+                inherit build2cmake kernel-abi-check;
+              }
+              // torchOutputs
+              // lib.optionalAttrs nixpkgs.legacyPackages.${system}.stdenv.isLinux oldLinuxStdenvs
             );
         };
       }
