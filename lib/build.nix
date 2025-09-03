@@ -285,6 +285,7 @@ rec {
               [
                 build2cmake
                 kernel-abi-check
+                python3.pkgs.venvShellHook
               ]
               ++ (pythonNativeCheckInputs python3.pkgs);
             buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (pythonCheckInputs python3.pkgs);
@@ -293,6 +294,7 @@ rec {
               PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
               HIP_PATH = pkgs.rocmPackages.clr;
             };
+            venvDir = "./.venv";
           };
         };
       filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
