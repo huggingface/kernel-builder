@@ -40,7 +40,7 @@ jobs:
 
       - name: Build relu-backprop-compile kernel
         run: ( cd examples/relu-backprop-compile && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
-      - name: Copy relu kernel
+      - name: Copy relu-backprop-compile kernel
         run: cp -rL examples/relu-backprop-compile/result relu-backprop-compile-kernel
 
       # Just test that we build with the extra torchVersions argument.
