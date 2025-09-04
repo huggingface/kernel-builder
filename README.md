@@ -38,14 +38,15 @@ Then quick start a build with:
 
 ```bash
 cd examples/activation
-nix build . \
+nix run .#build-and-copy \
   --override-input kernel-builder github:huggingface/kernel-builder \
   --max-jobs 8 \
   -j 8 \
   -L
 ```
 
-we also provide Docker containers for CI builds. For a quick build:
+The compiled kernel will then be available in the local `build/` directory.
+We also provide Docker containers for CI builds. For a quick build:
 
 ```bash
 # Using the prebuilt container

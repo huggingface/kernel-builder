@@ -3,6 +3,7 @@
   buildSet,
   system,
 
+  writeScriptBin,
   runCommand,
 
   path,
@@ -44,6 +45,26 @@ in
   };
   packages = rec {
     default = bundle;
+
+    build-and-copy = writeScriptBin "build-and-copy" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      if [ ! -d build ]; then
+        mkdir build
+      fi
+
+      for build_variant in ${bundle}/*; do
+        if [ -e build/$build_variant ]; then
+          rm -rf build/$build_variant
+        fi
+
+        cp -r $build_variant build/
+      done
+
+      chmod -R +w build
+    '';
+
     bundle = build.buildTorchExtensionBundle {
       inherit path doGetKernelCheck;
       rev = revUnderscored;

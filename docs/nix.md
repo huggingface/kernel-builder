@@ -43,13 +43,15 @@ are not using NixOS, [make sure that the CUDA driver is visible](https://danield
 
 ## Building kernels with Nix
 
-A kernel that has a `flake.nix` file can be built with `nix build`.
-For example:
+A kernel that has a `flake.nix` file can be built with the `build-and-copy`
+command. For example:
 
 ```bash
 cd examples/activation
-nix build . -L
+nix run .#build-and-copy -L
 ```
+
+The compiled kernel will then be in the local `build/` directory.
 
 ## Shell for local development
 
