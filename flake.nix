@@ -87,74 +87,22 @@
             (builtins.isFunction torchVersions)
             || abort "`torchVersions` must be a function taking one argument (the default version set)";
           let
-            buildSetPerSystem' = mkBuildSetsPerSystem (torchVersions torchVersions');
-            buildPerSystem = mkBuildPerSystem buildSetPerSystem';
+            buildSetPerSystem = mkBuildSetsPerSystem (torchVersions torchVersions');
+            buildPerSystem = mkBuildPerSystem buildSetPerSystem;
           in
           flake-utils.lib.eachSystem systems (
             system:
-            let
+            nixpkgs.legacyPackages.${system}.callPackage ./lib/gen-flake-outputs.nix {
+              inherit
+                system
+                path
+                rev
+                doGetKernelCheck
+                pythonCheckInputs
+                pythonNativeCheckInputs
+                ;
               build = buildPerSystem.${system};
-              revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] rev;
-              pkgs = nixpkgs.legacyPackages.${system};
-              shellTorch =
-                if system == "aarch64-darwin" then "torch28-metal-${system}" else "torch28-cxx11-cu126-${system}";
-            in
-            {
-              devShells = rec {
-                default = devShells.${shellTorch};
-                test = testShells.${shellTorch};
-                devShells = build.torchDevShells {
-                  inherit
-                    path
-                    doGetKernelCheck
-                    pythonCheckInputs
-                    pythonNativeCheckInputs
-                    ;
-                  rev = revUnderscored;
-                };
-                testShells = build.torchExtensionShells {
-                  inherit
-                    path
-                    doGetKernelCheck
-                    pythonCheckInputs
-                    pythonNativeCheckInputs
-                    ;
-                  rev = revUnderscored;
-                };
-              };
-              packages = rec {
-                default = bundle;
-                bundle = build.buildTorchExtensionBundle {
-                  inherit path doGetKernelCheck;
-                  rev = revUnderscored;
-                };
-                redistributable = build.buildDistTorchExtensions {
-                  inherit path doGetKernelCheck;
-                  buildSets = buildSetPerSystem'.${system};
-                  rev = revUnderscored;
-                };
-                buildTree =
-                  let
-                    build2cmake = self.packages.${system}.build2cmake;
-                    src = build.mkSourceSet path;
-                  in
-                  pkgs.runCommand "torch-extension-build-tree"
-                    {
-                      nativeBuildInputs = [ build2cmake ];
-                      inherit src;
-                      meta = {
-                        description = "Build tree for torch extension with source files and CMake configuration";
-                      };
-                    }
-                    ''
-                      # Copy sources
-                      install -dm755 $out/src
-                      cp -r $src/. $out/src/
-
-                      # Generate cmake files
-                      build2cmake generate-torch --ops-id "${revUnderscored}" $src/build.toml $out --force
-                    '';
-              };
+              buildSet = buildSetPerSystem.${system};
             }
           );
       }
