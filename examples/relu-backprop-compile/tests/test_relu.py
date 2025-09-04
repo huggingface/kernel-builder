@@ -156,3 +156,27 @@ def test_relu_torch_compile(dtype):
     grad_compiled = x.grad.clone()
 
     torch.testing.assert_close(grad_original, grad_compiled)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_torch_compile_recompilation_and_graph_break(dtype):
+    device = get_device()
+
+    class SimpleModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = torch.nn.Linear(16, 16)
+
+        def forward(self, x):
+            return relu.relu(self.linear(x))
+
+    model = SimpleModel().to(device).to(dtype)
+    compiled_model = torch.compile(model, fullgraph=True)
+
+    x = torch.randn((16, 16), dtype=dtype, device=device, requires_grad=True)
+    with (
+        torch._inductor.utils.fresh_inductor_cache(),
+        torch._dynamo.config.patch(error_on_recompile=True),
+    ):
+        model(x)
+        model(x)
