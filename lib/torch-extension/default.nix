@@ -12,9 +12,9 @@
   src,
 
   config,
-  cudaSupport ? config.cudaSupport,
-  rocmSupport ? config.rocmSupport,
-  xpuSupport ? (config.xpuSupport or false),
+  cudaSupport ? torch.cudaSupport,
+  rocmSupport ? torch.rocmSupport,
+  xpuSupport ? torch.xpuSupport,
 
   lib,
   stdenv,
@@ -130,12 +130,9 @@ stdenv.mkDerivation (prevAttrs: {
     ]
   )
   ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
-  ++ lib.optionals xpuSupport (
-    with xpuPackages;
-    [
-      oneapi-torch-dev
-    ]
-  )
+  ++ lib.optionals xpuSupport ([
+    oneapi-torch-dev
+  ])
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
     apple-sdk_15
   ]

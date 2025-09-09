@@ -15,14 +15,14 @@ let
   torchVersion = torch: flattenVersion torch.version;
   xpuVersion =
     torch:
-    "xpu${flattenVersion (lib.versions.majorMinor pkgs.xpuPackages.intel-oneapi-dpcpp-cpp.version)}";
+    "xpu${flattenVersion (lib.versions.majorMinor torch.xpuPackages.intel-oneapi-dpcpp-cpp.version)}";
   gpuVersion =
     torch:
     if torch.cudaSupport then
       cudaVersion torch
     else if (torch ? rocmPackages) && (torch.rocmSupport or false) then
       rocmVersion torch
-    else if (pkgs ? xpuPackages) && (pkgs.config.xpuSupport or false) then
+    else if (torch ? xpuPackages) && (torch.xpuSupport or false) then
       xpuVersion torch
     else
       null;
