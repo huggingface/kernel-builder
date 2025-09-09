@@ -129,10 +129,10 @@ rec {
       stdenv =
         if pkgs.stdenv.hostPlatform.isDarwin then
           pkgs.stdenv
-        else if lib.any (k: k.backend == "xpu") (lib.attrValues buildConfig.kernel) then
-          pkgs.stdenv
         else if oldLinuxCompat then
           pkgs.stdenvGlibc_2_27
+        else if lib.any (k: k.backend == "xpu") (lib.attrValues buildConfig.kernel) then
+          pkgs.stdenv
         else
           pkgs.cudaPackages.backendStdenv;
     in

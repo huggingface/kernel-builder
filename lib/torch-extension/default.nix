@@ -1,5 +1,4 @@
 {
-  pkgs,
   extensionName,
   nvccThreads,
   rev,
@@ -30,6 +29,7 @@
   rewrite-nix-paths-macho,
   rocmPackages,
   writeScriptBin,
+  xpuPackages,
 
   apple-sdk_15,
   extraDeps ? [ ],
@@ -50,6 +50,8 @@ let
       };
     }
   );
+
+  oneapi-torch-dev = xpuPackages.oneapi-torch-dev.override { inherit stdenv; };
 
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # t's not supported by the nixpkgs shim.
@@ -102,13 +104,10 @@ stdenv.mkDerivation (prevAttrs: {
   ++ lib.optionals rocmSupport [
     clr
   ]
-  ++ lib.optionals xpuSupport (
-    with pkgs.xpuPackages;
-    [
-      ocloc
-      oneapi-torch-dev
-    ]
-  )
+  ++ lib.optionals xpuSupport ([
+    xpuPackages.ocloc
+    oneapi-torch-dev
+  ])
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
     rewrite-nix-paths-macho
   ];
@@ -132,7 +131,7 @@ stdenv.mkDerivation (prevAttrs: {
   )
   ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
   ++ lib.optionals xpuSupport (
-    with pkgs.xpuPackages;
+    with xpuPackages;
     [
       oneapi-torch-dev
     ]
@@ -155,8 +154,8 @@ stdenv.mkDerivation (prevAttrs: {
       PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
     }
     // lib.optionalAttrs xpuSupport {
-      MKLROOT = pkgs.xpuPackages.oneapi-torch-dev;
-      SYCL_ROOT = pkgs.xpuPackages.oneapi-torch-dev;
+      MKLROOT = oneapi-torch-dev;
+      SYCL_ROOT = oneapi-torch-dev;
     };
 
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
