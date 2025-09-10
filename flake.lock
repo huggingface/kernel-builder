@@ -73,11 +73,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1757433368,
-        "narHash": "sha256-3CbGZO/t+ulPpfC/CVR1OxZN3UEkVXNSzyarJvbA0ww=",
+        "lastModified": 1757490457,
+        "narHash": "sha256-ihWMtao86HvJwi7I+6RUf+dPO6OJux8jUqD7pcSJ2N8=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "415029868beaa19971ee3d2d1edc242fd07ff9de",
+        "rev": "02fcc733c04ff1a4b5e5cefe518b49636a079649",
         "type": "github"
       },
       "original": {
