@@ -7,6 +7,7 @@ _PLATFORM_NAMES = {
     "cuda": "CUDA",
     "metal": "Metal",
     "rocm": "ROCm",
+    "xpu": "XPU",
 }
 
 HEADER = """# Build variants

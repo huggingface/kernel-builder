@@ -30,6 +30,11 @@ available. This list will be updated as new PyTorch versions are released.
 - `torch28-cxx11-rocm63-x86_64-linux`
 - `torch28-cxx11-rocm64-x86_64-linux`
 
+## XPU x86_64-linux
+
+- `torch27-cxx11-xpu20250-x86_64-linux`
+- `torch28-cxx11-xpu20251-x86_64-linux`
+
 ## Universal
 
 Kernels that are in pure Python (e.g. Triton kernels) only need to provide
