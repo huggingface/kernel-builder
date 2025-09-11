@@ -82,6 +82,7 @@
       },
       "original": {
         "owner": "huggingface",
+        "ref": "torch-2.9.0",
         "repo": "hf-nix",
         "type": "github"
       }
@@ -107,10 +108,7 @@
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "hf-nix": "hf-nix",
-        "nixpkgs": [
-          "hf-nix",
-          "nixpkgs"
-        ]
+        "nixpkgs": ["hf-nix", "nixpkgs"]
       }
     },
     "systems": {

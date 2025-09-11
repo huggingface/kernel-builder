@@ -129,5 +129,13 @@
     systems = [ "x86_64-linux" ];
     bundleBuild = false;
   }
-
+  {
+    torchVersion = "2.9";
+    cudaVersion = "13.0";
+    cxx11Abi = true;
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  }
 ]
