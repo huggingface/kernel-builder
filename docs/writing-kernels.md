@@ -131,7 +131,7 @@ for an example with multiple kernel sections.
 The following options can be set for a kernel:
 
 - `backend` (required): the compute backend of the kernel. The currently
-  supported backends are `cuda`, `metal`, and `rocm`.
+  supported backends are `cuda`, `metal`, `rocm`, and `xpu`.
 - `depends` (required): a list of dependencies. The supported dependencies
   are listed in [`deps.nix`](../lib/deps.nix).
 - `src` (required): a list of source files and headers.
@@ -158,6 +158,11 @@ are available:
 
 - `rocm-archs`: a list of ROCm architectures that the kernel should be
   compiled for.
+
+#### xpu
+
+- `sycl_flags`: a list of additional flags to be passed to the SYCL
+  compiler.
 
 ## Torch bindings
 
