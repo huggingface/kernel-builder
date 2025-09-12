@@ -152,8 +152,11 @@ stdenv.mkDerivation (prevAttrs: {
       TORCH_CUDA_ARCH_LIST =
         if cudaPackages.cudaOlder "12.8" then
           "7.0;7.5;8.0;8.6;8.9;9.0"
+        else if cudaPackages.cudaOlder "13.0" then
+          "7.0;7.5;8.0;8.6;8.9;9.0;10.0;10.1;12.0"
         else
-          "7.0;7.5;8.0;8.6;8.9;9.0;10.0;10.1;12.0";
+          # sm_101 has been renamed to sm_110 in CUDA 13.
+          "7.5;8.0;8.6;8.9;9.0;10.0;11.0;12.0";
     }
     // lib.optionalAttrs rocmSupport {
       PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
