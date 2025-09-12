@@ -1,5 +1,5 @@
-use std::env;
 use std::collections::HashSet;
+use std::env;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -202,13 +202,13 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
                 let version = match dpcpp_version.as_str() {
                     "2025.0" => "3.9-0.2",
                     "2025.1" => "3.9-0.3",
-                    _ => bail!("No cutlass_sycl version mapped for DPCPP_VERSION {}", dpcpp_version),
+                    _ => bail!(
+                        "No cutlass_sycl version mapped for DPCPP_VERSION {}",
+                        dpcpp_version
+                    ),
                 };
                 env.get_template("xpu/dep-cutlass-sycl.cmake")?
-                    .render_to_write(
-                        context! { version => version },
-                        &mut *write,
-                    )?;
+                    .render_to_write(context! { version => version }, &mut *write)?;
             }
             Dependencies::Torch => (),
             _ => {
