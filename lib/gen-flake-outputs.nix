@@ -55,11 +55,12 @@ in
       fi
 
       for build_variant in ${bundle}/*; do
+        build_variant=$(basename $build_variant)
         if [ -e build/$build_variant ]; then
           rm -rf build/$build_variant
         fi
 
-        cp -r $build_variant build/
+        cp -r result/$build_variant build/
       done
 
       chmod -R +w build
