@@ -47,6 +47,9 @@ jobs:
       - name: Build relu kernel (specific Torch version)
         run: ( cd examples/relu-specific-torch && nix build . )
 
+      - name: Test that we can build a test shell (e.g. that gcc corresponds to CUDA-required)
+        run: ( cd examples/relu && nix build .#devShells.x86_64-linux.test )
+
       - name: Build silu-and-mul-universal kernel
         run: ( cd examples/silu-and-mul-universal && nix build .\#redistributable.torch27-cxx11-cu126-x86_64-linux )
       - name: Copy silu-and-mul-universal kernel

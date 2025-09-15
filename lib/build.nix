@@ -22,6 +22,21 @@ let
     isRocm
     isXpu
     ;
+  mkStdenv =
+    buildSet: oldLinuxCompat:
+    let
+      inherit (buildSet) pkgs torch;
+    in
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      pkgs.stdenv
+    else if oldLinuxCompat then
+      # Uses CUDA stdenv when we are building for CUDA.
+      pkgs.stdenvGlibc_2_27
+    else if torch.cudaSupport then
+      torch.cudaPackages.backendStdenv
+    else
+      pkgs.stdenv;
+
 in
 rec {
   resolveDeps = import ./deps.nix { inherit lib; };
@@ -126,15 +141,7 @@ rec {
           _: buildConfig: builtins.length (buildConfig.cuda-capabilities or supportedCudaCapabilities)
         ) buildConfig.kernel
       );
-      stdenv =
-        if pkgs.stdenv.hostPlatform.isDarwin then
-          pkgs.stdenv
-        else if oldLinuxCompat then
-          pkgs.stdenvGlibc_2_27
-        else if lib.any (k: k.backend == "xpu") (lib.attrValues buildConfig.kernel) then
-          pkgs.stdenv
-        else
-          pkgs.cudaPackages.backendStdenv;
+      stdenv = mkStdenv { inherit pkgs torch; } oldLinuxCompat;
     in
     if buildConfig.general.universal then
       # No torch extension sources? Treat it as a noarch package.
@@ -244,13 +251,7 @@ rec {
         let
           pkgs = buildSet.pkgs;
           rocmSupport = pkgs.config.rocmSupport or false;
-          stdenv =
-            if rocmSupport then
-              pkgs.stdenv
-            else if isXpu buildSet.buildConfig then
-              pkgs.stdenv
-            else
-              pkgs.cudaPackages.backendStdenv;
+          stdenv = mkStdenv buildSet false;
           mkShell = pkgs.mkShell.override { inherit stdenv; };
         in
         {
@@ -291,13 +292,7 @@ rec {
           pkgs = buildSet.pkgs;
           rocmSupport = pkgs.config.rocmSupport or false;
           xpuSupport = pkgs.config.xpuSupport or false;
-          stdenv =
-            if rocmSupport then
-              pkgs.stdenv
-            else if xpuSupport then
-              pkgs.stdenv
-            else
-              pkgs.cudaPackages.backendStdenv;
+          stdenv = mkStdenv buildSet false;
           mkShell = pkgs.mkShell.override { inherit stdenv; };
         in
         {
