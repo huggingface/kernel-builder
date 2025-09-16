@@ -55,11 +55,18 @@
     systems = [ "aarch64-darwin" ];
     bundleBuild = true;
   }
-
-  # Non-standard versions; not included in bundle builds.
   {
-    torchVersion = "2.8";
-    cudaVersion = "12.4";
+    torchVersion = "2.9";
+    cudaVersion = "12.6";
+    cxx11Abi = true;
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  }
+  {
+    torchVersion = "2.9";
+    cudaVersion = "12.8";
     cxx11Abi = true;
     systems = [
       "x86_64-linux"
@@ -76,6 +83,31 @@
   {
     torchVersion = "2.9";
     cudaVersion = "13.0";
+    cxx11Abi = true;
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  }
+  {
+    torchVersion = "2.9";
+    rocmVersion = "6.3.4";
+    cxx11Abi = true;
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.9";
+    rocmVersion = "6.4.2";
+    cxx11Abi = true;
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
+
+  # Non-standard versions; not included in bundle builds.
+  {
+    torchVersion = "2.8";
+    cudaVersion = "12.4";
     cxx11Abi = true;
     systems = [
       "x86_64-linux"
