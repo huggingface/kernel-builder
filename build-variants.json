@@ -1,7 +1,8 @@
 {
   "aarch64-darwin": {
     "metal": [
-      "torch28-metal-aarch64-darwin"
+      "torch28-metal-aarch64-darwin",
+      "torch29-metal-aarch64-darwin"
     ]
   },
   "aarch64-linux": {
@@ -17,7 +18,9 @@
     ],
     "rocm": [
       "torch28-cxx11-rocm63-x86_64-linux",
-      "torch28-cxx11-rocm64-x86_64-linux"
+      "torch28-cxx11-rocm64-x86_64-linux",
+      "torch29-cxx11-rocm63-x86_64-linux",
+      "torch29-cxx11-rocm64-x86_64-linux"
     ],
     "xpu": [
       "torch28-cxx11-xpu20251-x86_64-linux"

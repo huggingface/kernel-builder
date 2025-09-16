@@ -103,6 +103,13 @@
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
   }
+  {
+    torchVersion = "2.9";
+    cxx11Abi = true;
+    metal = true;
+    systems = [ "aarch64-darwin" ];
+    bundleBuild = true;
+  }
 
   # Non-standard versions; not included in bundle builds.
   {
