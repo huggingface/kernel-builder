@@ -60,7 +60,7 @@ in
           rm -rf build/$build_variant
         fi
 
-        cp -r result/$build_variant build/
+        cp -r ${bundle}/$build_variant build/
       done
 
       chmod -R +w build
