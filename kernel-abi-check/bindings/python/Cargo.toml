@@ -12,4 +12,4 @@ object = "0.36.7"
 pyo3 = { version = "0.26", features = ["abi3", "abi3-py38"] }
 
 [dependencies.kernel-abi-check]
-path = "../.."
+path = "../../kernel-abi-check"
