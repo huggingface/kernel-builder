@@ -12,7 +12,7 @@
     }:
 
     kernel-builder.lib.genFlakeOutputs {
+      inherit self;
       path = ./.;
-      rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
     };
 }

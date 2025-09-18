@@ -117,8 +117,8 @@ the kernel's `flake.nix` to use the `pythonCheckInputs` option:
       kernel-builder,
     }:
     kernel-builder.lib.genFlakeOutputs {
+      inherit self;
       path = ./.;
-      rev = self.shortRev or self.dirtyShortRev or self.lastModifiedDate;
 
       # The einops and numpy test dependencies are added here:
       pythonCheckInputs = pkgs: with pkgs; [ einops numpy ];
