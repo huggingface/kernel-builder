@@ -250,8 +250,8 @@ impl PyIncompatibleMinOS {
     }
 }
 
-#[pyo3::pymodule]
-fn _kernel_abi_check_rust(m: &PyBound<'_, PyModule>) -> PyResult<()> {
+#[pyo3::pymodule(name = "kernel_abi_check")]
+fn kernel_abi_check_py(m: &PyBound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyObjectFile>()?;
 
     // Python ABI violation classes

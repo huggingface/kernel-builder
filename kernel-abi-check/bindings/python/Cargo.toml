@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "kernel_abi_check_rust"
+name = "kernel_abi_check"
 crate-type = ["cdylib"]
 
 [dependencies]
