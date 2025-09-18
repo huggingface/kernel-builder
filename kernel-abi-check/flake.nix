@@ -39,8 +39,11 @@
             buildInputs = [
               openssl.dev
               pkg-config
+              python3
               rust
             ];
+
+            nativeBuildInputs = with pkgs; [ maturin ];
 
             RUST_SRC_PATH = "${rust}/lib/rustlib/src/rust/library";
           };
