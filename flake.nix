@@ -70,7 +70,8 @@
         genFlakeOutputs =
           {
             path,
-            rev,
+            rev ? null,
+            self ? null,
 
             # This option is not documented on purpose. You should not use it,
             # if a kernel cannot be imported, it is non-compliant. This is for
@@ -97,6 +98,7 @@
                 system
                 path
                 rev
+                self
                 doGetKernelCheck
                 pythonCheckInputs
                 pythonNativeCheckInputs

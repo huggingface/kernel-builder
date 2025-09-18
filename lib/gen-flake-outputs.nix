@@ -7,7 +7,8 @@
   runCommand,
 
   path,
-  rev,
+  rev ? null,
+  self ? null,
 
   doGetKernelCheck,
   pythonCheckInputs,
@@ -15,7 +16,24 @@
 }:
 
 let
-  revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] rev;
+  supportedFormat = ''
+    kernel-builder.lib.genFlakeOutputs {
+      inherit self;
+      path = ./.;
+    };
+  '';
+  flakeRev =
+    if self != null then
+      self.shortRev or self.dirtyShortRev or (builtins.warn ''
+        Kernel is not in a git repository, this will create a non-reproducible build.
+        This will not be supported in the future.
+      '' self.lastModifiedDate)
+    else if rev != null then
+      builtins.warn "`rev` argument of `genFlakeOutputs` is deprecated, pass `self` as follows:\n\n${supportedFormat}" rev
+    else
+      throw "Flake's `self` must be passed to `genFlakeOutputs` as follows:\n\n${supportedFormat}";
+
+  revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] flakeRev;
   shellTorch =
     if system == "aarch64-darwin" then "torch28-metal-${system}" else "torch28-cxx11-cu126-${system}";
 in
