@@ -130,6 +130,8 @@
 
           kernel-abi-check = pkgs.callPackage ./pkgs/kernel-abi-check { };
 
+          nix-ninja = pkgs.callPackage ./pkgs/nix-ninja { };
+
           update-build = pkgs.writeShellScriptBin "update-build" ''
             ${build2cmake}/bin/build2cmake update-build ''${1:-build.toml}
           '';

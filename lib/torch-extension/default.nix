@@ -21,7 +21,10 @@
   cudaPackages,
   cmake,
   cmakeNvccThreadsHook,
+  coreutils,
   ninja,
+  nix,
+  nix-ninja,
   build2cmake,
   get-kernel-check,
   kernel-abi-check,
@@ -30,12 +33,17 @@
   rocmPackages,
   writeScriptBin,
   xpuPackages,
+  which,
+  strace,
 
   apple-sdk_15,
   extraDeps ? [ ],
   torch,
 
   doAbiCheck,
+
+  #target ? "_relu_9e1f14c_dirty.abi3.so",
+  target ? "_relu_ff32dc4_dirty",
 }:
 
 let
@@ -61,11 +69,12 @@ let
     /usr/bin/xcrun $@
   '';
 
-in
-stdenv.mkDerivation (prevAttrs: {
+ninjaDrv = stdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
   inherit doAbiCheck nvccThreads src;
+
+  requiredSystemFeatures = [ "recursive-nix" ];
 
   # Generate build files.
   postPatch = ''
@@ -91,8 +100,13 @@ stdenv.mkDerivation (prevAttrs: {
   nativeBuildInputs = [
     kernel-abi-check
     cmake
+    coreutils
     ninja
+    nix
+    nix-ninja
     build2cmake
+    which
+    strace
   ]
   ++ lib.optionals doGetKernelCheck [
     get-kernel-check
@@ -138,8 +152,22 @@ stdenv.mkDerivation (prevAttrs: {
   ]
   ++ extraDeps;
 
-  env =
-    lib.optionalAttrs cudaSupport {
+  buildPhase = ''
+    runHook preBuild
+    ninja -t targets
+    nix-ninja -v ${target}
+    runHook postBuild
+  '';
+
+  env = {
+    NIX_CONFIG = "extra-experimental-features = nix-command ca-derivations dynamic-derivations";
+    # Needs to be a string, since nix-ninja does not accept the
+    # serialization `1`.
+    NIX_NINJA_DRV = "true";
+    NINJA="${nix-ninja}/bin/nix-ninja";
+    NIX_NO_SELF_RPATH = true;
+  }
+    // lib.optionalAttrs cudaSupport {
       CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
       TORCH_CUDA_ARCH_LIST =
         if cudaPackages.cudaOlder "12.8" then
@@ -161,6 +189,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   cmakeFlags = [
     (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
+    "-GNinja"
   ]
   ++ lib.optionals cudaSupport [
     (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
@@ -204,7 +233,14 @@ stdenv.mkDerivation (prevAttrs: {
   # We need access to the host system on Darwin for the Metal compiler.
   __noChroot = stdenv.hostPlatform.isDarwin;
 
+  __contentAddressed = true;
+  outputHashMode = "text";
+  outputHashAlgo = "sha256";
+
   passthru = {
     inherit torch;
+    target = builtins.outputOf ninjaDrv.outPath "${target}";
   };
-})
+});
+
+in ninjaDrv

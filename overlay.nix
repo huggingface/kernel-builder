@@ -9,6 +9,8 @@ final: prev: {
 
   kernel-abi-check = prev.callPackage ./pkgs/kernel-abi-check { };
 
+  nix-ninja = prev.callPackage ./pkgs/nix-ninja { };
+
   rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
 
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
