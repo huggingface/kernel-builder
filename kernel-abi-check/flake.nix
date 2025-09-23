@@ -37,12 +37,20 @@
           with pkgs;
           mkShell {
             buildInputs = [
+              black
               openssl.dev
               pkg-config
+              ruff
               rust
-            ];
+            ] ++ (with python3.pkgs; [
+              pytest
+              venvShellHook
+            ]);
+
+            nativeBuildInputs = with pkgs; [ maturin ];
 
             RUST_SRC_PATH = "${rust}/lib/rustlib/src/rust/library";
+            venvDir = "./.venv";
           };
       }
     );
