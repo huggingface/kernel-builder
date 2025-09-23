@@ -42,7 +42,8 @@
               pkg-config
               ruff
               rust
-            ] ++ (with python3.pkgs; [
+            ]
+            ++ (with python3.pkgs; [
               pytest
               venvShellHook
             ]);
