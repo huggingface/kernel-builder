@@ -15,6 +15,11 @@ dynamic = [
 requires = ["maturin>=1,<2"]
 build-backend = "maturin"
 
+[dependency-groups]
+dev = [
+  "pytest>=8",
+]
+
 [tool.maturin]
 module-name = "kernel_abi_check"
 bindings = 'pyo3'
