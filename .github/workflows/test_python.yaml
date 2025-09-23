@@ -15,13 +15,8 @@ concurrency:
 jobs:
   build:
     name: Run tests
-    runs-on:
-      group: aws-g6-24xlarge
-    permissions:
-      contents: read
-      packages: write
+    runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
       matrix:
         python-version: ["3.12"]
 
