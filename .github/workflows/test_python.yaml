@@ -1,4 +1,4 @@
-name: Test kernels
+name: Test Python bindings
 
 on:
   push:
