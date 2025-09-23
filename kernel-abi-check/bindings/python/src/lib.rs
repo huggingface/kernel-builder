@@ -167,7 +167,7 @@ impl PyObjectFile {
 }
 
 /// Binary format of an object file
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[pyclass(name = "BinaryFormat")]
 pub enum PyBinaryFormat {
     /// COFF (Common Object File Format)
@@ -192,6 +192,14 @@ pub enum PyBinaryFormat {
 
 #[pymethods]
 impl PyBinaryFormat {
+    fn __eq__(&self, other: &Self) -> bool {
+        self == other
+    }
+
+    fn __ne__(&self, other: &Self) -> bool {
+        self != other
+    }
+
     fn __repr__(&self) -> String {
         match self {
             PyBinaryFormat::Coff => "BinaryFormat.COFF".to_string(),
