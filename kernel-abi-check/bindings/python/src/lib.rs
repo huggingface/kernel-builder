@@ -20,7 +20,7 @@ struct PyObjectFile {
 }
 
 impl PyObjectFile {
-    fn parse_file(&self) -> PyResult<object::File> {
+    fn parse_file(&self) -> PyResult<object::File<'_>> {
         object::File::parse(&*self.data).map_err(|err| {
             PyValueError::new_err(format!(
                 "Cannot parse object file `{}`: {}",
@@ -147,7 +147,7 @@ impl PyObjectFile {
     fn format(&self) -> PyResult<PyBinaryFormat> {
         let file = self.parse_file()?;
         let binary_format = file.format();
-        
+
         let py_format = match binary_format {
             BinaryFormat::Coff => PyBinaryFormat::Coff,
             BinaryFormat::Elf => PyBinaryFormat::Elf,
@@ -161,7 +161,7 @@ impl PyObjectFile {
                 )));
             }
         };
-        
+
         Ok(py_format)
     }
 }
