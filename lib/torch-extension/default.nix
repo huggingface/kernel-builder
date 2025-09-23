@@ -132,6 +132,7 @@ stdenv.mkDerivation (prevAttrs: {
   ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
   ++ lib.optionals xpuSupport ([
     oneapi-torch-dev
+    xpuPackages.onednn-xpu
   ])
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
     apple-sdk_15
