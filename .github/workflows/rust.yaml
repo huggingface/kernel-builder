@@ -10,7 +10,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cargo fmt (kernel-abi-check)
-        run: ( cd kernel-abi-check && cargo fmt --all -- --check )
+        run: |
+          ( cd kernel-abi-check/kernel-abi-check && cargo fmt --all -- --check )
+          ( cd kernel-abi-check/bindings/python && cargo fmt --all -- --check )
       - name: Cargo fmt (build2cmake)
         run: ( cd build2cmake && cargo fmt --all -- --check )
 
@@ -32,6 +34,8 @@ jobs:
         with:
           components: clippy
       - name: Clippy (kernel-abi-check)
-        run: ( cd kernel-abi-check && cargo clippy -- -D warnings )
+        run: |
+          ( cd kernel-abi-check/kernel-abi-check && cargo clippy -- -D warnings )
+          ( cd kernel-abi-check/bindings/python && cargo clippy -- -D warnings )
       - name: Clippy (build2cmake)
         run: ( cd build2cmake && cargo clippy -- -D warnings )
