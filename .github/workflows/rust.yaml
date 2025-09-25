@@ -9,6 +9,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
       - name: Cargo fmt (kernel-abi-check)
         run: |
           ( cd kernel-abi-check/kernel-abi-check && cargo fmt --all -- --check )
