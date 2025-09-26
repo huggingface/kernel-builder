@@ -56,6 +56,16 @@ else()
 endif(NOT CutlassSycl_FOUND)
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=intel_gpu_pvc" sycl_link_flags "${sycl_link_flags}")
 string(REPLACE "-device pvc,xe-lpg,ats-m150" "" sycl_link_flags "${sycl_link_flags}")
-string(APPEND sycl_link_flags "-Xspirv-translator;-spirv-ext=+SPV_INTEL_split_barrier;")
+string(APPEND sycl_link_flags "-Xspirv-translator;-spirv-ext=+SPV_INTEL_split_barrier")
+execute_process(
+  COMMAND ${ICPX_COMPILER} --version
+  OUTPUT_VARIABLE ICPX_VERSION_OUTPUT
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" ICPX_VERSION "${ICPX_VERSION_OUTPUT}")
+if(ICPX_VERSION STREQUAL "2025.2.1")
+  string(APPEND sycl_link_flags ",+SPV_INTEL_2d_block_io,+SPV_INTEL_subgroup_matrix_multiply_accumulate")
+endif()
+
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=intel_gpu_pvc" sycl_flags "${sycl_flags}")
 
