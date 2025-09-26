@@ -202,6 +202,7 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
                 let version = match dpcpp_version.as_str() {
                     "2025.0" => "3.9-0.2",
                     "2025.1" => "3.9-0.3",
+                    "2025.2" => "3.9-0.3",
                     _ => bail!(
                         "No cutlass_sycl version mapped for DPCPP_VERSION {}",
                         dpcpp_version
