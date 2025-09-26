@@ -45,8 +45,8 @@ We also provide Docker containers for CI builds. For a quick build:
 # Using the prebuilt container
 cd examples/activation
 docker run --rm \
-  -v $(pwd):/app \
-  -w /app \
+  -v $(pwd)/../..:/app \
+  -w /app/examples/activation \
   ghcr.io/huggingface/kernel-builder:{SHA} \
   build
 ```
