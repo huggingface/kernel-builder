@@ -29,7 +29,8 @@
       "torch29-cxx11-rocm64-x86_64-linux"
     ],
     "xpu": [
-      "torch28-cxx11-xpu20251-x86_64-linux"
+      "torch28-cxx11-xpu20251-x86_64-linux",
+      "torch28-cxx11-xpu20252-x86_64-linux"
     ]
   }
 }
