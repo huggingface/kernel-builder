@@ -1,12 +1,9 @@
 find_package(CutlassSycl)
 
+set(CUTLASS_SYCL_REVISION "v{{ version }}" CACHE STRING "CUTLASS revision to use")
 if (NOT CutlassSycl_FOUND)
   set(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
   set(CUTLASS_ENABLE_BENCHMARKS OFF CACHE BOOL "Disable CUTLASS Benchmarks")
-
-# Set CUTLASS_REVISION manually -- its revision detection doesn't work in this case.
-  set(CUTLASS_REVISION "v{{ version }}" CACHE STRING "CUTLASS revision to use")
-
 # Use the specified CUTLASS source directory for compilation if CUTLASS_SYCL_SRC_DIR is provided
   if (DEFINED ENV{CUTLASS_SYCL_SRC_DIR})
     set(CUTLASS_SYCL_SRC_DIR $ENV{CUTLASS_SYCL_SRC_DIR})
@@ -22,7 +19,7 @@ if (NOT CutlassSycl_FOUND)
     FetchContent_Declare(
         cutlass
         GIT_REPOSITORY https://github.com/intel/cutlass-sycl.git
-        GIT_TAG ${CUTLASS_REVISION}
+        GIT_TAG ${CUTLASS_SYCL_REVISION}
         GIT_PROGRESS TRUE
 
         # Speed up CUTLASS download by retrieving only the specified GIT_TAG instead of the history.
@@ -54,18 +51,15 @@ else()
   include_directories(${CUTLASS_INCLUDE_DIR})
   include_directories(${CUTLASS_TOOLS_UTIL_INCLUDE_DIR})
 endif(NOT CutlassSycl_FOUND)
+if(CUTLASS_SYCL_REVISION MATCHES "^v3\\.9")
+  add_compile_definitions(OLD_API=1)
+endif()
+
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=intel_gpu_pvc" sycl_link_flags "${sycl_link_flags}")
 string(REPLACE "-device pvc,xe-lpg,ats-m150" "" sycl_link_flags "${sycl_link_flags}")
 string(APPEND sycl_link_flags "-Xspirv-translator;-spirv-ext=+SPV_INTEL_split_barrier")
-execute_process(
-  COMMAND ${ICPX_COMPILER} --version
-  OUTPUT_VARIABLE ICPX_VERSION_OUTPUT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" ICPX_VERSION "${ICPX_VERSION_OUTPUT}")
-if(ICPX_VERSION STREQUAL "2025.2.1")
+if(CUTLASS_SYCL_REVISION STREQUAL "v0.5")
   string(APPEND sycl_link_flags ",+SPV_INTEL_2d_block_io,+SPV_INTEL_subgroup_matrix_multiply_accumulate")
 endif()
-
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=intel_gpu_pvc" sycl_flags "${sycl_flags}")
 

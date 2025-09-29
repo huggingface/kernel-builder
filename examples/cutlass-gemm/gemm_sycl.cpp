@@ -166,5 +166,9 @@ void cutlass_gemm(torch::Tensor &out, torch::Tensor const &A, torch::Tensor cons
   TORCH_CHECK(gemm_op.can_implement(arguments) == cutlass::Status::kSuccess, "Invalid GEMM problem size or configuration");
   CUTLASS_CHECK(gemm_op.initialize(arguments, workspace.get()));
   CUTLASS_CHECK(gemm_op.run());
+#if defined(OLD_API)
   syclcompat::wait();
+#else
+  compat::wait();
+#endif
 }
