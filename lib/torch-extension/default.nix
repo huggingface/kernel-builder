@@ -130,7 +130,13 @@ stdenv.mkDerivation (prevAttrs: {
       libcusparse
     ]
   )
-  ++ lib.optionals rocmSupport (with rocmPackages; [ hipsparselt ])
+  ++ lib.optionals rocmSupport (
+    with rocmPackages;
+    [
+      hipsparselt
+      rocwmma-devel
+    ]
+  )
   ++ lib.optionals xpuSupport ([
     oneapi-torch-dev
     onednn-xpu
