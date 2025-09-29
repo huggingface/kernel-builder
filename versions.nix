@@ -57,6 +57,13 @@
   }
   {
     torchVersion = "2.9";
+    xpuVersion = "2025.2.1";
+    cxx11Abi = true;
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.9";
     cudaVersion = "12.6";
     cxx11Abi = true;
     systems = [
