@@ -34,14 +34,6 @@
   }
   {
     torchVersion = "2.7";
-    rocmVersion = "6.4.2";
-    cxx11Abi = true;
-    systems = [ "x86_64-linux" ];
-    bundleBuild = false;
-  }
-
-  {
-    torchVersion = "2.7";
     xpuVersion = "2025.0.2";
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
@@ -113,23 +105,23 @@
   }
 
   # Non-standard versions; not included in bundle builds.
-  {
-    torchVersion = "2.7";
-    cudaVersion = "12.9";
-    cxx11Abi = true;
-    systems = [
-      "x86_64-linux"
-      "aarch64-linux"
-    ];
-  }
-  {
-    torchVersion = "2.8";
-    cudaVersion = "12.4";
-    cxx11Abi = true;
-    systems = [
-      "x86_64-linux"
-      "aarch64-linux"
-    ];
-  }
+  #{
+  #  torchVersion = "2.7";
+  #  cudaVersion = "12.9";
+  #  cxx11Abi = true;
+  #  systems = [
+  #    "x86_64-linux"
+  #    "aarch64-linux"
+  #  ];
+  #}
+  #{
+  #  torchVersion = "2.8";
+  #  cudaVersion = "12.4";
+  #  cxx11Abi = true;
+  #  systems = [
+  #    "x86_64-linux"
+  #    "aarch64-linux"
+  #  ];
+  #}
 
 ]
