@@ -54,11 +54,13 @@ elseif(GPU_LANG STREQUAL "HIP")
 
   foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
     if(_KERNEL_SRC MATCHES ".*\\.hip$")
-      set_property(
-        SOURCE ${_KERNEL_SRC}
-        PROPERTY
-        HIP_ARCHITECTURES {{ '${' + kernel_name + '_ARCHS}'}}
-      )
+      foreach(_ROCM_ARCH {{ '${' + kernel_name + '_ARCHS}'}})
+        set_property(
+          SOURCE ${_KERNEL_SRC}
+          APPEND PROPERTY
+          COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:HIP>:--offload-arch=${_ROCM_ARCH}>"
+        )
+      endforeach()
     endif()
   endforeach()
 

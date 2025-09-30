@@ -85,9 +85,8 @@ if(GPU_LANG STREQUAL "CUDA")
 
   add_compile_definitions(CUDA_KERNEL)
 elseif(GPU_LANG STREQUAL "HIP")
-  set(ROCM_ARCHS "${HIP_SUPPORTED_ARCHS}")
   override_gpu_arches(GPU_ARCHES HIP ${HIP_SUPPORTED_ARCHS})
-  hip_archs_loose_intersection(ROCM_ARCHS, "${HIP_SUPPORTED_ARCHS}" "${ROCM_ARCHS}")
+  set(ROCM_ARCHS ${GPU_ARCHES})
   message(STATUS "ROCM supported target architectures: ${ROCM_ARCHS}")
 
   add_compile_definitions(ROCM_KERNEL)
