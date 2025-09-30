@@ -11,7 +11,7 @@ message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
 
 set(CUDA_SUPPORTED_ARCHS "{{ cuda_supported_archs }}")
 
-set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101")
+set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1030;gfx1100;gfx1101;gfx1200;gfx1201")
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils.cmake)
 
@@ -86,10 +86,9 @@ if(GPU_LANG STREQUAL "CUDA")
   add_compile_definitions(CUDA_KERNEL)
 elseif(GPU_LANG STREQUAL "HIP")
   set(ROCM_ARCHS "${HIP_SUPPORTED_ARCHS}")
-  # TODO: remove this once we can set specific archs per source file set.
-  override_gpu_arches(GPU_ARCHES
-    ${GPU_LANG}
-    "${${GPU_LANG}_SUPPORTED_ARCHS}")
+  override_gpu_arches(GPU_ARCHES HIP ${HIP_SUPPORTED_ARCHS})
+  hip_archs_loose_intersection(ROCM_ARCHS, "${HIP_SUPPORTED_ARCHS}" "${ROCM_ARCHS}")
+  message(STATUS "ROCM supported target architectures: ${ROCM_ARCHS}")
 
   add_compile_definitions(ROCM_KERNEL)
 else()
