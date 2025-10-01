@@ -1,4 +1,4 @@
-FROM nixos/nix:2.18.8
+FROM nixos/nix:2.23.0
 
 # default build args
 ARG MAX_JOBS=1
@@ -18,7 +18,7 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
     && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
     # Install necessary packages
-    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
+    && nix profile install --impure nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
     && cachix use huggingface
 
 # Set permissions for Nix directories
@@ -119,6 +119,17 @@ function build_extension {
   
   # Make sure the build is up to date
   nix run github:huggingface/kernel-builder#update-build -- build.toml
+
+  # Determine override from flake.nix only
+  override=""
+  # check if using a local path for kernel-builder
+  is_using_path=$(grep -q 'kernel-builder.url *= *"path:' flake.nix && echo "yes" || echo "no")
+  if [ "$is_using_path" = "yes" ]; then
+    override="--override-input kernel-builder github:huggingface/kernel-builder"
+    echo "Detected local path for kernel-builder in flake.nix, overriding to use GitHub source."
+  else
+    echo "No local path for kernel-builder detected in flake.nix."
+  fi
 
   # Pure bundle build
   # TODO: remove the "bundle" after resolving

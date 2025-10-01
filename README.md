@@ -45,10 +45,8 @@ We also provide Docker containers for CI builds. For a quick build:
 # Using the prebuilt container
 cd examples/activation
 docker run --rm \
-  -v $(pwd):/app \
-  -w /app \
-  ghcr.io/huggingface/kernel-builder:{SHA} \
-  build
+  --mount type=bind,source=$(pwd),target=/kernelcode \
+  -w /kernelcode ghcr.io/huggingface/kernel-builder:main build
 ```
 
 See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.

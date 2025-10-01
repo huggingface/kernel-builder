@@ -1,4 +1,4 @@
-FROM nixos/nix:2.18.8
+FROM nixos/nix:2.23.0
 
 # default build args
 ARG MAX_JOBS=4
@@ -8,7 +8,7 @@ ARG CORES=4
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
-    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
+    && nix profile install --impure nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
     && cachix use huggingface
 # Copy external files
 COPY . /etc/src/
@@ -100,21 +100,15 @@ function build_extension {
   # Make sure the build is up to date
   nix run github:huggingface/kernel-builder#update-build -- build.toml
 
-  # only do the following if flake.lock exists
-
-  # if the lock file exists
+  # Determine override from flake.nix only
   override=""
-  if [ -f flake.lock ]; then
-    # check the type of kernel-builder in flake.lock
-    kernel_url_type=$(cat flake.lock | jq -r '.nodes["kernel-builder"].locked.type')
-    echo "Kernel URL type: $kernel_url_type"
-
-    # If the type is "path", compute the nar hash and set override
-    if [ "$kernel_url_type" = "path" ]; then
-      kernel_url_path=$(cat flake.lock | jq -r '.nodes["kernel-builder"].locked.path')
-      nar_hash=$(nix-hash --type sha256 --base64 "$kernel_url_path")
-      override="--override-input kernel-builder path:../..?narHash=sha256-$nar_hash"
-    fi
+  # check if using a local path for kernel-builder
+  is_using_path=$(grep -q 'kernel-builder.url *= *"path:' flake.nix && echo "yes" || echo "no")
+  if [ "$is_using_path" = "yes" ]; then
+    override="--override-input kernel-builder github:huggingface/kernel-builder"
+    echo "Detected local path for kernel-builder in flake.nix, overriding to use GitHub source."
+  else
+    echo "No local path for kernel-builder detected in flake.nix."
   fi
 
   echo "Building with Nix..."
