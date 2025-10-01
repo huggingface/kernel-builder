@@ -20,7 +20,7 @@ message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
 include("cmake/utils.cmake")
 
 # Find Python with all necessary components for building extensions
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module Development.SABIModule)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module Development.SABIModule)
 
 append_cmake_prefix_path("torch" "torch.utils.cmake_prefix_path")
 

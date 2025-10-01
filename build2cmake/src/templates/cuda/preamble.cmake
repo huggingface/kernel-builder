@@ -15,14 +15,14 @@ set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx11
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils.cmake)
 
-if(DEFINED Python_EXECUTABLE)
+if(DEFINED Python3_EXECUTABLE)
   # Allow passing through the interpreter (e.g. from setup.py).
-  find_package(Python COMPONENTS Development Development.SABIModule Interpreter)
-  if (NOT Python_FOUND)
+  find_package(Python3 COMPONENTS Development Development.SABIModule Interpreter)
+  if (NOT Python3_FOUND)
     message(FATAL_ERROR "Unable to find python matching: ${EXECUTABLE}.")
   endif()
 else()
-  find_package(Python REQUIRED COMPONENTS Development Development.SABIModule Interpreter)
+  find_package(Python3 REQUIRED COMPONENTS Development Development.SABIModule Interpreter)
 endif()
 
 append_cmake_prefix_path("torch" "torch.utils.cmake_prefix_path")

@@ -7,12 +7,12 @@
 #
 macro (find_python_from_executable EXECUTABLE SUPPORTED_VERSIONS)
   file(REAL_PATH ${EXECUTABLE} EXECUTABLE)
-  set(Python_EXECUTABLE ${EXECUTABLE})
-  find_package(Python COMPONENTS Interpreter Development.Module Development.SABIModule)
-  if (NOT Python_FOUND)
+  set(Python3_EXECUTABLE ${EXECUTABLE})
+  find_package(Python3 COMPONENTS Interpreter Development.Module Development.SABIModule)
+  if (NOT Python3_FOUND)
     message(FATAL_ERROR "Unable to find python matching: ${EXECUTABLE}.")
   endif()
-  set(_VER "${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
+  set(_VER "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
   set(_SUPPORTED_VERSIONS_LIST ${SUPPORTED_VERSIONS} ${ARGN})
   if (NOT _VER IN_LIST _SUPPORTED_VERSIONS_LIST)
     message(FATAL_ERROR
@@ -30,7 +30,7 @@ endmacro()
 function (run_python OUT EXPR ERR_MSG)
   execute_process(
     COMMAND
-    "${Python_EXECUTABLE}" "-c" "${EXPR}"
+    "${Python3_EXECUTABLE}" "-c" "${EXPR}"
     OUTPUT_VARIABLE PYTHON_OUT
     RESULT_VARIABLE PYTHON_ERROR_CODE
     ERROR_VARIABLE PYTHON_STDERR
@@ -89,7 +89,7 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
 
   add_custom_target(
     hipify${NAME}
-    COMMAND "${Python_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/cmake/hipify.py -p ${CMAKE_SOURCE_DIR} -o ${CMAKE_CURRENT_BINARY_DIR} ${SRCS}
+    COMMAND "${Python3EXECUTABLE}" ${CMAKE_SOURCE_DIR}/cmake/hipify.py -p ${CMAKE_SOURCE_DIR} -o ${CMAKE_CURRENT_BINARY_DIR} ${SRCS}
     DEPENDS ${CMAKE_SOURCE_DIR}/cmake/hipify.py ${SRCS}
     BYPRODUCTS ${HIP_SRCS}
     COMMENT "Running hipify on ${NAME} extension source files.")
@@ -505,9 +505,9 @@ function (define_gpu_extension_target GPU_MOD_NAME)
   endif()
 
   if (GPU_USE_SABI)
-    Python_add_library(${GPU_MOD_NAME} MODULE USE_SABI ${GPU_USE_SABI} ${GPU_WITH_SOABI} "${GPU_SOURCES}")
+    Python3_add_library(${GPU_MOD_NAME} MODULE USE_SABI ${GPU_USE_SABI} ${GPU_WITH_SOABI} "${GPU_SOURCES}")
   else()
-    Python_add_library(${GPU_MOD_NAME} MODULE ${GPU_WITH_SOABI} "${GPU_SOURCES}")
+    Python3_add_library(${GPU_MOD_NAME} MODULE ${GPU_WITH_SOABI} "${GPU_SOURCES}")
   endif()
 
   if (GPU_LANGUAGE STREQUAL "HIP")
