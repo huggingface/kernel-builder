@@ -55,9 +55,13 @@ See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including
 
 ## 🎯 Hardware Support
 
-- **First-class support**: NVIDIA GPUs
-- **Second-class support**: Apple, AMD and Intel GPUs  
-- **Third-class support**: Other hardware
+| Hardware   | Kernels Support | Kernel-Builder Support | Kernels Validated in CI | Tier |
+| ---------- | --------------- | ---------------------- | ----------------------- | ---- |
+| CUDA       | ✓               | ✓                      | ✓                       | 1    |
+| ROCm       | ✓               | ✓                      | ✗                       | 2    |
+| XPU        | ✓               | ✓                      | ✗                       | 2    |
+| Metal      | ✓               | ✓                      | ✗                       | 2    |
+| Huawei NPU | ✓               | ✗                      | ✗                       | 3    |
 
 # 📚 Documentation
 
