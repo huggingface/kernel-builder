@@ -53,6 +53,12 @@ docker run --rm \
 
 See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.
 
+## 🎯 Hardware Support
+
+- **First-class support**: NVIDIA GPUs
+- **Second-class support**: Apple, AMD and Intel GPUs  
+- **Third-class support**: Other hardware
+
 # 📚 Documentation
 
 - [Writing Hub kernels](./docs/writing-kernels.md)
