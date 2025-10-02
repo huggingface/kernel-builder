@@ -159,21 +159,13 @@ stdenv.mkDerivation (prevAttrs: {
   ]
   ++ extraDeps;
 
-  preConfigure = lib.optionals rocmSupport ''
-    export PYTORCH_ROCM_ARCH=$(python -c "import torch; print(torch._C._cuda_getArchFlags().replace(' ', ';'))")
-  '';
-
   env =
     lib.optionalAttrs cudaSupport {
       CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
-      TORCH_CUDA_ARCH_LIST =
-        if cudaPackages.cudaOlder "12.8" then
-          "7.0;7.5;8.0;8.6;8.9;9.0"
-        else
-          "7.0;7.5;8.0;8.6;8.9;9.0;10.0;10.1;12.0";
+      TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" torch.cudaCapabilities;
     }
     // lib.optionalAttrs rocmSupport {
-      #PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
+      PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
       ROCM_PATH = "${clr}";
     }
     // lib.optionalAttrs xpuSupport {
