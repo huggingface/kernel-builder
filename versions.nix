@@ -114,8 +114,8 @@
 
   # Non-standard versions; not included in bundle builds.
   {
-    torchVersion = "2.7";
-    cudaVersion = "12.9";
+    torchVersion = "2.8";
+    cudaVersion = "12.4";
     cxx11Abi = true;
     systems = [
       "x86_64-linux"
@@ -124,12 +124,10 @@
   }
   {
     torchVersion = "2.8";
-    cudaVersion = "12.4";
+    rocmVersion = "7.0.1";
     cxx11Abi = true;
-    systems = [
-      "x86_64-linux"
-      "aarch64-linux"
-    ];
+    systems = [ "x86_64-linux" ];
+    bundleBuild = false;
   }
 
 ]
