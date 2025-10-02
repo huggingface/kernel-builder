@@ -516,8 +516,13 @@ function (define_gpu_extension_target GPU_MOD_NAME)
   endif()
 
   if (GPU_ARCHITECTURES)
-    set_target_properties(${GPU_MOD_NAME} PROPERTIES
-      ${GPU_LANGUAGE}_ARCHITECTURES "${GPU_ARCHITECTURES}")
+    if (GPU_LANGUAGE STREQUAL "HIP")
+      # Clear target architectures, we are passing arch flags per source file.
+      set_property(TARGET ${GPU_MOD_NAME} PROPERTY HIP_ARCHITECTURES off)
+    else()
+      set_target_properties(${GPU_MOD_NAME} PROPERTIES
+        ${GPU_LANGUAGE}_ARCHITECTURES "${GPU_ARCHITECTURES}")
+    endif()
   endif()
 
   set_property(TARGET ${GPU_MOD_NAME} PROPERTY CXX_STANDARD 17)

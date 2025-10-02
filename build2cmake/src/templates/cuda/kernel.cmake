@@ -49,7 +49,21 @@ if(GPU_LANG STREQUAL "CUDA")
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% if supports_hipify %}
 elseif(GPU_LANG STREQUAL "HIP")
-  hip_archs_loose_intersection({{kernel_name}}_ARCHS "{{ rocm_archs|join(";") }}" ${ROCM_ARCHS})
+  hip_archs_loose_intersection({{kernel_name}}_ARCHS "{{ rocm_archs|join(";") }}" "${ROCM_ARCHS}")
+  message(STATUS "Archs for kernel {{kernel_name}}: {{ '${' + kernel_name + '_ARCHS}'}}")
+
+  foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
+    if(_KERNEL_SRC MATCHES ".*\\.hip$")
+      foreach(_ROCM_ARCH {{ '${' + kernel_name + '_ARCHS}'}})
+        set_property(
+          SOURCE ${_KERNEL_SRC}
+          APPEND PROPERTY
+          COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:HIP>:--offload-arch=${_ROCM_ARCH}>"
+        )
+      endforeach()
+    endif()
+  endforeach()
+
   list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
 {% endif %}
 endif()
