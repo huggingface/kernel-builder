@@ -144,39 +144,35 @@
             }) buildSets
           );
 
-          # Dependencies that should be cached.
+          # Dependencies that should be cached, the structure of the output
+          # path is: <build variant>/<dependency>-<output>
           forCache =
             let
               filterDist = lib.filter (output: output != "dist");
-              # Get all `torch` outputs except for `dist`. Not all outputs
-              # are dependencies of `out`, but we'll need the `cxxdev` and
-              # `dev` outputs for kernel builds.
-              torchOutputs = builtins.listToAttrs (
-                lib.flatten (
-                  # Map over build sets.
-                  map (
-                    buildSet:
-                    # Map over all outputs of `torch` in a buildset.
-                    map (output: {
-                      name = "${buildVersion buildSet}-${output}";
-                      value = buildSet.torch.${output};
-                    }) (filterDist buildSet.torch.outputs)
-                  ) buildSets
-                )
-              );
-              oldLinuxStdenvs = builtins.listToAttrs (
-                map (buildSet: {
-                  name = "stdenv-${buildVersion buildSet}";
-                  value = buildSet.pkgs.stdenvGlibc_2_27;
-                }) buildSets
-              );
+              # Get all outputs except for `dist` (which is the built wheel for Torch).
+              allOutputs =
+                drv:
+                map (output: {
+                  name = "${drv.pname or drv.name}-${output}";
+                  path = drv.${output};
+                }) (filterDist drv.outputs or [ "out" ]);
+              buildSetOutputs =
+                buildSet:
+                with buildSet.pkgs;
+                (
+                  allOutputs buildSet.torch
+                  ++ allOutputs build2cmake
+                  ++ allOutputs kernel-abi-check
+                  ++ allOutputs python3Packages.kernels
+                  ++ allOutputs stdenvGlibc_2_27
+                );
+              buildSetLinkFarm = buildSet: pkgs.linkFarm (buildVersion buildSet) (buildSetOutputs buildSet);
             in
             pkgs.linkFarm "packages-for-cache" (
-              {
-                inherit build2cmake kernel-abi-check;
-              }
-              // torchOutputs
-              // lib.optionalAttrs nixpkgs.legacyPackages.${system}.stdenv.isLinux oldLinuxStdenvs
+              map (buildSet: {
+                name = buildVersion buildSet;
+                path = buildSetLinkFarm buildSet;
+              }) buildSets
             );
         };
       }
