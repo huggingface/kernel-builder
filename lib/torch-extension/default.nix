@@ -55,7 +55,7 @@ let
   onednn-xpu = xpuPackages.onednn-xpu.override { inherit stdenv oneapi-torch-dev; };
 
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
-  # t's not supported by the nixpkgs shim.
+  # It's not supported by the nixpkgs shim.
   xcrunHost = writeScriptBin "xcrunHost" ''
     # Use system SDK for Metal files.
     unset DEVELOPER_DIR

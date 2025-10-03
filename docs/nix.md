@@ -6,6 +6,7 @@ We recommend installing Nix in the following way:
 
 - Linux: use the [official Nix installer](https://nixos.org/download/).
 - macOS: use the [Determinate Nix installer](https://docs.determinate.systems/determinate-nix/).
+  In addition, Xcode 16.x is currently required to build kernels.
 
 ## Getting started
 
