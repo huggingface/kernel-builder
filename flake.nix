@@ -164,7 +164,7 @@
                   ++ allOutputs build2cmake
                   ++ allOutputs kernel-abi-check
                   ++ allOutputs python3Packages.kernels
-                  ++ allOutputs stdenvGlibc_2_27
+                  ++ lib.optionals stdenv.hostPlatform.isLinux (allOutputs stdenvGlibc_2_27)
                 );
               buildSetLinkFarm = buildSet: pkgs.linkFarm (buildVersion buildSet) (buildSetOutputs buildSet);
             in
