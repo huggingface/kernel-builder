@@ -1,4 +1,4 @@
-FROM nixos/nix:2.23.0
+FROM nixos/nix:2.30.3
 
 # default build args
 ARG MAX_JOBS=4
@@ -8,7 +8,7 @@ ARG CORES=4
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && echo "max-jobs = $MAX_JOBS" >> /etc/nix/nix.conf \
     && echo "cores = $CORES" >> /etc/nix/nix.conf \
-    && nix profile install --impure nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#jq \
     && cachix use huggingface
 # Copy external files
 COPY . /etc/src/

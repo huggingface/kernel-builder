@@ -1,4 +1,4 @@
-FROM nixos/nix:2.23.0
+FROM nixos/nix:2.30.3
 
 # default build args
 ARG MAX_JOBS=1
@@ -18,7 +18,7 @@ RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
     && mkdir -p /nix/var/nix/gcroots/per-user/nixuser \
     && chown -R 1000:1000 /home/nixuser /nix/var/nix/profiles/per-user/nixuser /nix/var/nix/gcroots/per-user/nixuser \
     # Install necessary packages
-    && nix profile install --impure nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
+    && nix profile install nixpkgs#cachix nixpkgs#git-lfs nixpkgs#gawk \
     && cachix use huggingface
 
 # Set permissions for Nix directories
