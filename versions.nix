@@ -138,13 +138,6 @@
     bundleBuild = true;
   }
   {
-    torchVersion = "2.8";
-    rocmVersion = "7.0.1";
-    cxx11Abi = true;
-    systems = [ "x86_64-linux" ];
-    bundleBuild = false;
-  }
-  {
     torchVersion = "2.9";
     cudaVersion = "13.0";
     cxx11Abi = true;
@@ -185,12 +178,5 @@
       "x86_64-linux"
       "aarch64-linux"
     ];
-  }
-  {
-    torchVersion = "2.8";
-    rocmVersion = "7.0.1";
-    cxx11Abi = true;
-    systems = [ "x86_64-linux" ];
-    bundleBuild = false;
   }
 ]
