@@ -60,6 +60,16 @@ docker run --rm \
 
 See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including a user-level container for CI/CD environments.
 
+## 🎯 Hardware Support
+
+| Hardware   | Kernels Support | Kernel-Builder Support | Kernels Validated in CI | Tier |
+| ---------- | --------------- | ---------------------- | ----------------------- | ---- |
+| CUDA       | ✓               | ✓                      | ✓                       | 1    |
+| ROCm       | ✓               | ✓                      | ✗                       | 2    |
+| XPU        | ✓               | ✓                      | ✗                       | 2    |
+| Metal      | ✓               | ✓                      | ✗                       | 2    |
+| Huawei NPU | ✓               | ✗                      | ✗                       | 3    |
+
 # 📚 Documentation
 
 - [Writing Hub kernels](./docs/writing-kernels.md)
