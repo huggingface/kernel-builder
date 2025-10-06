@@ -74,6 +74,7 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
   set(HIP_SRCS)
   foreach (SRC ${SRCS})
     get_source_file_property(include_dirs "${SRC}" INCLUDE_DIRECTORIES)
+    get_source_file_property(compile_options "${SRC}" COMPILE_OPTIONS)
     string(REGEX REPLACE "\.cu$" "\.hip" SRC ${SRC})
     string(REGEX REPLACE "cuda" "hip" SRC ${SRC})
 
@@ -82,6 +83,12 @@ function (hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
       set_source_files_properties(
         ${SRC}
         PROPERTIES INCLUDE_DIRECTORIES "${include_dirs}")
+    endif()
+
+    if(compile_options)
+      set_source_files_properties(
+        ${SRC}
+        PROPERTIES COMPILE_OPTIONS "${compile_options}")
     endif()
 
     list(APPEND HIP_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${SRC}")

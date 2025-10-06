@@ -53,7 +53,7 @@ elseif(GPU_LANG STREQUAL "HIP")
   message(STATUS "Archs for kernel {{kernel_name}}: {{ '${' + kernel_name + '_ARCHS}'}}")
 
   foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
-    if(_KERNEL_SRC MATCHES ".*\\.hip$")
+    if(_KERNEL_SRC MATCHES ".*\\.(cu|hip)$")
       foreach(_ROCM_ARCH {{ '${' + kernel_name + '_ARCHS}'}})
         set_property(
           SOURCE ${_KERNEL_SRC}
