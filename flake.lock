@@ -73,15 +73,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1759493343,
-        "narHash": "sha256-8fhl0gwMAnOkQbogPIVq+Fha+Yeq52FaRXfwF+F9Q+k=",
+        "lastModified": 1759596967,
+        "narHash": "sha256-UapLCqsNGAihZT+EwHXUqpylioyjxDZbOLqaBQYZNek=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "b1fc3a18b52447a0f24bc6884418edc5e66082b9",
+        "rev": "aed1066af95f6ca5b80b1d67566499a0ca5a8a85",
         "type": "github"
       },
       "original": {
         "owner": "huggingface",
+        "ref": "torch-2.9.0-rc6",
         "repo": "hf-nix",
         "type": "github"
       }
