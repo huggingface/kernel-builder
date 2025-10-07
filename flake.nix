@@ -127,54 +127,67 @@
       rec {
         formatter = pkgs.nixfmt-tree;
 
-        packages = rec {
-          build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
+        packages =
+          let
+            # Dependencies that should be cached, the structure of the output
+            # path is: <build variant>/<dependency>-<output>
+            mkForCache =
+              buildSets:
+              let
+                filterDist = lib.filter (output: output != "dist");
+                # Get all outputs except for `dist` (which is the built wheel for Torch).
+                allOutputs =
+                  drv:
+                  map (output: {
+                    name = "${drv.pname or drv.name}-${output}";
+                    path = drv.${output};
+                  }) (filterDist drv.outputs or [ "out" ]);
+                buildSetOutputs =
+                  buildSet:
+                  with buildSet.pkgs;
+                  (
+                    allOutputs buildSet.torch
+                    ++ allOutputs build2cmake
+                    ++ allOutputs kernel-abi-check
+                    ++ allOutputs python3Packages.kernels
+                    ++ lib.optionals stdenv.hostPlatform.isLinux (allOutputs stdenvGlibc_2_27)
+                  );
+                buildSetLinkFarm = buildSet: pkgs.linkFarm (buildVersion buildSet) (buildSetOutputs buildSet);
+              in
+              pkgs.linkFarm "packages-for-cache" (
+                map (buildSet: {
+                  name = buildVersion buildSet;
+                  path = buildSetLinkFarm buildSet;
+                }) buildSets
+              );
 
-          kernel-abi-check = pkgs.callPackage ./pkgs/kernel-abi-check { };
+          in
+          rec {
+            build2cmake = pkgs.callPackage ./pkgs/build2cmake { };
 
-          update-build = pkgs.writeShellScriptBin "update-build" ''
-            ${build2cmake}/bin/build2cmake update-build ''${1:-build.toml}
-          '';
+            kernel-abi-check = pkgs.callPackage ./pkgs/kernel-abi-check { };
 
-          # This package set is exposed so that we can prebuild the Torch versions.
-          torch = builtins.listToAttrs (
-            map (buildSet: {
-              name = buildVersion buildSet;
-              value = buildSet.torch;
-            }) buildSets
-          );
+            update-build = pkgs.writeShellScriptBin "update-build" ''
+              ${build2cmake}/bin/build2cmake update-build ''${1:-build.toml}
+            '';
 
-          # Dependencies that should be cached, the structure of the output
-          # path is: <build variant>/<dependency>-<output>
-          forCache =
-            let
-              filterDist = lib.filter (output: output != "dist");
-              # Get all outputs except for `dist` (which is the built wheel for Torch).
-              allOutputs =
-                drv:
-                map (output: {
-                  name = "${drv.pname or drv.name}-${output}";
-                  path = drv.${output};
-                }) (filterDist drv.outputs or [ "out" ]);
-              buildSetOutputs =
-                buildSet:
-                with buildSet.pkgs;
-                (
-                  allOutputs buildSet.torch
-                  ++ allOutputs build2cmake
-                  ++ allOutputs kernel-abi-check
-                  ++ allOutputs python3Packages.kernels
-                  ++ lib.optionals stdenv.hostPlatform.isLinux (allOutputs stdenvGlibc_2_27)
-                );
-              buildSetLinkFarm = buildSet: pkgs.linkFarm (buildVersion buildSet) (buildSetOutputs buildSet);
-            in
-            pkgs.linkFarm "packages-for-cache" (
+            forCache = mkForCache (
+              builtins.filter (buildSet: buildSet.buildConfig.bundleBuild or false) buildSets
+            );
+
+            forCacheNonBundle = mkForCache (
+              builtins.filter (buildSet: !(buildSet.buildConfig.bundleBuild or false)) buildSets
+            );
+
+            # This package set is exposed so that we can prebuild the Torch versions.
+            torch = builtins.listToAttrs (
               map (buildSet: {
                 name = buildVersion buildSet;
-                path = buildSetLinkFarm buildSet;
+                value = buildSet.torch;
               }) buildSets
             );
-        };
+
+          };
       }
     )
     // {
