@@ -71,7 +71,6 @@ rec {
     lib.foldl (backends: kernel: backends // { ${kernelBackend kernel} = true; }) init kernels;
 
   readBuildConfig = path: validateBuildConfig (readToml (path + "/build.toml"));
-  tracedReadBuildConfig = path: readBuildConfig path;
 
   srcFilter =
     src: name: type:
@@ -81,7 +80,7 @@ rec {
   mkSourceSet = import ./source-set.nix { inherit lib; };
 
   # Filter buildsets that are applicable to a given kernel build config.
-  applicableBuildSets =
+  filterApplicableBuildSets =
     buildConfig: buildSets:
     let
       backends' = backends buildConfig;
@@ -106,6 +105,8 @@ rec {
         backendSupported && cudaVersionSupported;
     in
     builtins.filter supportedBuildSet buildSets;
+
+  applicableBuildSets = path: filterApplicableBuildSets (readBuildConfig path) buildSets;
 
   # Build a single Torch extension.
   buildTorchExtension =
@@ -180,17 +181,16 @@ rec {
           name = torchBuildVersion buildSet;
           value = buildTorchExtension buildSet { inherit path rev; };
         };
-      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) (applicableBuildSets path));
 
   # Build multiple Torch extensions.
   buildDistTorchExtensions =
     {
-      buildSets,
       path,
       rev,
       doGetKernelCheck,
+      bundleOnly,
     }:
     let
       extensionForTorch =
@@ -203,9 +203,13 @@ rec {
             oldLinuxCompat = true;
           };
         };
-      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
+      applicableBuildSets' =
+        if bundleOnly then
+          builtins.filter (buildSet: buildSet.bundleBuild) (applicableBuildSets path)
+        else
+          (applicableBuildSets path);
     in
-    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) filteredBuildSets);
+    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) applicableBuildSets');
 
   buildTorchExtensionBundle =
     {
@@ -216,10 +220,9 @@ rec {
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
-      bundleBuildSets = builtins.filter (buildSet: buildSet.bundleBuild) buildSets;
       extensions = buildDistTorchExtensions {
         inherit path rev doGetKernelCheck;
-        buildSets = bundleBuildSets;
+        bundleOnly = true;
       };
       buildConfig = readBuildConfig path;
       namePaths =
@@ -273,9 +276,8 @@ rec {
             '';
           };
         };
-      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) filteredBuildSets);
+    builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) (applicableBuildSets path));
 
   torchDevShells =
     {
@@ -315,7 +317,6 @@ rec {
             venvDir = "./.venv";
           };
         };
-      filteredBuildSets = applicableBuildSets (readBuildConfig path) buildSets;
     in
-    builtins.listToAttrs (lib.map shellForBuildSet filteredBuildSets);
+    builtins.listToAttrs (lib.map shellForBuildSet (applicableBuildSets path));
 }

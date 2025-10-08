@@ -63,8 +63,8 @@
             buildVariants =
               (import ./lib/build-variants.nix {
                 inherit (nixpkgs) lib;
-                torchVersions = torchVersions';
-              }).buildVariants;
+              }).buildVariants
+                torchVersions';
           in
           builtins.toJSON buildVariants;
         genFlakeOutputs =
@@ -104,7 +104,6 @@
                 pythonNativeCheckInputs
                 ;
               build = buildPerSystem.${system};
-              buildSet = buildSetPerSystem.${system};
             }
           );
       }

@@ -1,4 +1,4 @@
-{ lib, torchVersions }:
+{ lib }:
 let
   inherit (import ./torch-version-utils.nix { inherit lib; })
     flattenSystems
@@ -22,8 +22,7 @@ rec {
     else
       throw "Could not find compute framework: no CUDA, ROCm, XPU version specified and Metal is not enabled";
 
-  # Build variants included in bundle builds.
-  buildVariants =
+  buildName =
     let
       inherit (import ./version-utils.nix { inherit lib; }) abiString flattenVersion;
       computeString =
@@ -38,12 +37,17 @@ rec {
           "xpu${flattenVersion (lib.versions.majorMinor version.xpuVersion)}"
         else
           throw "No compute framework set in Torch version";
-      buildName =
-        version:
-        if version.system == "aarch64-darwin" then
-          "torch${flattenVersion version.torchVersion}-${computeString version}-${version.system}"
-        else
-          "torch${flattenVersion version.torchVersion}-${abiString version.cxx11Abi}-${computeString version}-${version.system}";
+    in
+    version:
+    if version.system == "aarch64-darwin" then
+      "torch${flattenVersion version.torchVersion}-${computeString version}-${version.system}"
+    else
+      "torch${flattenVersion version.torchVersion}-${abiString version.cxx11Abi}-${computeString version}-${version.system}";
+
+  # Build variants included in bundle builds.
+  buildVariants =
+    torchVersions:
+    let
       bundleBuildVersions = lib.filter (version: version.bundleBuild or false);
     in
     lib.foldl' (
