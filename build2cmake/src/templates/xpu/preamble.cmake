@@ -58,3 +58,18 @@ add_compile_definitions(USE_XPU)
 set(sycl_link_flags "-fsycl;--offload-compress;-fsycl-targets=spir64_gen,spir64;-Xs;-device pvc,xe-lpg,ats-m150 -options ' -cl-intel-enable-auto-large-GRF-mode -cl-poison-unsupported-fp64-kernels -cl-intel-greater-than-4GB-buffer-required';")
 set(sycl_flags "-fsycl;-fhonor-nans;-fhonor-infinities;-fno-associative-math;-fno-approx-func;-fno-sycl-instrument-device-code;--offload-compress;-fsycl-targets=spir64_gen,spir64;")
 message(STATUS "Configuring for Intel XPU backend using SYCL")
+
+# Generate standardized build name
+run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
+run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')" "Failed to get CXX11 ABI")
+run_python(XPU_VERSION "import intel_extension_for_pytorch; print(intel_extension_for_pytorch.__version__.split('+')[0])" "Failed to get XPU version")
+cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(SYSTEM_STRING "${HOST_ARCH}-linux")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set(SYSTEM_STRING "${HOST_ARCH}-windows")
+else()
+  set(SYSTEM_STRING "${HOST_ARCH}-${CMAKE_SYSTEM_NAME}")
+endif()
+
+generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" ${CXX11_ABI_VALUE} "xpu" "${XPU_VERSION}" "${SYSTEM_STRING}")
