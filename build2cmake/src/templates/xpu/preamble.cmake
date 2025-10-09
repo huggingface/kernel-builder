@@ -62,7 +62,7 @@ message(STATUS "Configuring for Intel XPU backend using SYCL")
 # Generate standardized build name
 run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
 run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')" "Failed to get CXX11 ABI")
-run_python(XPU_VERSION "import torch; print(torch.xpu.get_device_capability['version'].split('+')[0])" "Failed to get XPU version")
+run_python(XPU_VERSION "import torch; print(torch.xpu.get_device_capability()['version'].split('+')[0])" "Failed to get XPU version")
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(SYSTEM_STRING "${HOST_ARCH}-linux")
