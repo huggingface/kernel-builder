@@ -11,18 +11,21 @@ jobs:
   build:
     name: Build kernel
     runs-on:
-      group: aws-g6-12xlarge-plus
+      group: aws-highmemory-32-plus-nix
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/nix-installer-action@main
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
+          extra-conf: |
+            max-jobs = 4
+            cores = 12
+            sandbox-fallback = false
       - uses: cachix/cachix-action@v14
         with:
           name: huggingface
           #authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
-          USER: github_runner
+          USER: runner
       # For now we only test that there are no regressions in building ROCm
       # kernels. Also run tests once we have a ROCm runner.
       - name: Build relu kernel
