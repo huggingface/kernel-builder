@@ -12,4 +12,13 @@ final: prev: {
   rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
 
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
+
+  # Python packages
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (
+      python-self: python-super: with python-self; {
+        kernel-abi-check = callPackage ./pkgs/python-modules/kernel-abi-check { };
+      }
+    )
+  ];
 }

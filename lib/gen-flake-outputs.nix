@@ -46,21 +46,29 @@ let
 
   # Enrich the build configs with generic attributes for framework
   # order/version. Also make bundleBuild attr explicit.
-  buildConfigs = map (
+  buildSets = map (
     set:
     let
       inherit (set) buildConfig;
     in
-    buildConfig
+    set
     // {
-      bundleBuild = buildConfig.bundleBuild or false;
-      frameworkOrder = if buildConfig ? cudaVersion then 0 else 1;
-      frameworkVersion =
-        buildConfig.cudaVersion or buildConfig.rocmVersion or buildConfig.xpuVersion or "0.0";
+      buildConfig =
+
+        buildConfig // {
+          bundleBuild = buildConfig.bundleBuild or false;
+          frameworkOrder = if buildConfig ? cudaVersion then 0 else 1;
+          frameworkVersion =
+            buildConfig.cudaVersion or buildConfig.rocmVersion or buildConfig.xpuVersion or "0.0";
+        };
     }
   ) (build.applicableBuildSets path);
   configCompare =
-    a: b:
+    setA: setB:
+    let
+      a = setA.buildConfig;
+      b = setB.buildConfig;
+    in
     if a.bundleBuild != b.bundleBuild then
       a.bundleBuild
     else if a.frameworkOrder != b.frameworkOrder then
@@ -69,14 +77,14 @@ let
       builtins.compareVersions a.torchVersion b.torchVersion > 0
     else
       builtins.compareVersions a.frameworkVersion b.frameworkVersion < 0;
-  buildConfigsSorted = lib.sort configCompare buildConfigs;
-  shellTorch =
-    if buildConfigsSorted == [ ] then
+  buildSetsSorted = lib.sort configCompare buildSets;
+  bestBuildSet =
+    if buildSetsSorted == [ ] then
       throw "No build variant is compatible with this system"
     else
-      buildName (builtins.head buildConfigsSorted);
+      builtins.head buildSetsSorted;
+  shellTorch = buildName bestBuildSet.buildConfig;
 in
-
 {
   devShells = rec {
     default = devShells.${shellTorch};
@@ -100,37 +108,53 @@ in
       rev = revUnderscored;
     };
   };
-  packages = rec {
-    default = bundle;
+  packages =
+    let
+      bundle = build.buildTorchExtensionBundle {
+        inherit path doGetKernelCheck;
+        rev = revUnderscored;
+      };
+    in
+    {
+      inherit bundle;
 
-    build-and-copy = writeScriptBin "build-and-copy" ''
-      #!/usr/bin/env bash
-      set -euo pipefail
+      default = bundle;
 
-      if [ ! -d build ]; then
-        mkdir build
-      fi
+      build-and-copy = writeScriptBin "build-and-copy" ''
+        #!/usr/bin/env bash
+        set -euo pipefail
 
-      for build_variant in ${bundle}/*; do
-        build_variant=$(basename $build_variant)
-        if [ -e build/$build_variant ]; then
-          rm -rf build/$build_variant
+        if [ ! -d build ]; then
+          mkdir build
         fi
 
-        cp -r ${bundle}/$build_variant build/
-      done
+        for build_variant in ${bundle}/*; do
+          build_variant=$(basename $build_variant)
+          if [ -e build/$build_variant ]; then
+            rm -rf build/$build_variant
+          fi
 
-      chmod -R +w build
-    '';
+          cp -r ${bundle}/$build_variant build/
+        done
 
-    bundle = build.buildTorchExtensionBundle {
-      inherit path doGetKernelCheck;
-      rev = revUnderscored;
+        chmod -R +w build
+      '';
+
+      kernels =
+        bestBuildSet.pkgs.python3.withPackages (
+          ps: with ps; [
+            kernel-abi-check
+            kernels
+          ]
+        )
+        // {
+          meta.mainProgram = "kernels";
+        };
+
+      redistributable = build.buildDistTorchExtensions {
+        inherit path doGetKernelCheck;
+        bundleOnly = false;
+        rev = revUnderscored;
+      };
     };
-    redistributable = build.buildDistTorchExtensions {
-      inherit path doGetKernelCheck;
-      bundleOnly = false;
-      rev = revUnderscored;
-    };
-  };
 }
