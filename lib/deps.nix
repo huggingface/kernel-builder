@@ -30,7 +30,7 @@ let
     ];
     "torch" = [
       torch
-      torch.cxxdev
+      #torch.cxxdev
     ];
     "cutlass_sycl" = [ torch.xpuPackages.cutlass-sycl ];
   };

@@ -33,6 +33,7 @@
 
   apple-sdk_15,
   extraDeps ? [ ],
+
   torch,
 
   doAbiCheck,
@@ -115,7 +116,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   buildInputs = [
     torch
-    torch.cxxdev
+    #torch.cxxdev
   ]
   ++ lib.optionals cudaSupport (
     with cudaPackages;
@@ -133,7 +134,20 @@ stdenv.mkDerivation (prevAttrs: {
   ++ lib.optionals rocmSupport (
     with rocmPackages;
     [
+      hipblas
+      hipblaslt
+      hipcub-devel
+      hipfft
+      hiprand
+      hipsolver
+      hipsparse
       hipsparselt
+      miopen-hip
+      rccl
+      rocblas
+      rocprim-devel
+      rocrand
+      rocthrust-devel
       rocwmma-devel
     ]
   )
@@ -149,29 +163,25 @@ stdenv.mkDerivation (prevAttrs: {
   env =
     lib.optionalAttrs cudaSupport {
       CUDAToolkit_ROOT = "${lib.getDev cudaPackages.cuda_nvcc}";
-      TORCH_CUDA_ARCH_LIST =
-        if cudaPackages.cudaOlder "12.8" then
-          "7.0;7.5;8.0;8.6;8.9;9.0"
-        else if cudaPackages.cudaOlder "13.0" then
-          "7.0;7.5;8.0;8.6;8.9;9.0;10.0;10.1;12.0"
-        else
-          # sm_101 has been renamed to sm_110 in CUDA 13.
-          "7.5;8.0;8.6;8.9;9.0;10.0;11.0;12.0";
+      TORCH_CUDA_ARCH_LIST = lib.concatStringsSep ";" torch.cudaCapabilities;
     }
     // lib.optionalAttrs rocmSupport {
       PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
+      ROCM_PATH = "${clr}";
     }
     // lib.optionalAttrs xpuSupport {
       MKLROOT = oneapi-torch-dev;
       SYCL_ROOT = oneapi-torch-dev;
       DPCPP_VERSION = (lib.versions.majorMinor xpuPackages.intel-oneapi-dpcpp-cpp.version);
     };
-
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
   dontSetupCUDAToolkitCompilers = true;
 
   cmakeFlags = [
     (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
+    # Fix: file RPATH_CHANGE could not write new RPATH, we are rewriting
+    # rpaths anyway.
+    (lib.cmakeBool "CMAKE_SKIP_RPATH" true)
   ]
   ++ lib.optionals cudaSupport [
     (lib.cmakeFeature "CMAKE_CUDA_HOST_COMPILER" "${stdenv.cc}/bin/g++")
