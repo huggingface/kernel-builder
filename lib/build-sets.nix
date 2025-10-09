@@ -71,6 +71,7 @@ let
       cxx11Abi,
       system,
       bundleBuild ? false,
+      sourceBuild ? false,
     }:
     let
       pkgs =
@@ -84,9 +85,15 @@ let
           pkgsByXpuVer.${xpuVersion}
         else
           throw "No compute framework set in Torch version";
-      torch = pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
-        inherit cxx11Abi;
-      };
+      torch =
+        if sourceBuild then
+          pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
+            inherit cxx11Abi;
+          }
+        else
+          pkgs.python3.pkgs."torch-bin_${flattenVersion torchVersion}".override {
+            inherit cxx11Abi;
+          };
       extension = pkgs.callPackage ./torch-extension { inherit torch; };
     in
     {
