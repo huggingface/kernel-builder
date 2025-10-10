@@ -1,13 +1,13 @@
 {
   lib,
 
-  # List of build sets. Each build set is a attrset of the form
-  #
-  #     { pkgs = <nixpkgs>, torch = <torch drv> }
-  #
-  # The Torch derivation is built as-is. So e.g. the ABI version should
-  # already be set.
-  buildSets,
+# Every `buildSets` argument is a list of build sets. Each build set is
+# a attrset of the form
+#
+#     { pkgs = <nixpkgs>, torch = <torch drv> }
+#
+# The Torch derivation is built as-is. So e.g. the ABI version should
+# already be set.
 }:
 
 let
@@ -106,10 +106,11 @@ rec {
     in
     builtins.filter supportedBuildSet buildSets;
 
-  applicableBuildSets = path: filterApplicableBuildSets (readBuildConfig path) buildSets;
+  applicableBuildSets =
+    { path, buildSets }: filterApplicableBuildSets (readBuildConfig path) buildSets;
 
   # Build a single Torch extension.
-  buildTorchExtension =
+  mkTorchExtension =
     {
       buildConfig,
       pkgs,
@@ -172,56 +173,47 @@ rec {
       });
 
   # Build multiple Torch extensions.
-  buildNixTorchExtensions =
-    { path, rev }:
-    let
-      extensionForTorch =
-        { path, rev }:
-        buildSet: {
-          name = torchBuildVersion buildSet;
-          value = buildTorchExtension buildSet { inherit path rev; };
-        };
-    in
-    builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) (applicableBuildSets path));
-
-  # Build multiple Torch extensions.
-  buildDistTorchExtensions =
+  mkDistTorchExtensions =
     {
       path,
       rev,
       doGetKernelCheck,
       bundleOnly,
+      buildSets,
     }:
     let
       extensionForTorch =
         { path, rev }:
         buildSet: {
           name = torchBuildVersion buildSet;
-          value = buildTorchExtension buildSet {
+          value = mkTorchExtension buildSet {
             inherit path rev doGetKernelCheck;
             stripRPath = true;
             oldLinuxCompat = true;
           };
         };
       applicableBuildSets' =
-        if bundleOnly then
-          builtins.filter (buildSet: buildSet.bundleBuild) (applicableBuildSets path)
-        else
-          (applicableBuildSets path);
+        if bundleOnly then builtins.filter (buildSet: buildSet.bundleBuild) buildSets else buildSets;
     in
     builtins.listToAttrs (lib.map (extensionForTorch { inherit path rev; }) applicableBuildSets');
 
-  buildTorchExtensionBundle =
+  mkTorchExtensionBundle =
     {
       path,
       rev,
       doGetKernelCheck,
+      buildSets,
     }:
     let
       # We just need to get any nixpkgs for use by the path join.
       pkgs = (builtins.head buildSets).pkgs;
-      extensions = buildDistTorchExtensions {
-        inherit path rev doGetKernelCheck;
+      extensions = mkDistTorchExtensions {
+        inherit
+          buildSets
+          path
+          rev
+          doGetKernelCheck
+          ;
         bundleOnly = true;
       };
       buildConfig = readBuildConfig path;
@@ -243,6 +235,7 @@ rec {
     {
       path,
       rev,
+      buildSets,
       doGetKernelCheck,
       pythonCheckInputs,
       pythonNativeCheckInputs,
@@ -271,18 +264,19 @@ rec {
               ++ (pythonCheckInputs python3.pkgs);
             shellHook = ''
               export PYTHONPATH=''${PYTHONPATH}:${
-                buildTorchExtension buildSet { inherit path rev doGetKernelCheck; }
+                mkTorchExtension buildSet { inherit path rev doGetKernelCheck; }
               }
             '';
           };
         };
     in
-    builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) (applicableBuildSets path));
+    builtins.listToAttrs (lib.map (shellForBuildSet { inherit path rev; }) buildSets);
 
-  torchDevShells =
+  mkTorchDevShells =
     {
       path,
       rev,
+      buildSets,
       doGetKernelCheck,
       pythonCheckInputs,
       pythonNativeCheckInputs,
@@ -309,7 +303,7 @@ rec {
               ]
               ++ (pythonNativeCheckInputs python3.pkgs);
             buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (pythonCheckInputs python3.pkgs);
-            inputsFrom = [ (buildTorchExtension buildSet { inherit path rev doGetKernelCheck; }) ];
+            inputsFrom = [ (mkTorchExtension buildSet { inherit path rev doGetKernelCheck; }) ];
             env = lib.optionalAttrs rocmSupport {
               PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
               HIP_PATH = pkgs.rocmPackages.clr;
@@ -318,5 +312,5 @@ rec {
           };
         };
     in
-    builtins.listToAttrs (lib.map shellForBuildSet (applicableBuildSets path));
+    builtins.listToAttrs (lib.map shellForBuildSet buildSets);
 }

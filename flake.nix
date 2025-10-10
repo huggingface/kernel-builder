@@ -46,7 +46,6 @@
           system: buildSet:
           import lib/build.nix {
             inherit (nixpkgs) lib;
-            buildSets = buildSetPerSystem.${system};
           }
         ) buildSetPerSystem;
 
@@ -104,6 +103,7 @@
                 pythonNativeCheckInputs
                 ;
               build = buildPerSystem.${system};
+              buildSets = buildSetPerSystem.${system};
             }
           );
       }

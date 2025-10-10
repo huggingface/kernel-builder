@@ -7,6 +7,7 @@
   runCommand,
 
   path,
+  buildSets,
   rev ? null,
   self ? null,
 
@@ -37,6 +38,8 @@ let
 
   revUnderscored = builtins.replaceStrings [ "-" ] [ "_" ] flakeRev;
 
+  applicableBuildSets = build.applicableBuildSets { inherit path buildSets; };
+
   # For picking a default shell, etc. we want to use the following logic:
   #
   # - Prefer bundle builds over non-bundle builds.
@@ -46,7 +49,7 @@ let
 
   # Enrich the build configs with generic attributes for framework
   # order/version. Also make bundleBuild attr explicit.
-  buildSets = map (
+  addSortOrder = map (
     set:
     let
       inherit (set) buildConfig;
@@ -57,12 +60,23 @@ let
 
         buildConfig // {
           bundleBuild = buildConfig.bundleBuild or false;
+          framework =
+            if buildConfig ? cudaVersion then
+              "cuda"
+            else if buildConfig ? rocmVersion then
+              "rocm"
+            else if buildConfig ? xpuVersion then
+              "xpu"
+            else if system == "aarch64-darwin" then
+              "metal"
+            else
+              throw "Cannot determine framework for build set";
           frameworkOrder = if buildConfig ? cudaVersion then 0 else 1;
           frameworkVersion =
             buildConfig.cudaVersion or buildConfig.rocmVersion or buildConfig.xpuVersion or "0.0";
         };
     }
-  ) (build.applicableBuildSets path);
+  );
   configCompare =
     setA: setB:
     let
@@ -77,25 +91,27 @@ let
       builtins.compareVersions a.torchVersion b.torchVersion > 0
     else
       builtins.compareVersions a.frameworkVersion b.frameworkVersion < 0;
-  buildSetsSorted = lib.sort configCompare buildSets;
+  buildSetsSorted = lib.sort configCompare (addSortOrder applicableBuildSets);
   bestBuildSet =
     if buildSetsSorted == [ ] then
       throw "No build variant is compatible with this system"
     else
       builtins.head buildSetsSorted;
   shellTorch = buildName bestBuildSet.buildConfig;
+  headOrEmpty = l: if l == [ ] then [ ] else [ (builtins.head l) ];
 in
 {
   devShells = rec {
     default = devShells.${shellTorch};
     test = testShells.${shellTorch};
-    devShells = build.torchDevShells {
+    devShells = build.mkTorchDevShells {
       inherit
         path
         doGetKernelCheck
         pythonCheckInputs
         pythonNativeCheckInputs
         ;
+      buildSets = applicableBuildSets;
       rev = revUnderscored;
     };
     testShells = build.torchExtensionShells {
@@ -105,13 +121,15 @@ in
         pythonCheckInputs
         pythonNativeCheckInputs
         ;
+      buildSets = applicableBuildSets;
       rev = revUnderscored;
     };
   };
   packages =
     let
-      bundle = build.buildTorchExtensionBundle {
+      bundle = build.mkTorchExtensionBundle {
         inherit path doGetKernelCheck;
+        buildSets = applicableBuildSets;
         rev = revUnderscored;
       };
     in
@@ -140,6 +158,23 @@ in
         chmod -R +w build
       '';
 
+      ci =
+        let
+          setsWithFramework =
+            framework: builtins.filter (set: set.buildConfig.framework == framework) buildSetsSorted;
+          # It is too costly to build all variants in CI, so we just build one per framework.
+          onePerFramework =
+            (headOrEmpty (setsWithFramework "cuda"))
+            ++ (headOrEmpty (setsWithFramework "metal"))
+            ++ (headOrEmpty (setsWithFramework "rocm"))
+            ++ (headOrEmpty (setsWithFramework "xpu"));
+        in
+        build.mkTorchExtensionBundle {
+          inherit path doGetKernelCheck;
+          buildSets = onePerFramework;
+          rev = revUnderscored;
+        };
+
       kernels =
         bestBuildSet.pkgs.python3.withPackages (
           ps: with ps; [
@@ -151,10 +186,11 @@ in
           meta.mainProgram = "kernels";
         };
 
-      redistributable = build.buildDistTorchExtensions {
+      redistributable = build.mkDistTorchExtensions {
         inherit path doGetKernelCheck;
         bundleOnly = false;
         rev = revUnderscored;
+        buildSets = applicableBuildSets;
       };
     };
 }
