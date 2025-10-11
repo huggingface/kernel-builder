@@ -1,6 +1,15 @@
 find_package(CutlassSycl)
 
-set(CUTLASS_SYCL_REVISION "v{{ version }}" CACHE STRING "CUTLASS revision to use")
+if(DPCPP_VERSION STREQUAL "2025.2")
+  set(CUTLASS_SYCL_REVISION "v0.5" CACHE STRING "CUTLASS revision to use")
+elseif(DPCPP_VERSION STREQUAL "2025.1")
+  set(CUTLASS_SYCL_REVISION "v3.9-0.3" CACHE STRING "CUTLASS revision to use")
+elseif(DPCPP_VERSION STREQUAL "2025.0")
+  set(CUTLASS_SYCL_REVISION "v3.9-0.2" CACHE STRING "CUTLASS revision to use")
+else()
+  message(FATAL_ERROR "Unknown DPCPP_VERSION: ${DPCPP_VERSION}")
+endif()
+
 if (NOT CutlassSycl_FOUND)
   set(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
   set(CUTLASS_ENABLE_BENCHMARKS OFF CACHE BOOL "Disable CUTLASS Benchmarks")

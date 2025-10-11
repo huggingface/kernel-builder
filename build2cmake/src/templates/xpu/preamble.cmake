@@ -4,9 +4,16 @@ cmake_minimum_required(VERSION 3.26)
 find_program(ICX_COMPILER icx)
 find_program(ICPX_COMPILER icpx)
 if(ICX_COMPILER AND ICPX_COMPILER)
+    execute_process(
+      COMMAND ${ICPX_COMPILER} --version
+      OUTPUT_VARIABLE ICPX_VERSION_OUTPUT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(REGEX MATCH "[0-9]+\\.[0-9]+" DPCPP_VERSION "${ICPX_VERSION_OUTPUT}")
+    set(DPCPP_VERSION "${DPCPP_VERSION}" CACHE STRING "DPCPP major.minor version")
     set(CMAKE_C_COMPILER ${ICX_COMPILER})
     set(CMAKE_CXX_COMPILER ${ICPX_COMPILER})
-    message(STATUS "Using Intel SYCL C++ compiler: ${ICPX_COMPILER} and C compiler: ${ICX_COMPILER}")
+    message(STATUS "Using Intel SYCL C++ compiler: ${ICPX_COMPILER} and C compiler: ${ICX_COMPILER} Version: ${DPCPP_VERSION}")
 else()
     message(FATAL_ERROR "Intel SYCL C++ compiler (icpx) and/or C compiler (icx) not found. Please install Intel oneAPI toolkit.")
 endif()

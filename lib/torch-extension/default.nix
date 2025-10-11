@@ -164,7 +164,6 @@ stdenv.mkDerivation (prevAttrs: {
     // lib.optionalAttrs xpuSupport {
       MKLROOT = oneapi-torch-dev;
       SYCL_ROOT = oneapi-torch-dev;
-      DPCPP_VERSION = (lib.versions.majorMinor xpuPackages.intel-oneapi-dpcpp-cpp.version);
     };
 
   # If we use the default setup, CMAKE_CUDA_HOST_COMPILER gets set to nixpkgs g++.
