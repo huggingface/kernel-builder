@@ -23,6 +23,6 @@ jobs:
         run: nvcc -V
 
       - name: Build activation kernel
-        run: ( cd examples/activation &&  .\build-driver\kbuilder.ps1 -SourceFolder . -BuildConfig Release -Backend cuda -Build -Force )
+        run: ( .\build-driver\kbuilder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
       - name: Copy activation kernel
-        run: cp -rL examples/activation/result activation-kernel
+        run: cp -rL examples/activation/build activation-kernel
