@@ -53,7 +53,7 @@ jobs:
           cache: 'pip'
 
       - name: Install PyTorch
-        run: pip install --index-url https://download.pytorch.org/whl/cu129
+        run: pip install torch --index-url https://download.pytorch.org/whl/cu129
 
       - name: Build activation kernel
         run: ( .\build-driver\kbuilder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
