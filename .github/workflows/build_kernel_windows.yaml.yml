@@ -13,10 +13,11 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
-      - uses: Jimver/cuda-toolkit@v0.2.24
+      - uses: N-Storm/cuda-toolkit@v0.2.27m
         id: setup-cuda-toolkit
         with:
           cuda: '13.0.1'
+          use-github-cache: false
 
       - name: "NVCC checks"
         run: nvcc -V
