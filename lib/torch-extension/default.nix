@@ -1,4 +1,8 @@
 {
+  rocmSupport ? torch.rocmSupport,
+  xpuSupport ? torch.xpuSupport,
+
+  lib,
   callPackage,
   stdenv,
   stdenvGlibc_2_27,
@@ -31,6 +35,13 @@ let
   };
 in
 {
+  extraBuildDeps =
+    lib.optionals xpuSupport [
+      oneapi-torch-dev
+      onednn-xpu
+    ]
+    ++ lib.optionals rocmSupport [ clr ];
+
   mkExtension = callPackage ./arch.nix {
     inherit
       clr

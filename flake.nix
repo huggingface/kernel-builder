@@ -146,6 +146,7 @@
                   with buildSet.pkgs;
                   (
                     allOutputs buildSet.torch
+                    ++ lib.concatMap allOutputs buildSet.extension.extraBuildDeps
                     ++ allOutputs build2cmake
                     ++ allOutputs kernel-abi-check
                     ++ allOutputs python3Packages.kernels
