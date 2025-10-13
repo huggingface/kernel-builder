@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2022 ]
-        version: [ '13.0.0' ]
+        python: [ '3.12', '3.13' ]
 
     name: Build kernel
     runs-on: ${{ matrix.os }}
@@ -27,13 +27,16 @@ jobs:
             ~/.cargo/git
 
       - uses: actions/checkout@v5
+
+      # CUDA environment setup
       - uses: N-Storm/cuda-toolkit@v0.2.27m
         id: setup-cuda-toolkit
         with:
-          cuda: ${{ matrix.version }}
+          cuda: '12.9.1'  # TODO(mfuntowicz): How can we test multiple CUDA versions than align with torch?
       - name: "NVCC checks"
         run: nvcc -V
 
+      # Rust build environment setup
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -43,7 +46,16 @@ jobs:
       - name: Build build2cmake
         run: ( cd build2cmake && cargo build --release )
 
+      # Python environment setup
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: 'pip'
+
+      - name: Install PyTorch
+        run: pip install --index-url https://download.pytorch.org/whl/cu129
+
       - name: Build activation kernel
         run: ( .\build-driver\kbuilder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
-      - name: Copy activation kernel
-        run: cp -rL examples/activation/build activation-kernel
+#      - name: Copy activation kernel
+#        run: cp -rL examples/activation/build activation-kernel
