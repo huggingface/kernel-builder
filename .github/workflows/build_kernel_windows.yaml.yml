@@ -10,13 +10,13 @@ on:
 jobs:
   build:
     name: Build kernel
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
       - uses: Jimver/cuda-toolkit@v0.2.28
         id: setup-cuda-toolkit
         with:
-          use-local-cache: 'false'
+          cuda: '13.0.1'
 
       - name: "NVCC checks"
         run: nvcc -V
