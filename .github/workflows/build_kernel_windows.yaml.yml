@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/cache@v4
         with:
-          key: cuda-toolkit-${{ matrix.version }}-${{ matrix.os }}
+          key: cuda-toolkit-129-${{ matrix.os }}
           path: |
             C:\Program Files\NVIDIA GPU Computing Toolkit
             ~/.cargo/registry
