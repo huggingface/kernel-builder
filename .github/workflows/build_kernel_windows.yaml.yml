@@ -12,10 +12,9 @@ jobs:
     name: Build kernel
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Jimver/cuda-toolkit@v0.2.28
-        with:
-          cuda: '13.0.1'
+        id: setup-cuda-toolkit
 
       - name: "NVCC checks"
         run: nvcc -V
