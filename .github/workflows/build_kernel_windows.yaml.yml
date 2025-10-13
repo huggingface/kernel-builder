@@ -1,0 +1,26 @@
+name: "Build and test kernel - Windows"
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened] # trigger on PRs
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build kernel
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Jimver/cuda-toolkit@v0.2.28
+        with:
+          cuda: '13.0.1'
+
+      - name: "NVCC checks"
+        run: nvcc -V
+
+      - name: Build activation kernel
+        run: ( cd examples/activation &&  .\build-driver\kbuilder.ps1 -SourceFolder . -BuildConfig Release -Backend cuda -Build -Force )
+      - name: Copy activation kernel
+        run: cp -rL examples/activation/result activation-kernel
