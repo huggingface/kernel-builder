@@ -87,10 +87,12 @@ let
       torch = pkgs.python3.pkgs."torch_${flattenVersion torchVersion}".override {
         inherit cxx11Abi;
       };
+      extension = pkgs.callPackage ./torch-extension { inherit torch; };
     in
     {
       inherit
         buildConfig
+        extension
         pkgs
         torch
         bundleBuild

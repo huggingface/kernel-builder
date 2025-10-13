@@ -1,15 +1,20 @@
 {
-  stdenv,
-  extensionName,
-  rev,
-
-  # Whether to run get-kernel-check.
-  doGetKernelCheck ? true,
-
   lib,
+  stdenv,
+
   build2cmake,
   get-kernel-check,
   torch,
+}:
+
+{
+  # Whether to run get-kernel-check.
+  doGetKernelCheck ? true,
+
+  extensionName,
+
+  # Revision to bake into the ops name.
+  rev,
 
   src,
 }:

@@ -1,5 +1,6 @@
 {
   buildConfig,
+  extension,
   pkgs,
   torch,
   bundleBuild,

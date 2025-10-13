@@ -22,21 +22,6 @@ let
     isRocm
     isXpu
     ;
-  mkStdenv =
-    buildSet: oldLinuxCompat:
-    let
-      inherit (buildSet) pkgs torch;
-    in
-    if pkgs.stdenv.hostPlatform.isDarwin then
-      pkgs.stdenv
-    else if oldLinuxCompat then
-      # Uses CUDA stdenv when we are building for CUDA.
-      pkgs.stdenvGlibc_2_27
-    else if torch.cudaSupport then
-      torch.cudaPackages.backendStdenv
-    else
-      pkgs.stdenv;
-
 in
 rec {
   resolveDeps = import ./deps.nix { inherit lib; };
@@ -113,6 +98,7 @@ rec {
   mkTorchExtension =
     {
       buildConfig,
+      extension,
       pkgs,
       torch,
       bundleBuild,
@@ -122,7 +108,6 @@ rec {
       rev,
       doGetKernelCheck,
       stripRPath ? false,
-      oldLinuxCompat ? false,
     }:
     let
       inherit (lib) fileset;
@@ -143,34 +128,32 @@ rec {
           _: buildConfig: builtins.length (buildConfig.cuda-capabilities or supportedCudaCapabilities)
         ) buildConfig.kernel
       );
-      stdenv = mkStdenv { inherit pkgs torch; } oldLinuxCompat;
     in
     if buildConfig.general.universal then
       # No torch extension sources? Treat it as a noarch package.
-      pkgs.callPackage ./torch-extension-noarch ({
+
+      extension.mkNoArchExtension {
         inherit
           src
           rev
-          torch
           doGetKernelCheck
           ;
         extensionName = buildConfig.general.name;
-      })
+      }
     else
-      pkgs.callPackage ./torch-extension ({
+      extension.mkExtension {
         inherit
           doGetKernelCheck
           extraDeps
           nvccThreads
           src
-          stdenv
           stripRPath
-          torch
           rev
           ;
+
         extensionName = buildConfig.general.name;
-        doAbiCheck = oldLinuxCompat;
-      });
+        doAbiCheck = true;
+      };
 
   # Build multiple Torch extensions.
   mkDistTorchExtensions =
@@ -189,7 +172,6 @@ rec {
           value = mkTorchExtension buildSet {
             inherit path rev doGetKernelCheck;
             stripRPath = true;
-            oldLinuxCompat = true;
           };
         };
       applicableBuildSets' =
@@ -247,8 +229,7 @@ rec {
         let
           pkgs = buildSet.pkgs;
           rocmSupport = pkgs.config.rocmSupport or false;
-          stdenv = mkStdenv buildSet false;
-          mkShell = pkgs.mkShell.override { inherit stdenv; };
+          mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
         in
         {
           name = torchBuildVersion buildSet;
@@ -288,8 +269,7 @@ rec {
           pkgs = buildSet.pkgs;
           rocmSupport = pkgs.config.rocmSupport or false;
           xpuSupport = pkgs.config.xpuSupport or false;
-          stdenv = mkStdenv buildSet false;
-          mkShell = pkgs.mkShell.override { inherit stdenv; };
+          mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
         in
         {
           name = torchBuildVersion buildSet;
