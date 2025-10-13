@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
-      - uses: Jimver/cuda-toolkit@v0.2.28
+      - uses: Jimver/cuda-toolkit@v0.2.24
         id: setup-cuda-toolkit
         with:
           cuda: '13.0.1'
