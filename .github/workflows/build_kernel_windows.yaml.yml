@@ -16,7 +16,7 @@ jobs:
       - uses: N-Storm/cuda-toolkit@v0.2.27m
         id: setup-cuda-toolkit
         with:
-          cuda: '13.0.1'
+          cuda: '13.0.0'
           use-github-cache: false
 
       - name: "NVCC checks"
