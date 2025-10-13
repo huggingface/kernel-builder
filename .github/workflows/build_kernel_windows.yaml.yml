@@ -44,6 +44,6 @@ jobs:
         run: ( cd build2cmake && cargo build --release )
 
       - name: Build activation kernel
-        run: ( .\build-driver\kbuilder.ps1 -Build2CmakePath build2cmake/target/release -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
+        run: ( .\build-driver\kbuilder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
       - name: Copy activation kernel
         run: cp -rL examples/activation/build activation-kernel
