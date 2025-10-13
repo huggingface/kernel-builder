@@ -9,20 +9,41 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        os: [ windows-2022 ]
+        version: [ '13.0.0' ]
+
     name: Build kernel
-    runs-on: windows-2022
+    runs-on: ${{ matrix.os }}
+
     steps:
+      - uses: actions/cache@v4
+        with:
+          key: cuda-toolkit-${{ matrix.version }}-${{ matrix.os }}
+          path: |
+            C:\Program Files\NVIDIA GPU Computing Toolkit
+            ~/.cargo/registry
+            ~/.cargo/git
+
       - uses: actions/checkout@v5
       - uses: N-Storm/cuda-toolkit@v0.2.27m
         id: setup-cuda-toolkit
         with:
-          cuda: '13.0.0'
-          use-github-cache: false
-
+          cuda: ${{ matrix.version }}
       - name: "NVCC checks"
         run: nvcc -V
 
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build build2cmake
+        run: ( cd build2cmake && cargo build --release )
+
       - name: Build activation kernel
-        run: ( .\build-driver\kbuilder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
+        run: ( .\build-driver\kbuilder.ps1 -Build2CmakePath=build2cmake/target/release -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
       - name: Copy activation kernel
         run: cp -rL examples/activation/build activation-kernel
