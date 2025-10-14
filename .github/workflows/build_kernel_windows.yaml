@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v5
 
       # CUDA environment setup
-      - uses: N-Storm/cuda-toolkit@v0.2.27m
+      - uses: N-Storm/cuda-toolkit@v0.2.28
         id: setup-cuda-toolkit
         with:
           cuda: '12.9.1'  # TODO(mfuntowicz): How can we test multiple CUDA versions than align with torch?
