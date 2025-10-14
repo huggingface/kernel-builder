@@ -58,31 +58,31 @@
     Installation prefix for kernels_install target (defaults to CMAKE_INSTALL_PREFIX)
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu
+    .\builder.ps1 -SourceFolder ./examples/relu
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend cuda -Force
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend cuda -Force
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -TargetFolder ./build/relu -OpsId abc123
+    .\builder.ps1 -SourceFolder ./examples/relu -TargetFolder ./build/relu -OpsId abc123
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Clean -Force
+    .\builder.ps1 -SourceFolder ./examples/relu -Clean -Force
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -BuildConfig Debug
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -BuildConfig Debug
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend cuda -ArchList "7.5 8.6" -Build
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend cuda -ArchList "7.5 8.6" -Build
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend rocm -ArchList "gfx906;gfx908" -Build
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend rocm -ArchList "gfx906;gfx908" -Build
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -LocalInstall
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -LocalInstall
 
 .EXAMPLE
-    .\kbuilder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -KernelsInstall -InstallPrefix "C:\kernels"
+    .\builder.ps1 -SourceFolder ./examples/relu -Backend cuda -Build -KernelsInstall -InstallPrefix "C:\kernels"
 #>
 
 [CmdletBinding(DefaultParameterSetName = 'Generate')]
@@ -239,6 +239,20 @@ function Invoke-Build2Cmake {
     }
 }
 
+function Import-EnvironmentVariables {
+    <#
+    .SYNOPSIS
+        Imports environment variables from a file
+    #>
+    param([string]$FilePath)
+
+    Get-Content $FilePath | ForEach-Object {
+        if ($_ -match '^([^=]+)=(.*)$') {
+            Set-Item -Path "env:$($matches[1])" -Value $matches[2]
+        }
+    }
+}
+
 function Initialize-VSEnvironment {
     <#
     .SYNOPSIS
@@ -285,17 +299,52 @@ function Initialize-VSEnvironment {
     }
 
     # Parse and apply environment variables
-    Get-Content $tempFile | ForEach-Object {
-        if ($_ -match '^([^=]+)=(.*)$') {
-            $name = $matches[1]
-            $value = $matches[2]
-            Set-Item -Path "env:\$name" -Value $value
-        }
-    }
+    Import-EnvironmentVariables -FilePath $tempFile
 
     Remove-Item $tempFile -ErrorAction SilentlyContinue
 
     Write-Status "Visual Studio environment initialized successfully" -Type Success
+}
+
+function Get-CMakeConfigureArgs {
+    <#
+    .SYNOPSIS
+        Builds CMake configuration arguments
+    #>
+    param(
+        [bool]$ShouldInstall,
+        [string]$InstallPrefix
+    )
+
+    $args = @("..", "-G", "Visual Studio 17 2022", "-A", "x64")
+
+    if ($ShouldInstall -and $InstallPrefix) {
+        $args += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
+        Write-Status "Setting CMAKE_INSTALL_PREFIX=$InstallPrefix" -Type Info
+    }
+
+    return $args
+}
+
+function Invoke-CMakeTarget {
+    <#
+    .SYNOPSIS
+        Executes a CMake build target
+    #>
+    param(
+        [string]$Target,
+        [string]$BuildConfig,
+        [string]$DisplayName
+    )
+
+    Write-Status "Running $DisplayName..." -Type Info
+    cmake --build . --target $Target --config $BuildConfig
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$DisplayName failed with exit code $LASTEXITCODE"
+    }
+
+    Write-Status "$DisplayName completed successfully!" -Type Success
 }
 
 function Invoke-CMakeBuild {
@@ -324,13 +373,7 @@ function Invoke-CMakeBuild {
     Write-Status "Configuring CMake project..." -Type Info
     Push-Location $buildDir
     try {
-        $configureArgs = @("..", "-G", "Visual Studio 17 2022", "-A", "x64")
-
-        # Add install prefix if specified for kernels_install
-        if (($RunKernelsInstall -or $LocalInstall) -and $InstallPrefix) {
-            $configureArgs += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
-            Write-Status "Setting CMAKE_INSTALL_PREFIX=$InstallPrefix" -Type Info
-        }
+        $configureArgs = Get-CMakeConfigureArgs -ShouldInstall ($RunKernelsInstall -or $RunLocalInstall) -InstallPrefix $InstallPrefix
 
         cmake @configureArgs
 
@@ -348,28 +391,13 @@ function Invoke-CMakeBuild {
 
         Write-Status "Build completed successfully!" -Type Success
 
-        # Run install target if requested (installs to local development layout)
+        # Run install targets if requested
         if ($RunLocalInstall) {
-            Write-Status "Running install target (local development layout)..." -Type Info
-            cmake --build . --target local_install --config $BuildConfig
-
-            if ($LASTEXITCODE -ne 0) {
-                throw "Install target failed with exit code $LASTEXITCODE"
-            }
-
-            Write-Status "Local install completed successfully!" -Type Success
+            Invoke-CMakeTarget -Target 'local_install' -BuildConfig $BuildConfig -DisplayName 'install target (local development layout)'
         }
 
-        # Run kernels_install target if requested
         if ($RunKernelsInstall) {
-            Write-Status "Running kernels_install target..." -Type Info
-            cmake --build . --config $BuildConfig --target kernels_install
-
-            if ($LASTEXITCODE -ne 0) {
-                throw "kernels_install target failed with exit code $LASTEXITCODE"
-            }
-
-            Write-Status "Kernels install completed successfully!" -Type Success
+            Invoke-CMakeTarget -Target 'kernels_install' -BuildConfig $BuildConfig -DisplayName 'kernels_install target'
         }
     }
     finally {
@@ -381,103 +409,58 @@ function Invoke-CMakeBuild {
 
 #region Backend-Specific Functions
 
-function Invoke-CudaBackend {
+function Invoke-Backend {
+    <#
+    .SYNOPSIS
+        Generates CMake files for specified backend
+    #>
     param(
         [string]$Build2CmakeExe,
         [string]$BuildToml,
         [string]$Target,
-        [hashtable]$Options
+        [hashtable]$Options,
+        [string]$Backend
     )
 
-    Write-Status "Generating CUDA backend..." -Type Info
+    $backendName = if ($Backend -eq 'universal') { 'Universal' } else { $Backend.ToUpper() }
+    Write-Status "Generating $backendName backend..." -Type Info
 
     $args = @('generate-torch', $BuildToml)
 
     if ($Target) { $args += $Target }
     if ($Options.Force) { $args += '--force' }
     if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-    $args += '--backend', 'cuda'
+    if ($Backend -and $Backend -ne 'universal') { $args += '--backend', $Backend }
 
     Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
 }
 
-function Invoke-RocmBackend {
+function Set-BackendArchitecture {
+    <#
+    .SYNOPSIS
+        Configures backend-specific architecture environment variables
+    #>
     param(
-        [string]$Build2CmakeExe,
-        [string]$BuildToml,
-        [string]$Target,
-        [hashtable]$Options
+        [string]$Backend,
+        [string]$ArchList
     )
 
-    Write-Status "Generating ROCm backend..." -Type Info
+    $archMappings = @{
+        'cuda' = @{ Env = 'TORCH_CUDA_ARCH_LIST'; Supported = $true }
+        'rocm' = @{ Env = 'PYTORCH_ROCM_ARCH'; Supported = $true }
+        'xpu'  = @{ Env = $null; Supported = $false; Message = 'no standard environment variable' }
+    }
 
-    $args = @('generate-torch', $BuildToml)
-
-    if ($Target) { $args += $Target }
-    if ($Options.Force) { $args += '--force' }
-    if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-    $args += '--backend', 'rocm'
-
-    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
-}
-
-function Invoke-MetalBackend {
-    param(
-        [string]$Build2CmakeExe,
-        [string]$BuildToml,
-        [string]$Target,
-        [hashtable]$Options
-    )
-
-    Write-Status "Generating Metal backend..." -Type Info
-
-    $args = @('generate-torch', $BuildToml)
-
-    if ($Target) { $args += $Target }
-    if ($Options.Force) { $args += '--force' }
-    if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-    $args += '--backend', 'metal'
-
-    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
-}
-
-function Invoke-XpuBackend {
-    param(
-        [string]$Build2CmakeExe,
-        [string]$BuildToml,
-        [string]$Target,
-        [hashtable]$Options
-    )
-
-    Write-Status "Generating XPU backend..." -Type Info
-
-    $args = @('generate-torch', $BuildToml)
-
-    if ($Target) { $args += $Target }
-    if ($Options.Force) { $args += '--force' }
-    if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-    $args += '--backend', 'xpu'
-
-    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
-}
-
-function Invoke-UniversalBackend {
-    param(
-        [string]$Build2CmakeExe,
-        [string]$BuildToml,
-        [string]$Target,
-        [hashtable]$Options
-    )
-
-    Write-Status "Generating Universal backend..." -Type Info
-
-    $args = @('generate-torch', $BuildToml)
-
-    if ($Target) { $args += $Target }
-    if ($Options.Force) { $args += '--force' }
-    if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-
-    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
+    if ($mapping = $archMappings[$Backend.ToLower()]) {
+        if ($mapping.Supported) {
+            Set-Item "env:$($mapping.Env)" -Value $ArchList
+            Write-Status "Set $($mapping.Env)=$ArchList" -Type Info
+        } else {
+            Write-Status "ArchList not supported for $Backend backend ($($mapping.Message))" -Type Warning
+        }
+    } else {
+        Write-Status "ArchList not applicable for $Backend backend" -Type Warning
+    }
 }
 
 #endregion
@@ -526,39 +509,14 @@ try {
 
     # Set architecture environment variables if ArchList is provided
     if ($ArchList -and $Backend) {
-        switch ($Backend.ToLower()) {
-            'cuda' {
-                $env:TORCH_CUDA_ARCH_LIST = $ArchList
-                Write-Status "Set TORCH_CUDA_ARCH_LIST=$ArchList" -Type Info
-            }
-            'rocm' {
-                $env:PYTORCH_ROCM_ARCH = $ArchList
-                Write-Status "Set PYTORCH_ROCM_ARCH=$ArchList" -Type Info
-            }
-            'xpu' {
-                Write-Status "ArchList not supported for XPU backend (no standard environment variable)" -Type Warning
-            }
-            'metal' {
-                Write-Status "ArchList not applicable for Metal backend" -Type Warning
-            }
-            'universal' {
-                Write-Status "ArchList not applicable for Universal backend" -Type Warning
-            }
-        }
+        Set-BackendArchitecture -Backend $Backend -ArchList $ArchList
     }
 
     # Determine backend strategy
     if ($Backend) {
         # Explicit backend specified
         $targetPath = if ($TargetFolder) { Resolve-Path $TargetFolder } else { $null }
-
-        switch ($Backend.ToLower()) {
-            'cuda'      { Invoke-CudaBackend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options }
-            'rocm'      { Invoke-RocmBackend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options }
-            'metal'     { Invoke-MetalBackend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options }
-            'xpu'       { Invoke-XpuBackend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options }
-            'universal' { Invoke-UniversalBackend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options }
-        }
+        Invoke-Backend -Build2CmakeExe $build2cmakeExe -BuildToml $buildTomlPath -Target $targetPath -Options $options -Backend $Backend.ToLower()
     } else {
         # Auto-detect backend from build.toml
         Write-Status "Auto-detecting backend from build.toml..." -Type Info
