@@ -111,7 +111,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   buildInputs = [
     torch
-    #torch.cxxdev
+    torch.cxxdev
   ]
   ++ lib.optionals cudaSupport (
     with cudaPackages;
@@ -129,19 +129,9 @@ stdenv.mkDerivation (prevAttrs: {
   ++ lib.optionals rocmSupport (
     with rocmPackages;
     [
-      hipblas
-      hipblaslt
       hipcub-devel
-      hipfft
-      hiprand
-      hipsolver
-      hipsparse
       hipsparselt
-      miopen-hip
-      rccl
-      rocblas
       rocprim-devel
-      rocrand
       rocthrust-devel
       rocwmma-devel
     ]
@@ -162,7 +152,6 @@ stdenv.mkDerivation (prevAttrs: {
     }
     // lib.optionalAttrs rocmSupport {
       PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" torch.rocmArchs;
-      ROCM_PATH = "${clr}";
     }
     // lib.optionalAttrs xpuSupport {
       MKLROOT = oneapi-torch-dev;
