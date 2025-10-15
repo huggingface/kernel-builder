@@ -531,15 +531,21 @@ try {
 
     Write-Status "Generation completed successfully!" -Type Success
 
-    # Build if requested
+    # Build if requested (skip if no CMakeLists.txt exists, e.g., universal backend)
     if ($Build) {
         $buildPath = if ($TargetFolder) { $TargetFolder } else { $SourceFolder }
-        Invoke-CMakeBuild `
-            -SourcePath $buildPath `
-            -BuildConfig $BuildConfig `
-            -RunLocalInstall $LocalInstall.IsPresent `
-            -RunKernelsInstall $KernelsInstall.IsPresent `
-            -InstallPrefix $InstallPrefix
+        $cmakeListsPath = Join-Path $buildPath "CMakeLists.txt"
+
+        if (!(Test-Path $cmakeListsPath -PathType Leaf)) {
+            Write-Status "No CMakeLists.txt found, skipping build (likely universal backend)" -Type Info
+        } else {
+            Invoke-CMakeBuild `
+                -SourcePath $buildPath `
+                -BuildConfig $BuildConfig `
+                -RunLocalInstall $LocalInstall.IsPresent `
+                -RunKernelsInstall $KernelsInstall.IsPresent `
+                -InstallPrefix $InstallPrefix
+        }
     }
 
 } catch {
