@@ -39,11 +39,12 @@ Then quick start a build with:
 ```bash
 cd examples/activation
 nix run .#build-and-copy \
-  --override-input kernel-builder github:huggingface/kernel-builder \
-  --max-jobs 8 \
-  -j 8 \
+  --max-jobs 2 \
+  --cores 8 \
   -L
 ```
+
+Where `--max-jobs` specifies the number of build variant that should be built concurrently and `--cores` the number of CPU cores that should be used per build variant.
 
 The compiled kernel will then be available in the local `build/` directory.
 We also provide Docker containers for CI builds. For a quick build:

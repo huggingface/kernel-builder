@@ -115,7 +115,7 @@ function build_extension {
   nix build . \
     $override \
     --max-jobs $MAX_JOBS \
-    -j $CORES \
+    --cores $CORES \
     -L
   
   echo "Build completed. Copying results to ${output_dir}"

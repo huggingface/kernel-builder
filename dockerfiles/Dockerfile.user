@@ -137,7 +137,7 @@ function build_extension {
   nix build \
     .\#bundle \
     --max-jobs $MAX_JOBS \
-    -j $CORES \
+    --cores $CORES \
     -L 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }'
 
   echo "Build completed. Copying results to /home/nixuser/kernelcode/build/"
