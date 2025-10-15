@@ -316,14 +316,14 @@ function Get-CMakeConfigureArgs {
         [string]$InstallPrefix
     )
 
-    $args = @("..", "-G", "Visual Studio 17 2022", "-A", "x64")
+    $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", "x64")
 
     if ($ShouldInstall -and $InstallPrefix) {
-        $args += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
+        $kwargs += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
         Write-Status "Setting CMAKE_INSTALL_PREFIX=$InstallPrefix" -Type Info
     }
 
-    return $args
+    return $kwargs
 }
 
 function Invoke-CMakeTarget {
@@ -425,14 +425,14 @@ function Invoke-Backend {
     $backendName = if ($Backend -eq 'universal') { 'Universal' } else { $Backend.ToUpper() }
     Write-Status "Generating $backendName backend..." -Type Info
 
-    $args = @('generate-torch', $BuildToml)
+    $kwargs = @('generate-torch', $BuildToml)
 
-    if ($Target) { $args += $Target }
-    if ($Options.Force) { $args += '--force' }
-    if ($Options.OpsId) { $args += '--ops-id', $Options.OpsId }
-    if ($Backend -and $Backend -ne 'universal') { $args += '--backend', $Backend }
+    if ($Target) { $kwargs += $Target }
+    if ($Options.Force) { $kwargs += '--force' }
+    if ($Options.OpsId) { $kwargs += '--ops-id', $Options.OpsId }
+    if ($Backend -and $Backend -ne 'universal') { $kwargs += '--backend', $Backend }
 
-    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $args
+    Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $kwargs
 }
 
 function Set-BackendArchitecture {
@@ -485,13 +485,13 @@ try {
     if ($Clean) {
         Write-Status "Cleaning generated artifacts..." -Type Warning
 
-        $args = @('clean', $buildTomlPath)
-        if ($TargetFolder) { $args += $TargetFolder }
-        if ($DryRun) { $args += '--dry-run' }
-        if ($Force) { $args += '--force' }
-        if ($OpsId) { $args += '--ops-id', $OpsId }
+        $kwargs = @('clean', $buildTomlPath)
+        if ($TargetFolder) { $kwargs += $TargetFolder }
+        if ($DryRun) { $kwargs += '--dry-run' }
+        if ($Force) { $kwargs += '--force' }
+        if ($OpsId) { $kwargs += '--ops-id', $OpsId }
 
-        Invoke-Build2Cmake -Build2CmakeExe $build2cmakeExe -Arguments $args
+        Invoke-Build2Cmake -Build2CmakeExe $build2cmakeExe -Arguments $kwargs
         Write-Status "Clean completed!" -Type Success
         exit 0
     }
@@ -521,12 +521,12 @@ try {
         # Auto-detect backend from build.toml
         Write-Status "Auto-detecting backend from build.toml..." -Type Info
 
-        $args = @('generate-torch', $buildTomlPath)
-        if ($TargetFolder) { $args += (Resolve-Path $TargetFolder) }
-        if ($Force) { $args += '--force' }
-        if ($OpsId) { $args += '--ops-id', $OpsId }
+        $kwargs = @('generate-torch', $buildTomlPath)
+        if ($TargetFolder) { $kwargs += (Resolve-Path $TargetFolder) }
+        if ($Force) { $kwargs += '--force' }
+        if ($OpsId) { $kwargs += '--ops-id', $OpsId }
 
-        Invoke-Build2Cmake -Build2CmakeExe $build2cmakeExe -Arguments $args
+        Invoke-Build2Cmake -Build2CmakeExe $build2cmakeExe -Arguments $kwargs
     }
 
     Write-Status "Generation completed successfully!" -Type Success
