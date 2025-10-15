@@ -8,12 +8,12 @@ src = [
     "torch-ext/torch_binding.h",
 ]
 
-[kernel.activation]
+[kernel.relu]
 backend = "cuda"
 depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
 
-[kernel.activation_metal]
+[kernel.relu_metal]
 backend = "metal"
 src = [
   "relu_metal/relu.mm",
@@ -22,7 +22,7 @@ src = [
 ]
 depends = [ "torch" ]
 
-[kernel.activation_rocm]
+[kernel.relu_rocm]
 backend = "rocm"
 rocm-archs = [
     "gfx906",
@@ -38,7 +38,7 @@ rocm-archs = [
 depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
 
-[kernel.activation_xpu]
+[kernel.relu_xpu]
 backend = "xpu"
 depends = ["torch"]
 src = ["relu_xpu/relu.cpp"]

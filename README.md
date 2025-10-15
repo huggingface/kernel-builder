@@ -37,7 +37,7 @@ nix run nixpkgs#cachix -- use huggingface
 Then quick start a build with:
 
 ```bash
-cd examples/activation
+cd examples/relu
 nix run .#build-and-copy \
   --max-jobs 2 \
   --cores 8 \
@@ -51,7 +51,7 @@ We also provide Docker containers for CI builds. For a quick build:
 
 ```bash
 # Using the prebuilt container
-cd examples/activation
+cd examples/relu
 docker run --rm \
   --mount type=bind,source=$(pwd),target=/kernelcode \
   -w /kernelcode ghcr.io/huggingface/kernel-builder:main build

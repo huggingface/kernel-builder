@@ -28,8 +28,8 @@ installed.
 We provide a Docker image with which you can build a kernel:
 
 ```bash
-# navigate to the activation directory
-cd examples/activation
+# navigate to the relu directory
+cd examples/relu
 
 # then run the following command to build the kernel
 docker run --rm \
@@ -39,7 +39,7 @@ docker run --rm \
 ```
 
 This will build the kernel and save the output in the `build` directory in
-the activation folder.
+the relu folder.
 
 ## CLI Interface
 
@@ -55,10 +55,10 @@ The kernel builder includes a command-line interface for easier interaction. The
 ### Examples
 
 ```bash
-# Build the example activation kernel from the root of the repository
+# Build the example relu kernel from the root of the repository
 docker run --rm \
   -v $(pwd):/kernel-builder \
-  -w /kernel-builder/examples/activation \
+  -w /kernel-builder/examples/relu \
   ghcr.io/huggingface/kernel-builder:main \
   build
 
@@ -194,11 +194,11 @@ The kernel can then be imported as a Python module:
 ```python
 import torch
 
-import activation
+import relu
 
 x = torch.randn(10, 10)
 out = torch.empty_like(x)
-activation.silu_and_mul(out, x)
+relu.relu(x, out)
 
 print(out)
 ```

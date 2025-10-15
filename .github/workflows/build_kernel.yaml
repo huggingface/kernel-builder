@@ -28,20 +28,15 @@ jobs:
           USER: runner
       - name: Nix info
         run: nix-shell -p nix-info --run "nix-info -m"
-      - name: Build activation kernel
-        run: ( cd examples/activation && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
-      - name: Copy activation kernel
-        run: cp -rL examples/activation/result activation-kernel
+      - name: Build relu kernel
+        run: ( cd examples/relu && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
+      - name: Copy relu kernel
+        run: cp -rL examples/relu/result relu-kernel
 
       - name: Build cutlass GEMM kernel
         run: ( cd examples/cutlass-gemm && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
       - name: Copy cutlass GEMM kernel
         run: cp -rL examples/cutlass-gemm/result cutlass-gemm-kernel
-
-      - name: Build relu kernel
-        run: ( cd examples/relu && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
-      - name: Copy relu kernel
-        run: cp -rL examples/relu/result relu-kernel
 
       - name: Build relu-backprop-compile kernel
         run: ( cd examples/relu-backprop-compile && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )

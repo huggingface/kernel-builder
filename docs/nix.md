@@ -48,7 +48,7 @@ A kernel that has a `flake.nix` file can be built with the `build-and-copy`
 command. For example:
 
 ```bash
-cd examples/activation
+cd examples/relu
 nix run .#build-and-copy -L
 ```
 
@@ -94,7 +94,7 @@ with the kernel in Python's search path. This makes it more convenient to run
 tests:
 
 ```bash
-cd examples/activation
+cd examples/relu
 nix develop -L .#test
 python -m pytest tests
 ```
@@ -142,14 +142,3 @@ this check enabled, as it is one of the checks that validates that a kernel
 is compliant. This option is primarily intended for kernels with
 `triton.autotune` decorators, which can fail because there is no GPU available
 in the build sandbox.
-
-## Building a kernel without `flake.nix`
-
-If a kernels source directory does not have a `flake.nix` file, you can build the
-kernel using the `buildTorchExtensionBundle` function from the kernel builder
-itself:
-
-```bash
-cd examples/activation
-nix build --impure --expr 'with import ../..; lib.x86_64-linux.buildTorchExtensionBundle ./.' -L
-```
