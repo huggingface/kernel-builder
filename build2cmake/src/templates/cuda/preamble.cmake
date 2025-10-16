@@ -110,7 +110,6 @@ run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 
 set(SYSTEM_STRING "${HOST_ARCH}-windows")
-set(SYSTEM_STRING "${HOST_ARCH}-${CMAKE_SYSTEM_NAME}")
 
 if(GPU_LANG STREQUAL "CUDA")
   generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" ${CXX11_ABI_VALUE} "cuda" "${CUDA_VERSION}" "${SYSTEM_STRING}")
