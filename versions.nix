@@ -114,7 +114,6 @@
     metal = true;
     systems = [ "aarch64-darwin" ];
     bundleBuild = true;
-    sourceBuild = true;
   }
 
   # Non-standard versions; not included in bundle builds.
