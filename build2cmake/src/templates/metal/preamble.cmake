@@ -29,16 +29,3 @@ add_compile_definitions(METAL_KERNEL)
 
 # Initialize list for Metal shader sources
 set(ALL_METAL_SOURCES)
-
-# Generate standardized build name
-run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
-run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')" "Failed to get CXX11 ABI")
-cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(SYSTEM_STRING "${HOST_ARCH}-darwin")
-else()
-  message(FATAL_ERROR "Metal is only supported on macOS/Darwin")
-endif()
-
-# Metal doesn't have a version - it's tied to the OS
-generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" ${CXX11_ABI_VALUE} "metal" "0" "${SYSTEM_STRING}")
