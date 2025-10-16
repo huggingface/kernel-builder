@@ -77,7 +77,7 @@ src = [
   "torch-ext/torch_binding.h"
 ]
 
-[kernel.activation]
+[kernel.relu]
 backend = "cuda"
 src = [
   "relu_kernel/relu.cu",
