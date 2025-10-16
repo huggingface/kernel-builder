@@ -47,6 +47,9 @@ jobs:
       - name: Build relu kernel (specific Torch version)
         run: ( cd examples/relu-specific-torch && nix build . )
 
+      - name: Build relu kernel (compiler flags)
+        run: ( cd examples/relu-compiler-flags && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
+
       - name: Test that we can build a test shell (e.g. that gcc corresponds to CUDA-required)
         run: ( cd examples/relu && nix build .#devShells.x86_64-linux.test )
 
