@@ -84,7 +84,7 @@ using:
 
 ```bash
 $ rm -rf .venv  # Remove existing venv if any.
-$ nix develop .#devShells.torch27-cxx11-rocm63-x86_64-linux
+$ nix develop .#devShells.torch29-cxx11-rocm64-x86_64-linux
 ```
 
 ## Shell for testing a kernel

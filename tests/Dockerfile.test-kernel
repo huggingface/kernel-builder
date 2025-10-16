@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.4
 ARG PYTHON_VERSION=3.10
 # Ideally we'd test with 11.8, but the GELU kernel is subtly off.
-ARG CUDA_VERSION=12.1.0
+ARG CUDA_VERSION=12.6.0
 ARG UBUNTU_VERSION=18.04
-ARG TORCH_VERSION=2.5.0
+ARG TORCH_VERSION=2.8.0
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as base
 

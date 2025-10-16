@@ -186,7 +186,7 @@ To load a kernel locally, you should add the kernel build that is compatible wit
 
 ```bash
 # PyTorch 2.6 and CUDA 12.6
-export PYTHONPATH="result/torch26-cxx11-cu126-x86_64-linux"
+export PYTHONPATH="result/torch29-cxx11-cu126-x86_64-linux"
 ```
 
 The kernel can then be imported as a Python module:
