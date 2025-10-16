@@ -2,10 +2,10 @@
 ARG PYTHON_VERSION=3.10
 # Ideally we'd test with 11.8, but the GELU kernel is subtly off.
 ARG CUDA_VERSION=12.6.0
-ARG UBUNTU_VERSION=18.04
+ARG UBI_VERSION=8
 ARG TORCH_VERSION=2.9.0
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as base
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubi${UBI_VERSION} as base
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -15,11 +15,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    python3 \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+RUN dnf install -y \
+    curl
 
 # Install uv package manager
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
