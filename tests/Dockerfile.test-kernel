@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 ARG PYTHON_VERSION=3.10
-# Ideally we'd test with 11.8, but the GELU kernel is subtly off.
+# Test with the oldest CUDA version supported by the latest PyTorch.
 ARG CUDA_VERSION=12.6.0
 ARG UBI_VERSION=8
 ARG TORCH_VERSION=2.9.0

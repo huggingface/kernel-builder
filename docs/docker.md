@@ -185,7 +185,7 @@ The whole goal of building these kernels is to allow researchers, developers, an
 To load a kernel locally, you should add the kernel build that is compatible with the Torch and CUDA versions in your environment to `PYTHONPATH`. For example:
 
 ```bash
-# PyTorch 2.6 and CUDA 12.6
+# PyTorch 2.9 and CUDA 12.6
 export PYTHONPATH="result/torch29-cxx11-cu126-x86_64-linux"
 ```
 
