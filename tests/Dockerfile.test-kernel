@@ -3,7 +3,7 @@ ARG PYTHON_VERSION=3.10
 # Ideally we'd test with 11.8, but the GELU kernel is subtly off.
 ARG CUDA_VERSION=12.6.0
 ARG UBUNTU_VERSION=18.04
-ARG TORCH_VERSION=2.8.0
+ARG TORCH_VERSION=2.9.0
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as base
 
@@ -47,10 +47,10 @@ WORKDIR /app/kernel-test
 
 RUN CUDA_MAJOR_MINOR=$(echo ${CUDA_VERSION} | cut -d'.' -f1,2) && \
     case ${CUDA_MAJOR_MINOR} in \
-    "11.8") CUDA_TAG="cu118" ;; \
-    "12.1") CUDA_TAG="cu121" ;; \
-    "12.2") CUDA_TAG="cu122" ;; \
     "12.4") CUDA_TAG="cu124" ;; \
+    "12.6") CUDA_TAG="cu126" ;; \
+    "12.8") CUDA_TAG="cu128" ;; \
+    "13.0") CUDA_TAG="cu130" ;; \
     *) CUDA_TAG="" ;; \
     esac && \
     if [ -n "${CUDA_TAG}" ]; then \
