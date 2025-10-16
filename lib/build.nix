@@ -22,6 +22,7 @@ let
     isRocm
     isXpu
     ;
+  inherit (import ./build-variants.nix { inherit lib; }) computeFramework;
 in
 rec {
   resolveDeps = import ./deps.nix { inherit lib; };
@@ -29,22 +30,22 @@ rec {
   readToml = path: builtins.fromTOML (builtins.readFile path);
 
   validateBuildConfig =
-    buildConfig:
+    buildToml:
     let
-      kernels = lib.attrValues (buildConfig.kernel or { });
-      hasOldUniversal = builtins.hasAttr "universal" (buildConfig.torch or { });
+      kernels = lib.attrValues (buildToml.kernel or { });
+      hasOldUniversal = builtins.hasAttr "universal" (buildToml.torch or { });
       hasLanguage = lib.any (kernel: kernel ? language) kernels;
 
     in
     assert lib.assertMsg (!hasOldUniversal && !hasLanguage) ''
       build.toml seems to be of an older version, update it with:
             build2cmake update-build build.toml'';
-    buildConfig;
+    buildToml;
 
   backends =
-    buildConfig:
+    buildToml:
     let
-      kernels = lib.attrValues (buildConfig.kernel or { });
+      kernels = lib.attrValues (buildToml.kernel or { });
       kernelBackend = kernel: kernel.backend;
       init = {
         cuda = false;
@@ -66,11 +67,11 @@ rec {
 
   # Filter buildsets that are applicable to a given kernel build config.
   filterApplicableBuildSets =
-    buildConfig: buildSets:
+    buildToml: buildSets:
     let
-      backends' = backends buildConfig;
-      minCuda = buildConfig.general.cuda-minver or "11.8";
-      maxCuda = buildConfig.general.cuda-maxver or "99.9";
+      backends' = backends buildToml;
+      minCuda = buildToml.general.cuda-minver or "11.8";
+      maxCuda = buildToml.general.cuda-maxver or "99.9";
       versionBetween =
         minver: maxver: ver:
         builtins.compareVersions ver minver >= 0 && builtins.compareVersions ver maxver <= 0;
@@ -82,7 +83,7 @@ rec {
             || (isRocm buildSet.buildConfig && backends'.rocm)
             || (isMetal buildSet.buildConfig && backends'.metal)
             || (isXpu buildSet.buildConfig && backends'.xpu)
-            || (buildConfig.general.universal or false);
+            || (buildToml.general.universal or false);
           cudaVersionSupported =
             !(isCuda buildSet.buildConfig)
             || versionBetween minCuda maxCuda buildSet.pkgs.cudaPackages.cudaMajorMinorVersion;
@@ -111,11 +112,13 @@ rec {
     }:
     let
       inherit (lib) fileset;
-      buildConfig = readBuildConfig path;
-      kernels = buildConfig.kernel or { };
+      buildToml = readBuildConfig path;
+      kernels = lib.filterAttrs (_: kernel: computeFramework buildConfig == kernel.backend) (
+        buildToml.kernel or { }
+      );
       extraDeps = resolveDeps {
         inherit pkgs torch;
-        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: buildConfig: buildConfig.depends) kernels));
+        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: kernel: kernel.depends) kernels));
       };
 
       # Use the mkSourceSet function to get the source
@@ -125,11 +128,11 @@ rec {
       listMax = lib.foldl' lib.max 1;
       nvccThreads = listMax (
         lib.mapAttrsToList (
-          _: buildConfig: builtins.length (buildConfig.cuda-capabilities or supportedCudaCapabilities)
-        ) buildConfig.kernel
+          _: kernel: builtins.length (kernel.cuda-capabilities or supportedCudaCapabilities)
+        ) buildToml.kernel
       );
     in
-    if buildConfig.general.universal then
+    if buildToml.general.universal then
       # No torch extension sources? Treat it as a noarch package.
 
       extension.mkNoArchExtension {
@@ -138,7 +141,7 @@ rec {
           rev
           doGetKernelCheck
           ;
-        extensionName = buildConfig.general.name;
+        extensionName = buildToml.general.name;
       }
     else
       extension.mkExtension {
@@ -151,7 +154,7 @@ rec {
           rev
           ;
 
-        extensionName = buildConfig.general.name;
+        extensionName = buildToml.general.name;
         doAbiCheck = true;
       };
 
@@ -198,9 +201,9 @@ rec {
           ;
         bundleOnly = true;
       };
-      buildConfig = readBuildConfig path;
+      buildToml = readBuildConfig path;
       namePaths =
-        if buildConfig.general.universal then
+        if buildToml.general.universal then
           # Noarch, just get the first extension.
           { "torch-universal" = builtins.head (builtins.attrValues extensions); }
         else
