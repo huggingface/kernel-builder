@@ -98,7 +98,6 @@
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
-    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
@@ -106,7 +105,6 @@
     cxx11Abi = true;
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
-    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
