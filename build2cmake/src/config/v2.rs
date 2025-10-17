@@ -109,6 +109,7 @@ pub enum Kernel {
         cxx_flags: Option<Vec<String>>,
         depends: Vec<Dependencies>,
         rocm_archs: Option<Vec<String>>,
+        hip_flags: Option<Vec<String>>,
         include: Option<Vec<String>>,
         src: Vec<String>,
     },
@@ -257,7 +258,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
 
     for (name, kernel) in v1_kernels {
         if kernel.language == Language::CudaHipify {
-            // We need to add an affix to avoid confflict with the CUDA kernel.
+            // We need to add an affix to avoid conflict with the CUDA kernel.
             let rocm_name = format!("{name}_rocm");
             if kernels.contains_key(&rocm_name) {
                 bail!("Found an existing kernel with name `{rocm_name}` while expanding `{name}`")
@@ -268,6 +269,7 @@ fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<St
                 Kernel::Rocm {
                     cxx_flags: None,
                     rocm_archs: kernel.rocm_archs,
+                    hip_flags: None,
                     depends: kernel.depends.clone(),
                     include: kernel.include.clone(),
                     src: kernel.src.clone(),

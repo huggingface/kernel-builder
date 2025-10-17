@@ -3,16 +3,13 @@ name = "relu"
 universal = false
 
 [torch]
-src = [
-    "torch-ext/torch_binding.cpp",
-    "torch-ext/torch_binding.h",
-]
+src = ["torch-ext/torch_binding.cpp", "torch-ext/torch_binding.h"]
 
 [kernel.activation]
 backend = "cuda"
 depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
-cuda-flags = [ "-DWHO_AM_I_IF_NOT_THE_CANARY" ]
+cuda-flags = ["-DWHO_AM_I_IF_NOT_THE_CANARY"]
 
 [kernel.activation_rocm]
 backend = "rocm"
@@ -29,9 +26,10 @@ rocm-archs = [
 ]
 depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
+hip-flags = ["-DWHO_AM_I_IF_NOT_THE_CANARY"]
 
 [kernel.activation_xpu]
 backend = "xpu"
 depends = ["torch"]
 src = ["relu_xpu/relu.cpp"]
-sycl-flags = [ "-DWHO_AM_I_IF_NOT_THE_CANARY" ]
+sycl-flags = ["-DWHO_AM_I_IF_NOT_THE_CANARY"]
