@@ -27,3 +27,6 @@ jobs:
       # kernels. Also run tests once we have a ROCm runner.
       - name: Build relu kernel
         run: ( cd examples/relu && nix build .\#redistributable.torch29-cxx11-rocm63-x86_64-linux -L )
+
+      - name: Build relu kernel (compiler flags)
+        run: ( cd examples/relu-compiler-flags && nix build .\#redistributable.torch29-cxx11-rocm63-x86_64-linux )
