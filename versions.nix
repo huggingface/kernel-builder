@@ -14,6 +14,7 @@
       "x86_64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.8";
@@ -23,6 +24,7 @@
       "x86_64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.8";
@@ -33,6 +35,7 @@
       "aarch64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.8";
@@ -71,6 +74,7 @@
       "aarch64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
@@ -81,6 +85,7 @@
       "aarch64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
@@ -91,6 +96,7 @@
       "aarch64-linux"
     ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
