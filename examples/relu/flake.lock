@@ -86,6 +86,27 @@
         "type": "github"
       }
     },
+    "kernel-builder": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-utils": "flake-utils",
+        "hf-nix": "hf-nix",
+        "nixpkgs": [
+          "kernel-builder",
+          "hf-nix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "path": "../..",
+        "type": "path"
+      },
+      "original": {
+        "path": "../..",
+        "type": "path"
+      },
+      "parent": []
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1755963616,
@@ -104,13 +125,7 @@
     },
     "root": {
       "inputs": {
-        "flake-compat": "flake-compat",
-        "flake-utils": "flake-utils",
-        "hf-nix": "hf-nix",
-        "nixpkgs": [
-          "hf-nix",
-          "nixpkgs"
-        ]
+        "kernel-builder": "kernel-builder"
       }
     },
     "systems": {
