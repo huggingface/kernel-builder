@@ -60,6 +60,7 @@
     metal = true;
     systems = [ "aarch64-darwin" ];
     bundleBuild = true;
+    sourceBuild = true;
   }
   {
     torchVersion = "2.9";
@@ -124,6 +125,7 @@
     metal = true;
     systems = [ "aarch64-darwin" ];
     bundleBuild = true;
+    sourceBuild = true;
   }
 
   # Non-standard versions; not included in bundle builds.
