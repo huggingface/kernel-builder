@@ -290,8 +290,14 @@ function Initialize-VSEnvironment {
     # Execute vcvarsall and capture environment variables
     $tempFile = [System.IO.Path]::GetTempFileName()
 
+    # Detect platform architecture
+    $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+    $vcvarsArch = if ($arch -eq 'Arm64') { 'arm64' } else { 'x64' }
+
+    Write-Status "Initializing VS environment for $vcvarsArch architecture" -Type Info
+
     # Run vcvarsall.bat and export environment to temp file
-    cmd /c "`"$vcvarsPath`" x64 && set > `"$tempFile`""
+    cmd /c "`"$vcvarsPath`" $vcvarsArch && set > `"$tempFile`""
 
     if ($LASTEXITCODE -ne 0) {
         Remove-Item $tempFile -ErrorAction SilentlyContinue
@@ -316,7 +322,13 @@ function Get-CMakeConfigureArgs {
         [string]$InstallPrefix
     )
 
-    $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", "x64")
+    # Detect platform architecture
+    $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+    $vsArch = if ($arch -eq 'Arm64') { 'ARM64' } else { 'x64' }
+
+    Write-Status "Detected platform: $arch, using Visual Studio architecture: $vsArch" -Type Info
+
+    $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", $vsArch)
 
     if ($ShouldInstall -and $InstallPrefix) {
         $kwargs += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
