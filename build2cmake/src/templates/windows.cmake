@@ -65,11 +65,19 @@ function(generate_build_name OUT_BUILD_NAME TORCH_VERSION CXX11_ABI COMPUTE_FRAM
         message(FATAL_ERROR "Unknown compute framework: ${COMPUTE_FRAMEWORK}")
     endif()
 
-    # Assemble the final build name
-    if(ABI_STRING STREQUAL "")
-        set(BUILD_NAME "torch${FLATTENED_TORCH}-${COMPUTE_STRING}-windows")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+        set(CPU_ARCH "x86_64")
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        set(CPU_ARCH "aarch64")
     else()
-        set(BUILD_NAME "torch${FLATTENED_TORCH}-${ABI_STRING}-${COMPUTE_STRING}-windows")
+        message(ERROR "Unsupported Windows platform ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+
+    # Assemble the final build name
+    if(CXX11_ABI STREQUAL "" OR CXX11_ABI STREQUAL "FALSE")
+        set(BUILD_NAME "torch${FLATTENED_TORCH}-${COMPUTE_STRING}-${CPU_ARCH}-windows")
+    else()
+        set(BUILD_NAME "torch${FLATTENED_TORCH}-cxx11-${COMPUTE_STRING}-${CPU_ARCH}-windows")
     endif()
 
     set(${OUT_BUILD_NAME} "${BUILD_NAME}" PARENT_SCOPE)
