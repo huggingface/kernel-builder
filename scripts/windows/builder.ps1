@@ -330,6 +330,21 @@ function Get-CMakeConfigureArgs {
 
     $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", $vsArch)
 
+    # Detect Python from current environment
+    $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+    if ($pythonExe) {
+        $kwargs += "-DPython3_EXECUTABLE=$pythonExe"
+        Write-Status "Using Python from environment: $pythonExe" -Type Info
+
+        # Verify Python and PyTorch version
+        $torchVersion = & $pythonExe -c "import torch; print(torch.__version__)" 2>$null
+        if ($torchVersion) {
+            Write-Status "Detected PyTorch version: $torchVersion" -Type Info
+        }
+    } else {
+        Write-Status "Python not found in PATH, CMake will auto-detect" -Type Warning
+    }
+
     if ($ShouldInstall -and $InstallPrefix) {
         $kwargs += "-DCMAKE_INSTALL_PREFIX=$InstallPrefix"
         Write-Status "Setting CMAKE_INSTALL_PREFIX=$InstallPrefix" -Type Info
