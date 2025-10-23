@@ -10,4 +10,4 @@ define_gpu_extension_target(
 
 # Add XPU/SYCL specific linker flags
 target_link_options({{ ops_name }} PRIVATE ${sycl_link_flags})
-target_link_libraries({{ ops_name }} PRIVATE dnnl)pip
+target_link_libraries({{ ops_name }} PRIVATE dnnl)
