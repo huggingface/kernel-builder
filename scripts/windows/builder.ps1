@@ -420,13 +420,13 @@ function Invoke-CMakeBuild {
 
         Write-Status "Build completed successfully!" -Type Success
 
-        # Run install targets if requested
+        # Run install target if requested
         if ($RunLocalInstall) {
             Invoke-CMakeTarget -Target 'INSTALL' -BuildConfig $BuildConfig -DisplayName 'install target (local development layout)'
         }
 
         if ($RunKernelsInstall) {
-            Invoke-CMakeTarget -Target 'kernels_install' -BuildConfig $BuildConfig -DisplayName 'kernels_install target'
+            Invoke-CMakeTarget -Target 'INSTALL' -BuildConfig $BuildConfig -DisplayName 'install target'
         }
     }
     finally {
