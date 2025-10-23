@@ -384,6 +384,7 @@ pub fn render_extension(
             context! {
                 name => name,
                 ops_name => ops_name,
+                platform => std::env::consts::OS,
             },
             &mut *write,
         )

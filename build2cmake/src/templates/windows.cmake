@@ -103,36 +103,27 @@ function(add_kernels_install_target TARGET_NAME PACKAGE_NAME BUILD_VARIANT_NAME)
         set(ARG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
     endif()
 
-    # Create the kernels_install target if it doesn't exist
-    if(NOT TARGET kernels_install)
-        add_custom_target(kernels_install ALL
-                COMMENT "Installing all kernels to hub-compatible layout"
-                VERBATIM)
-    endif()
-
-    # Create a custom target for this specific kernel
-    set(KERNEL_INSTALL_TARGET "${TARGET_NAME}_kernel_install")
+    # Set the installation directory
     set(KERNEL_INSTALL_DIR "${ARG_INSTALL_PREFIX}/${BUILD_VARIANT_NAME}/${PACKAGE_NAME}")
 
-    add_custom_target(${KERNEL_INSTALL_TARGET} ALL
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${KERNEL_INSTALL_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${TARGET_NAME}> "${KERNEL_INSTALL_DIR}/"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/torch-ext/${PACKAGE_NAME}"
-            "${KERNEL_INSTALL_DIR}/"
-            DEPENDS ${TARGET_NAME}
-            COMMENT "Installing ${TARGET_NAME} to ${KERNEL_INSTALL_DIR}"
-            VERBATIM)
+    message(STATUS "Using PACKAGE_NAME: ${PACKAGE_NAME}")
 
-    # Make kernels_install depend on this specific kernel's install
-    add_dependencies(kernels_install ${KERNEL_INSTALL_TARGET})
+    # Install the compiled extension using CMake's install() command
+    # This will be triggered by the standard INSTALL target
+    install(TARGETS ${TARGET_NAME}
+        LIBRARY DESTINATION "${KERNEL_INSTALL_DIR}"
+        RUNTIME DESTINATION "${KERNEL_INSTALL_DIR}"
+        COMPONENT ${TARGET_NAME})
 
-    # Set folder for IDE organization
-    if(MSVC OR XCODE)
-        set_target_properties(${KERNEL_INSTALL_TARGET} PROPERTIES FOLDER "Install")
-    endif()
+    # Glob Python files to install
+    file(GLOB PYTHON_FILES "${CMAKE_SOURCE_DIR}/torch-ext/${PACKAGE_NAME}/*.py")
 
-    message(STATUS "Added kernels_install target for ${TARGET_NAME} -> ${BUILD_VARIANT_NAME}/${PACKAGE_NAME}")
+    # Install Python files (__init__.py and _ops.py)
+    install(FILES ${PYTHON_FILES}
+        DESTINATION "${KERNEL_INSTALL_DIR}"
+        COMPONENT ${TARGET_NAME})
+
+    message(STATUS "Added install rules for ${TARGET_NAME} -> ${BUILD_VARIANT_NAME}/${PACKAGE_NAME}")
 endfunction()
 
 #
