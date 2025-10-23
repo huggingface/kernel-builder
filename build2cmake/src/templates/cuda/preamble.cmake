@@ -104,6 +104,11 @@ message(STATUS "Rendered for platform {{ platform }}")
 {% if platform == 'windows' %}
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/windows.cmake)
 
+# This preprocessor macro should be defined in building with MSVC but not for CUDA and co.
+# Also, if not using MVSC, this may not be set too ...
+# So we explicitly set it to avoid any side effect due to preprocessor-guards not being defined.
+add_compile_definitions(_WIN32>)
+
 # Generate standardized build name
 run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
 run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')" "Failed to get CXX11 ABI")
