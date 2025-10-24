@@ -176,9 +176,6 @@ stdenv.mkDerivation (prevAttrs: {
     (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
     (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
   ]
-  ++ lib.optionals xpuSupport [
-    (lib.cmakeFeature "ONEDNN_XPU_INCLUDE_DIR" "${onednn-xpu}/include")
-  ]
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
     # Use host compiler for Metal. Not included in the redistributable SDK.
     (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")

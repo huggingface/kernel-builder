@@ -1,7 +1,6 @@
 define_gpu_extension_target(
   {{ ops_name }}
   DESTINATION {{ ops_name }}
-  INCLUDE_DIRECTORIES "${ONEDNN_XPU_INCLUDE_DIR}"
   LANGUAGE ${GPU_LANG}
   SOURCES ${SRC}
   COMPILE_FLAGS ${sycl_flags}
