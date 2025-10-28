@@ -17,6 +17,7 @@ let
     builtins.readFile ../build2cmake/src/cuda_supported_archs.json
   );
   inherit (import ./torch-version-utils.nix { inherit lib; })
+    isCpu
     isCuda
     isMetal
     isRocm
@@ -48,6 +49,7 @@ rec {
       kernels = lib.attrValues (buildToml.kernel or { });
       kernelBackend = kernel: kernel.backend;
       init = {
+        cpu = false;
         cuda = false;
         metal = false;
         rocm = false;
@@ -79,7 +81,9 @@ rec {
         buildSet:
         let
           backendSupported =
-            (isCuda buildSet.buildConfig && backends'.cuda)
+            (isCpu buildSet.buildConfig && backends'.cpu)
+            || (isCuda buildSet.buildConfig && backends'.cuda)
+            || (isCpu buildSet.buildConfig && backends'.cpu)
             || (isRocm buildSet.buildConfig && backends'.rocm)
             || (isMetal buildSet.buildConfig && backends'.metal)
             || (isXpu buildSet.buildConfig && backends'.xpu)
@@ -146,6 +150,7 @@ rec {
     else
       extension.mkExtension {
         inherit
+          buildConfig
           doGetKernelCheck
           extraDeps
           nvccThreads

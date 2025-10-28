@@ -1,3 +1,6 @@
+mod cpu;
+pub use cpu::write_torch_ext_cpu;
+
 mod cuda;
 pub use cuda::write_torch_ext_cuda;
 

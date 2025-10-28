@@ -12,6 +12,7 @@ let
 
   inherit (import ./torch-version-utils.nix { inherit lib; })
     flattenSystems
+    isCpu
     isCuda
     isMetal
     isRocm
@@ -63,6 +64,7 @@ let
   # Construct the nixpkgs package set for the given versions.
   pkgsForVersions =
     buildConfig@{
+      cpu ? false,
       cudaVersion ? null,
       metal ? false,
       rocmVersion ? null,
@@ -75,7 +77,9 @@ let
     }:
     let
       pkgs =
-        if isCuda buildConfig then
+        if isCpu buildConfig then
+          pkgsForCpu
+        else if isCuda buildConfig then
           pkgsByCudaVer.${cudaVersion}
         else if isRocm buildConfig then
           pkgsByRocmVer.${rocmVersion}
@@ -126,8 +130,13 @@ let
     );
   pkgsByXpuVer = pkgsForXpuVersions xpuVersions;
 
+  pkgsForCpu = pkgsForMetal;
+
   pkgsForMetal = import nixpkgs {
     inherit system;
+    config = {
+      allowUnfree = true;
+    };
     overlays = [
       hf-nix
       overlay

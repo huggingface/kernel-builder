@@ -127,6 +127,16 @@
     bundleBuild = true;
     sourceBuild = true;
   }
+  {
+    torchVersion = "2.9";
+    cxx11Abi = true;
+    cpu = true;
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    sourceBuild = true;
+  }
 
   # Non-standard versions; not included in bundle builds.
   {

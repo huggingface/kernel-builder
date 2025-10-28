@@ -32,6 +32,7 @@ impl Build {
         self.kernels
             .values()
             .map(|kernel| match kernel {
+                Kernel::Cpu { .. } => Backend::Cpu,
                 Kernel::Cuda { .. } => Backend::Cuda,
                 Kernel::Metal { .. } => Backend::Metal,
                 Kernel::Rocm { .. } => Backend::Rocm,
@@ -97,6 +98,13 @@ impl Torch {
 #[serde(deny_unknown_fields, rename_all = "kebab-case", tag = "backend")]
 pub enum Kernel {
     #[serde(rename_all = "kebab-case")]
+    Cpu {
+        cxx_flags: Option<Vec<String>>,
+        depends: Vec<Dependencies>,
+        include: Option<Vec<String>>,
+        src: Vec<String>,
+    },
+    #[serde(rename_all = "kebab-case")]
     Cuda {
         cuda_capabilities: Option<Vec<String>>,
         cuda_flags: Option<Vec<String>>,
@@ -135,7 +143,8 @@ pub enum Kernel {
 impl Kernel {
     pub fn cxx_flags(&self) -> Option<&[String]> {
         match self {
-            Kernel::Cuda { cxx_flags, .. }
+            Kernel::Cpu { cxx_flags, .. }
+            | Kernel::Cuda { cxx_flags, .. }
             | Kernel::Metal { cxx_flags, .. }
             | Kernel::Rocm { cxx_flags, .. }
             | Kernel::Xpu { cxx_flags, .. } => cxx_flags.as_deref(),
@@ -144,7 +153,8 @@ impl Kernel {
 
     pub fn include(&self) -> Option<&[String]> {
         match self {
-            Kernel::Cuda { include, .. }
+            Kernel::Cpu { include, .. }
+            | Kernel::Cuda { include, .. }
             | Kernel::Metal { include, .. }
             | Kernel::Rocm { include, .. }
             | Kernel::Xpu { include, .. } => include.as_deref(),
@@ -153,6 +163,7 @@ impl Kernel {
 
     pub fn backend(&self) -> Backend {
         match self {
+            Kernel::Cpu { .. } => Backend::Cpu,
             Kernel::Cuda { .. } => Backend::Cuda,
             Kernel::Metal { .. } => Backend::Metal,
             Kernel::Rocm { .. } => Backend::Rocm,
@@ -162,7 +173,8 @@ impl Kernel {
 
     pub fn depends(&self) -> &[Dependencies] {
         match self {
-            Kernel::Cuda { depends, .. }
+            Kernel::Cpu { depends, .. }
+            | Kernel::Cuda { depends, .. }
             | Kernel::Metal { depends, .. }
             | Kernel::Rocm { depends, .. }
             | Kernel::Xpu { depends, .. } => depends,
@@ -171,7 +183,8 @@ impl Kernel {
 
     pub fn src(&self) -> &[String] {
         match self {
-            Kernel::Cuda { src, .. }
+            Kernel::Cpu { src, .. }
+            | Kernel::Cuda { src, .. }
             | Kernel::Metal { src, .. }
             | Kernel::Rocm { src, .. }
             | Kernel::Xpu { src, .. } => src,
@@ -182,6 +195,7 @@ impl Kernel {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Backend {
+    Cpu,
     Cuda,
     Metal,
     Rocm,
@@ -191,6 +205,7 @@ pub enum Backend {
 impl Display for Backend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Backend::Cpu => write!(f, "cpu"),
             Backend::Cuda => write!(f, "cuda"),
             Backend::Metal => write!(f, "metal"),
             Backend::Rocm => write!(f, "rocm"),
@@ -204,6 +219,7 @@ impl FromStr for Backend {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "cpu" => Ok(Backend::Cpu),
             "cuda" => Ok(Backend::Cuda),
             "metal" => Ok(Backend::Metal),
             "rocm" => Ok(Backend::Rocm),

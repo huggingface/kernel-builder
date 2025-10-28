@@ -8,6 +8,7 @@
 let
   inherit (pkgs) lib;
   inherit (import ./version-utils.nix { inherit lib; }) flattenVersion abiString;
+  inherit (import ./torch-version-utils.nix { inherit lib; }) isCpu isMetal;
   abi = torch: abiString torch.passthru.cxx11Abi;
   targetPlatform = pkgs.stdenv.targetPlatform.system;
   cudaVersion = torch: "cu${flattenVersion torch.cudaPackages.cudaMajorMinorVersion}";
@@ -28,9 +29,11 @@ let
     else
       null;
 in
-if pkgs.stdenv.hostPlatform.isDarwin then
+if isCpu buildConfig then
+  "torch${torchVersion torch}-cpu-${targetPlatform}"
+else if pkgs.stdenv.hostPlatform.isDarwin && isMetal buildConfig then
   "torch${torchVersion torch}-metal-${targetPlatform}"
 else if gpuVersion torch != null then
   "torch${torchVersion torch}-${abi torch}-${gpuVersion torch}-${targetPlatform}"
 else
-  throw "No supported GPU framework (CUDA, ROCm, XPU, Metal) detected for build-version.nix"
+  throw "No supported GPU framework (CPU, CUDA, ROCm, XPU, Metal) detected for build-version.nix"

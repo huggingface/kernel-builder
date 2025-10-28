@@ -26,6 +26,8 @@
 }:
 
 {
+  buildConfig,
+
   # Whether to do ABI checks.
   doAbiCheck ? true,
 
@@ -48,6 +50,12 @@
   src,
 }:
 
+# Extra validation - the environment should correspind to the build config.
+assert (buildConfig ? cudaVersion) -> cudaSupport;
+assert (buildConfig ? rocmVersion) -> rocmSupport;
+assert (buildConfig ? xpuVersion) -> xpuSupport;
+assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
+
 let
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
@@ -56,6 +64,8 @@ let
     unset DEVELOPER_DIR
     /usr/bin/xcrun $@
   '';
+
+  metalSupport = buildConfig.metal or false;
 
 in
 
@@ -73,8 +83,10 @@ stdenv.mkDerivation (prevAttrs: {
         "rocm"
       else if xpuSupport then
         "xpu"
-      else
+      else if metalSupport then
         "metal"
+      else
+        "cpu"
     } --ops-id ${rev} build.toml
   '';
 
@@ -176,7 +188,7 @@ stdenv.mkDerivation (prevAttrs: {
     (lib.cmakeFeature "CMAKE_HIP_COMPILER_ROCM_ROOT" "${clr}")
     (lib.cmakeFeature "HIP_ROOT_DIR" "${clr}")
   ]
-  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+  ++ lib.optionals metalSupport [
     # Use host compiler for Metal. Not included in the redistributable SDK.
     (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
   ];
@@ -207,7 +219,7 @@ stdenv.mkDerivation (prevAttrs: {
   getKernelCheck = extensionName;
 
   # We need access to the host system on Darwin for the Metal compiler.
-  __noChroot = stdenv.hostPlatform.isDarwin;
+  __noChroot = metalSupport;
 
   passthru = {
     inherit torch;
