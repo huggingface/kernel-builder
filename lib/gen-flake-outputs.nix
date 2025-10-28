@@ -158,6 +158,22 @@ in
         chmod -R +w build
       '';
 
+      build-and-upload =
+        let
+          buildToml = build.readBuildConfig path;
+          repo_id = lib.attrByPath [
+            "general"
+            "hub"
+            "repo-id"
+          ] "kernels-community/${buildToml.general.name}" buildToml;
+          branch = lib.attrByPath [ "general" "hub" "branch" ] "main" buildToml;
+        in
+        writeScriptBin "build-and-upload" ''
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ${bestBuildSet.pkgs.python3.pkgs.kernels}/bin/kernels upload --repo-id ${repo_id} --branch ${branch} ${bundle}
+        '';
+
       ci =
         let
           setsWithFramework =

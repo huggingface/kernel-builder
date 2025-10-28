@@ -51,6 +51,15 @@ pub struct General {
     pub cuda_maxver: Option<Version>,
 
     pub cuda_minver: Option<Version>,
+
+    pub hub: Option<Hub>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Hub {
+    pub repo_id: Option<String>,
+    pub branch: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -249,6 +258,7 @@ impl General {
             universal,
             cuda_maxver: None,
             cuda_minver: None,
+            hub: None,
         }
     }
 }
