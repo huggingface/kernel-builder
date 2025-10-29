@@ -111,15 +111,14 @@ add_compile_definitions(_WIN32>)
 
 # Generate standardized build name
 run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
-run_python(CXX11_ABI_VALUE "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')" "Failed to get CXX11 ABI")
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 
 set(SYSTEM_STRING "${HOST_ARCH}-windows")
 
 if(GPU_LANG STREQUAL "CUDA")
-  generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" "${CXX11_ABI_VALUE}" "cuda" "${CUDA_VERSION}" "${SYSTEM_STRING}")
+  generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" "cuda" "${CUDA_VERSION}" "${SYSTEM_STRING}")
 elseif(GPU_LANG STREQUAL "HIP")
   run_python(ROCM_VERSION "import torch.version; print(torch.version.hip.split('.')[0] + '.' + torch.version.hip.split('.')[1])" "Failed to get ROCm version")
-  generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" "${CXX11_ABI_VALUE}" "rocm" "${ROCM_VERSION}" "${SYSTEM_STRING}")
+  generate_build_name(BUILD_VARIANT_NAME "${TORCH_VERSION}" "rocm" "${ROCM_VERSION}" "${SYSTEM_STRING}")
 endif()
 {% endif %}

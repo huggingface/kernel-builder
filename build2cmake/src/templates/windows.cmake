@@ -4,12 +4,11 @@
 # Arguments:
 #   OUT_BUILD_NAME - Output variable name
 #   TORCH_VERSION - PyTorch version (e.g., "2.7.1")
-#   CXX11_ABI - Whether C++11 ABI is enabled (TRUE/FALSE)
 #   COMPUTE_FRAMEWORK - One of: cuda, rocm, metal, xpu
 #   COMPUTE_VERSION - Version of compute framework (e.g., "12.4" for CUDA, "6.0" for ROCm)
 # Example output: torch271-cxx11-cu124-x86_64-windows
 #
-function(generate_build_name OUT_BUILD_NAME TORCH_VERSION CXX11_ABI COMPUTE_FRAMEWORK COMPUTE_VERSION)
+function(generate_build_name OUT_BUILD_NAME TORCH_VERSION COMPUTE_FRAMEWORK COMPUTE_VERSION)
     # Flatten version by removing dots and padding to 2 components
     string(REPLACE "." ";" VERSION_LIST "${TORCH_VERSION}")
     list(LENGTH VERSION_LIST VERSION_COMPONENTS)
@@ -74,11 +73,7 @@ function(generate_build_name OUT_BUILD_NAME TORCH_VERSION CXX11_ABI COMPUTE_FRAM
     endif()
 
     # Assemble the final build name
-    if(CXX11_ABI STREQUAL "" OR CXX11_ABI STREQUAL "FALSE")
-        set(BUILD_NAME "torch${FLATTENED_TORCH}-${COMPUTE_STRING}-${CPU_ARCH}-windows")
-    else()
-        set(BUILD_NAME "torch${FLATTENED_TORCH}-cxx11-${COMPUTE_STRING}-${CPU_ARCH}-windows")
-    endif()
+    set(BUILD_NAME "torch${FLATTENED_TORCH}-${COMPUTE_STRING}-${CPU_ARCH}-windows")
 
     set(${OUT_BUILD_NAME} "${BUILD_NAME}" PARENT_SCOPE)
     message(STATUS "Generated build name: ${BUILD_NAME}")
