@@ -27,6 +27,13 @@ endif()
 
 append_cmake_prefix_path("torch" "torch.utils.cmake_prefix_path")
 
+# Remember if user provided TORCH_CUDA_ARCH_LIST before Torch detection
+if(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
+  set(USER_PROVIDED_CUDA_ARCH_LIST TRUE)
+else()
+  set(USER_PROVIDED_CUDA_ARCH_LIST FALSE)
+endif()
+
 find_package(Torch REQUIRED)
 
 if (NOT TARGET_DEVICE STREQUAL "cuda" AND
@@ -76,7 +83,16 @@ endif()
 if(GPU_LANG STREQUAL "CUDA")
   clear_cuda_arches(CUDA_ARCH_FLAGS)
   extract_unique_cuda_archs_ascending(CUDA_ARCHS "${CUDA_ARCH_FLAGS}")
-  message(STATUS "CUDA target architectures: ${CUDA_ARCHS}")
+
+  # If user didn't provide TORCH_CUDA_ARCH_LIST, use version-specific defaults
+  # instead of PyTorch's auto-detected architectures
+  if(NOT USER_PROVIDED_CUDA_ARCH_LIST)
+    set(CUDA_ARCHS "${CUDA_DEFAULT_KERNEL_ARCHS}")
+    message(STATUS "TORCH_CUDA_ARCH_LIST not set, using defaults for CUDA ${CUDA_VERSION}: ${CUDA_ARCHS}")
+  else()
+    message(STATUS "CUDA target architectures: ${CUDA_ARCHS}")
+  endif()
+
   # Filter the target architectures by the supported supported archs
   # since for some files we will build for all CUDA_ARCHS.
   cuda_archs_loose_intersection(CUDA_ARCHS "${CUDA_SUPPORTED_ARCHS}" "${CUDA_ARCHS}")
