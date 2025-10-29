@@ -123,6 +123,13 @@ function(add_kernels_install_target TARGET_NAME PACKAGE_NAME BUILD_VARIANT_NAME)
         DESTINATION "${KERNEL_INSTALL_DIR}"
         COMPONENT ${TARGET_NAME})
 
+    # Install README.md if it exists at the root
+    if(EXISTS "${CMAKE_SOURCE_DIR}/README.md")
+        install(FILES "${CMAKE_SOURCE_DIR}/README.md"
+            DESTINATION "${ARG_INSTALL_PREFIX}/${BUILD_VARIANT_NAME}"
+            COMPONENT ${TARGET_NAME})
+    endif()
+
     message(STATUS "Added install rules for ${TARGET_NAME} -> ${BUILD_VARIANT_NAME}/${PACKAGE_NAME}")
 endfunction()
 
@@ -169,6 +176,16 @@ function(add_local_install_target TARGET_NAME PACKAGE_NAME BUILD_VARIANT_NAME)
             COMMENT "Copying shared library and Python files to ${LOCAL_INSTALL_DIR}"
             COMMAND_EXPAND_LISTS
     )
+
+    # Copy README.md if it exists at the root
+    if(EXISTS "${CMAKE_SOURCE_DIR}/README.md")
+        add_custom_command(TARGET local_install POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_SOURCE_DIR}/README.md"
+                "${CMAKE_SOURCE_DIR}/build/${BUILD_VARIANT_NAME}/"
+                COMMENT "Copying README.md to ${CMAKE_SOURCE_DIR}/build/${BUILD_VARIANT_NAME}/"
+        )
+    endif()
 
     file(MAKE_DIRECTORY ${LOCAL_INSTALL_DIR})
     message(STATUS "Added install rules for ${TARGET_NAME} -> build/${BUILD_VARIANT_NAME}/${PACKAGE_NAME}")
