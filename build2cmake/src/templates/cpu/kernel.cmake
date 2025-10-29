@@ -21,4 +21,4 @@ endforeach()
 {% endif %}
 
 # Add C++ sources to main source list
-list(APPEND SRC {{'"${' + kernel_name + '_CPP_SRC}"'}})
+list(APPEND SRC {{'"${' + kernel_name + '_SRC}"'}})
