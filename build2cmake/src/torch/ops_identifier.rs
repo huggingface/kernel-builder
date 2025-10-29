@@ -19,7 +19,11 @@ fn git_identifier(target_dir: impl AsRef<Path>) -> Result<String> {
     let head = repo.head()?;
     let commit = head.peel_to_commit()?;
     let rev = commit.tree_id().to_string().chars().take(7).collect();
-    let dirty = !repo.statuses(None)?.is_empty();
+
+    let mut status_options = git2::StatusOptions::new();
+    status_options.include_untracked(false); // Ignore untracked files (like generated CMake files)
+    status_options.exclude_submodules(true);
+    let dirty = !repo.statuses(Some(&mut status_options))?.is_empty();
     Ok(if dirty { format!("{rev}_dirty") } else { rev })
 }
 
