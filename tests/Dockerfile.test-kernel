@@ -70,5 +70,5 @@ COPY examples/relu/tests ./relu_tests
 COPY examples/cutlass-gemm/tests ./tests/cutlass_gemm_tests
 
 # Run tests
-ADD run-tests.sh
+ADD run-tests.sh ./run-tests.sh
 CMD ["sh", "run-tests.sh"]
