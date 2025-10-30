@@ -2,6 +2,7 @@
 let
   inherit (import ./torch-version-utils.nix { inherit lib; })
     flattenSystems
+    isCpu
     isCuda
     isMetal
     isRocm
@@ -11,23 +12,27 @@ in
 rec {
   computeFramework =
     buildConfig:
-    if buildConfig ? cudaVersion then
+    if buildConfig.cpu or false then
+      "cpu"
+    else if buildConfig ? cudaVersion then
       "cuda"
-    else if buildConfig ? metal then
+    else if buildConfig.metal or false then
       "metal"
     else if buildConfig ? "rocmVersion" then
       "rocm"
     else if buildConfig ? xpuVersion then
       "xpu"
     else
-      throw "Could not find compute framework: no CUDA, ROCm, XPU version specified and Metal is not enabled";
+      throw "Could not find compute framework: no CUDA, ROCm, XPU version specified and CPU and Metal is are not enabled";
 
   buildName =
     let
       inherit (import ./version-utils.nix { inherit lib; }) abiString flattenVersion;
       computeString =
         version:
-        if isCuda version then
+        if isCpu version then
+          "cpu"
+        else if isCuda version then
           "cu${flattenVersion (lib.versions.majorMinor version.cudaVersion)}"
         else if isRocm version then
           "rocm${flattenVersion (lib.versions.majorMinor version.rocmVersion)}"

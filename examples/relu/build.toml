@@ -42,3 +42,8 @@ src = ["relu_cuda/relu.cu"]
 backend = "xpu"
 depends = ["torch"]
 src = ["relu_xpu/relu.cpp"]
+
+[kernel.relu_cpu]
+backend = "cpu"
+depends = ["torch"]
+src = ["relu_cpu/relu_cpu.cpp"]

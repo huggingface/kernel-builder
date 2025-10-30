@@ -63,6 +63,17 @@
     sourceBuild = true;
   }
   {
+    torchVersion = "2.8";
+    cxx11Abi = true;
+    cpu = true;
+    systems = [
+      "aarch64-darwin"
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
+  }
+  {
     torchVersion = "2.9";
     xpuVersion = "2025.2.1";
     cxx11Abi = true;
@@ -126,6 +137,17 @@
     systems = [ "aarch64-darwin" ];
     bundleBuild = true;
     sourceBuild = true;
+  }
+  {
+    torchVersion = "2.9";
+    cxx11Abi = true;
+    cpu = true;
+    systems = [
+      "aarch64-darwin"
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
   }
 
   # Non-standard versions; not included in bundle builds.

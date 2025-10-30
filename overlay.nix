@@ -25,8 +25,8 @@ final: prev: {
           src = final.fetchFromGitHub {
             owner = "huggingface";
             repo = "kernels";
-            rev = "5d21b86a5d611100c10c10b79ffa7965edf567fd";
-            sha256 = "sha256-lKQUVbjhpeXKj1SeZRxgPSsOtBUZ7zQeO6pRoA1h+W8=";
+            rev = "0e18dbf076fc44de5dac4027616e9f3d9e2da45a";
+            sha256 = "sha256-6N1W3jLQIS1yEAdNR2X9CuFdMw4Ia0yzBBVQ4Kujv8U=";
           };
         });
       }

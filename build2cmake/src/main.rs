@@ -10,7 +10,8 @@ use minijinja::Environment;
 
 mod torch;
 use torch::{
-    write_torch_ext_cuda, write_torch_ext_metal, write_torch_ext_universal, write_torch_ext_xpu,
+    write_torch_ext_cpu, write_torch_ext_cuda, write_torch_ext_metal, write_torch_ext_universal,
+    write_torch_ext_xpu,
 };
 
 mod config;
@@ -178,6 +179,7 @@ fn generate_torch(
     };
 
     let file_set = match backend {
+        Backend::Cpu => write_torch_ext_cpu(&env, &build, target_dir.clone(), ops_id)?,
         Backend::Cuda | Backend::Rocm => {
             write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id)?
         }
@@ -376,6 +378,7 @@ fn get_generated_files(
 
     for backend in build.backends() {
         let set = match backend {
+            Backend::Cpu => write_torch_ext_cpu(env, build, target_dir.clone(), ops_id.clone())?,
             Backend::Cuda | Backend::Rocm => {
                 write_torch_ext_cuda(env, backend, build, target_dir.clone(), ops_id.clone())?
             }
