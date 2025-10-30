@@ -12,7 +12,7 @@
 
 let
   abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
-  torchBuildVersion = import ./build-version.nix;
+  buildName = (import ./build-variants.nix { inherit lib; }).buildName;
   supportedCudaCapabilities = builtins.fromJSON (
     builtins.readFile ../build2cmake/src/cuda_supported_archs.json
   );
@@ -171,7 +171,7 @@ rec {
       extensionForTorch =
         { path, rev }:
         buildSet: {
-          name = torchBuildVersion buildSet;
+          name = buildName buildSet.buildConfig;
           value = mkTorchExtension buildSet {
             inherit path rev doGetKernelCheck;
             stripRPath = true;
@@ -235,7 +235,7 @@ rec {
           mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
         in
         {
-          name = torchBuildVersion buildSet;
+          name = buildName buildSet.buildConfig;
           value = mkShell {
             nativeBuildInputs = with pkgs; pythonNativeCheckInputs python3.pkgs;
 
@@ -275,7 +275,7 @@ rec {
           mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
         in
         {
-          name = torchBuildVersion buildSet;
+          name = buildName buildSet.buildConfig;
           value = mkShell {
             nativeBuildInputs =
               with pkgs;
