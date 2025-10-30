@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 _PLATFORM_NAMES = {
+    "cpu": "CPU",
     "cuda": "CUDA",
     "metal": "Metal",
     "rocm": "ROCm",
