@@ -64,10 +64,11 @@ RUN uv add numpy pytest
 
 # Copy kernels and tests
 COPY relu-kernel ./relu-kernel
+COPY relu-kernel-cpu ./relu-kernel-cpu
 COPY cutlass-gemm-kernel ./cutlass-gemm-kernel
 COPY silu-and-mul-universal-kernel ./silu-and-mul-universal-kernel
 COPY examples/relu/tests ./relu_tests
-COPY examples/cutlass-gemm/tests ./tests/cutlass_gemm_tests
+COPY examples/cutlass-gemm/tests ./cutlass_gemm_tests
 
 # Run tests
 ADD tests/run-tests.sh ./run-tests.sh
