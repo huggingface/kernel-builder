@@ -70,8 +70,5 @@ COPY examples/relu/tests ./relu_tests
 COPY examples/cutlass-gemm/tests ./tests/cutlass_gemm_tests
 
 # Run tests
-ENV PYTHONPATH="relu-kernel:cutlass-gemm-kernel:silu-and-mul-universal-kernel:$PYTHONPATH"
-CMD ["/bin/sh", "-c", ".venv/bin/pytest", "relu_tests", "cutlass_gemm_tests"] 
-
-# We only care about importing, the kernel is trivial.
-CMD ["/bin/sh", "-c", ".venv/bin/python", "-c", "'import silu_and_mul_universal'"] 
+ADD run-tests.sh
+CMD ["sh", "run-tests.sh"]
