@@ -5,19 +5,25 @@
 
   lib,
   stdenv,
-  cudaPackages,
+
+  # Native build inputs
+  build2cmake,
   cmake,
   cmakeNvccThreadsHook,
-  ninja,
-  build2cmake,
   get-kernel-check,
   kernel-abi-check,
+  ninja,
   python3,
+  remove-bytecode-hook,
   rewrite-nix-paths-macho,
-  rocmPackages,
   writeScriptBin,
+
+  # Framework packages
+  cudaPackages,
+  rocmPackages,
   xpuPackages,
 
+  # Build inputs
   apple-sdk_15,
   clr,
   oneapi-torch-dev,
@@ -102,6 +108,7 @@ stdenv.mkDerivation (prevAttrs: {
     cmake
     ninja
     build2cmake
+    remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
     get-kernel-check

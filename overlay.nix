@@ -11,6 +11,8 @@ final: prev: {
 
   rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
 
+  remove-bytecode-hook = prev.callPackage ./pkgs/remove-bytecode-hook { };
+
   stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
 
   # Python packages
