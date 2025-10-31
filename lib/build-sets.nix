@@ -130,9 +130,9 @@ let
     );
   pkgsByXpuVer = pkgsForXpuVersions xpuVersions;
 
-  pkgsForCpu = pkgsForMetal;
+  pkgsForMetal = pkgsForCpu;
 
-  pkgsForMetal = import nixpkgs {
+  pkgsForCpu = import nixpkgs {
     inherit system;
     config = {
       allowUnfree = true;

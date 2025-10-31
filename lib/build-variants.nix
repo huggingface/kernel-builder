@@ -23,7 +23,7 @@ rec {
     else if buildConfig ? xpuVersion then
       "xpu"
     else
-      throw "Could not find compute framework: no CUDA, ROCm, XPU version specified and CPU and Metal is are not enabled";
+      throw "Could not find compute framework: no CUDA, ROCm, XPU version specified and CPU and Metal are not enabled";
 
   buildName =
     let

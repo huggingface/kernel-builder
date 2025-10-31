@@ -83,7 +83,6 @@ rec {
           backendSupported =
             (isCpu buildSet.buildConfig && backends'.cpu)
             || (isCuda buildSet.buildConfig && backends'.cuda)
-            || (isCpu buildSet.buildConfig && backends'.cpu)
             || (isRocm buildSet.buildConfig && backends'.rocm)
             || (isMetal buildSet.buildConfig && backends'.metal)
             || (isXpu buildSet.buildConfig && backends'.xpu)
