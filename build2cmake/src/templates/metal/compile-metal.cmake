@@ -2,13 +2,13 @@
 function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
     # Find the Metal launcher (we'll force DEVELOPER_DIR per call)
     find_program(METAL_COMPILER xcrun REQUIRED)
-    find_program(XCODE_SELECT xcode-select REQUIRED)
+
     # --- Auto-detect DEVELOPER_DIR ---
     set(METAL_DEVELOPER_DIR "")
 
     # 1) Prefer xcode-select
     execute_process(
-        COMMAND ${XCODE_SELECT} -p
+        COMMAND /usr/bin/xcode-select -p
         OUTPUT_VARIABLE _XCODE_DEV
         RESULT_VARIABLE _XCODE_RC
         OUTPUT_STRIP_TRAILING_WHITESPACE
