@@ -13,5 +13,5 @@ define_gpu_extension_target(
 
 # Compile Metal shaders if any were found
 if(ALL_METAL_SOURCES)
-  compile_metal_shaders({{ ops_name }} "${ALL_METAL_SOURCES}")
+  compile_metal_shaders({{ ops_name }} "${ALL_METAL_SOURCES}" "${METAL_INCLUDE_DIRS}")
 endif()

@@ -1,15 +1,19 @@
 # Metal shader compilation function
-function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
+function(compile_metal_shaders TARGET_NAME METAL_SOURCES EXTRA_INCLUDE_DIRS)
     # Find the Metal compiler
     find_program(METAL_COMPILER xcrun REQUIRED)
     
     # Set Metal compiler flags
-    set(METAL_FLAGS "-std=metal3.0" "-O2")
+    set(METAL_FLAGS "-std=metal3.2" "-O2")
     
     # Output directory for compiled metallib
     set(METALLIB_OUTPUT_DIR "${CMAKE_BINARY_DIR}/metallib")
     file(MAKE_DIRECTORY ${METALLIB_OUTPUT_DIR})
-    
+
+    foreach(INC ${EXTRA_INCLUDE_DIRS})
+        list(APPEND METAL_FLAGS "-I${INC}")
+    endforeach()
+
     # Separate .metal files from .h files and compile .metal files to .air
     set(AIR_FILES)
     set(METAL_FILES)
