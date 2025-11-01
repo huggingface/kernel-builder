@@ -9,16 +9,6 @@ function(compile_metal_shaders TARGET_NAME METAL_SOURCES)
     # Output directory for compiled metallib
     set(METALLIB_OUTPUT_DIR "${CMAKE_BINARY_DIR}/metallib")
     file(MAKE_DIRECTORY ${METALLIB_OUTPUT_DIR})
-    
-    set(METAL_INCLUDE_DIRS
-        "${CMAKE_SOURCE_DIR}/gptoss_kernels/source/include"
-        "${CMAKE_SOURCE_DIR}/gptoss_kernels/include"
-        "${CMAKE_SOURCE_DIR}/."
-    )
-
-    foreach(INC ${METAL_INCLUDE_DIRS})
-        list(APPEND METAL_FLAGS "-I${INC}")
-    endforeach()
 
     # Separate .metal files from .h files and compile .metal files to .air
     set(AIR_FILES)
