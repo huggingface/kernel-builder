@@ -39,3 +39,10 @@ list(APPEND SRC {{'"${' + kernel_name + '_CPP_SRC}"'}})
 if({{kernel_name}}_METAL_SRC)
   list(APPEND ALL_METAL_SOURCES {{'"${' + kernel_name + '_METAL_SRC}"'}})
 endif()
+
+{% if includes %}
+# Keep the includes directory for the Metal sources
+if({{kernel_name}}_METAL_SRC)
+  list(APPEND METAL_INCLUDE_DIRS {{ includes }})
+endif()
+{% endif %}
