@@ -73,16 +73,15 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1762255629,
+        "lastModified": 1762268370,
         "narHash": "sha256-gf3TJcaiHdw3dvLL7RF6hc/5BLzQDQj5oakFrKZkOZo=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "0226417af2deca3d7896217b24562f78a8b49ea0",
+        "rev": "25c23c765a907d1a5528c5ce65c58a73e974603f",
         "type": "github"
       },
       "original": {
         "owner": "huggingface",
-        "ref": "torch-bin-glibc-path",
         "repo": "hf-nix",
         "type": "github"
       }
