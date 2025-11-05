@@ -13,14 +13,24 @@ backend = "cuda"
 depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
 
+# [kernel.relu_metal]
+# backend = "metal"
+# src = [
+#   "relu_metal/relu.mm",
+#   "relu_metal/relu.metal",
+#   "relu_metal/common.h",
+# ]
+# depends = [ "torch" ]
+
 [kernel.relu_metal]
 backend = "metal"
 src = [
-  "relu_metal/relu.mm",
-  "relu_metal/relu.metal",
-  "relu_metal/common.h",
+  "relu_metal_cpp/relu.cpp",
+  "relu_metal_cpp/metallib_loader.mm",
+  "relu_metal_cpp/relu_cpp.metal",
+  "relu_metal_cpp/common.h",
 ]
-depends = [ "torch" ]
+depends = [ "torch", "metal-cpp" ]
 
 [kernel.relu_rocm]
 backend = "rocm"

@@ -25,6 +25,7 @@
 
   # Build inputs
   apple-sdk_15,
+  metal-cpp,
   clr,
   oneapi-torch-dev,
   onednn-xpu,
@@ -66,9 +67,33 @@ let
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
   xcrunHost = writeScriptBin "xcrunHost" ''
-    # Use system SDK for Metal files.
-    unset DEVELOPER_DIR
-    /usr/bin/xcrun $@
+    # When called with '-sdk macosx metal/metallib', call the tool directly to avoid SDK issues
+    # Check for metallib first as it's more specific
+    if [[ "$*" =~ "metallib" ]]; then
+      # Find the metallib linker (air-lld) from the Metal toolchain
+      METALLIB_BIN=$(ls /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain*/Metal.xctoolchain/usr/bin/air-lld 2>/dev/null | head -n 1)
+      if [ -z "$METALLIB_BIN" ]; then
+        echo "Error: metallib (air-lld) not found" >&2
+        exit 1
+      fi
+      # Remove only '-sdk macosx metallib' as command arguments
+      ARGS=$(echo "$@" | sed 's/-sdk macosx metallib //')
+      $METALLIB_BIN $ARGS
+    elif [[ "$*" =~ "metal" ]]; then
+      # Find the metal compiler from the Metal toolchain
+      METAL_BIN=$(ls /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain*/Metal.xctoolchain/usr/bin/metal 2>/dev/null | head -n 1)
+      if [ -z "$METAL_BIN" ]; then
+        echo "Error: Metal compiler not found" >&2
+        exit 1
+      fi
+      # Remove only '-sdk macosx metal' as command arguments
+      ARGS=$(echo "$@" | sed 's/-sdk macosx metal //')
+      $METAL_BIN $ARGS
+    else
+      # For other commands, use system SDK
+      unset DEVELOPER_DIR
+      /usr/bin/xcrun $@
+    fi
   '';
 
   metalSupport = buildConfig.metal or false;
