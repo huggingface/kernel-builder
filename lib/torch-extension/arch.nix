@@ -67,30 +67,37 @@ let
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
   xcrunHost = writeScriptBin "xcrunHost" ''
-    # When called with '-sdk macosx metal/metallib', call the tool directly to avoid SDK issues
-    # Check for metallib first as it's more specific
+    echo "Calling command: $*"
+
+    # Check if we are invoking metallib or metal
     if [[ "$*" =~ "metallib" ]]; then
-      # Find the metallib linker (air-lld) from the Metal toolchain
+
+      # If metallib is requested, find the air-lld from the Metal toolchain
       METALLIB_BIN=$(ls /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain*/Metal.xctoolchain/usr/bin/air-lld 2>/dev/null | head -n 1)
       if [ -z "$METALLIB_BIN" ]; then
         echo "Error: metallib (air-lld) not found" >&2
         exit 1
       fi
-      # Remove only '-sdk macosx metallib' as command arguments
-      ARGS=$(echo "$@" | sed 's/-sdk macosx metallib //')
-      $METALLIB_BIN $ARGS
+
+      # Remove the '-sdk macosx metallib' and other unsupported flags from the command arguments
+      ARGS=$(echo "$@" | sed 's/-sdk macosx metallib //' | sed 's/-mmacosx-version-min=[^ ]* //')
+      # Add platform version for macOS 15+ to support Metal 3.2 / AIR 2.7
+      $METALLIB_BIN -platform_version macos 15.0 15.0 $ARGS
+
     elif [[ "$*" =~ "metal" ]]; then
-      # Find the metal compiler from the Metal toolchain
+
+      # If metal is requested, find the metal compiler from the Metal toolchain
       METAL_BIN=$(ls /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain*/Metal.xctoolchain/usr/bin/metal 2>/dev/null | head -n 1)
       if [ -z "$METAL_BIN" ]; then
         echo "Error: Metal compiler not found" >&2
         exit 1
       fi
-      # Remove only '-sdk macosx metal' as command arguments
+
+      # Remove the '-sdk macosx metal' from the command arguments
       ARGS=$(echo "$@" | sed 's/-sdk macosx metal //')
       $METAL_BIN $ARGS
     else
-      # For other commands, use system SDK
+      # In all other cases, just use the host xcrun
       unset DEVELOPER_DIR
       /usr/bin/xcrun $@
     fi

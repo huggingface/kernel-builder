@@ -10,6 +10,8 @@
 
 // C interface from metallib_loader.mm
 extern "C" void* loadEmbeddedMetalLibrary(void* device, const char** errorMsg);
+extern "C" void* getMPSDevice();
+extern "C" void* getMPSCommandQueue();
 
 namespace {
 
@@ -37,16 +39,16 @@ MTL::Library* loadLibrary(MTL::Device* device) {
 
 } // namespace
 
-torch::Tensor& dispatchReluKernel(const torch::Tensor& input, torch::Tensor& output) {
-  NS::SharedPtr<NS::AutoreleasePool> pool = NS::TransferPtr(NS::AutoreleasePool::alloc()->init());
+void dispatchReluKernel(const torch::Tensor& input, torch::Tensor& output) {
+  // Use PyTorch's MPS device and command queue (these are borrowed references, not owned)
+  MTL::Device* device = reinterpret_cast<MTL::Device*>(getMPSDevice());
+  TORCH_CHECK(device != nullptr, "Failed to get MPS device");
 
-  NS::SharedPtr<MTL::Device> device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
-  TORCH_CHECK(device.get() != nullptr, "Failed to create Metal device");
+  MTL::CommandQueue* commandQueue = reinterpret_cast<MTL::CommandQueue*>(getMPSCommandQueue());
+  TORCH_CHECK(commandQueue != nullptr, "Failed to get MPS command queue");
 
-  NS::SharedPtr<MTL::CommandQueue> commandQueue = NS::TransferPtr(device->newCommandQueue());
-  TORCH_CHECK(commandQueue.get() != nullptr, "Failed to create Metal command queue");
-
-  NS::SharedPtr<MTL::Library> library = NS::TransferPtr(loadLibrary(device.get()));
+  MTL::Library* libraryPtr = reinterpret_cast<MTL::Library*>(loadLibrary(device));
+  NS::SharedPtr<MTL::Library> library = NS::TransferPtr(libraryPtr);
 
   const std::string kernelName =
       std::string("relu_forward_kernel_") + (input.scalar_type() == torch::kFloat ? "float" : "half");
@@ -63,17 +65,19 @@ torch::Tensor& dispatchReluKernel(const torch::Tensor& input, torch::Tensor& out
               "Failed to create compute pipeline state: ",
               pipelineError ? pipelineError->localizedDescription()->utf8String() : "Unknown error");
 
-  NS::SharedPtr<MTL::CommandBuffer> commandBuffer = NS::TransferPtr(commandQueue->commandBuffer());
-  TORCH_CHECK(commandBuffer.get() != nullptr, "Failed to create Metal command buffer");
+  // Don't use SharedPtr for command buffer/encoder - they're managed by PyTorch's command queue
+  MTL::CommandBuffer* commandBuffer = commandQueue->commandBuffer();
+  TORCH_CHECK(commandBuffer != nullptr, "Failed to create Metal command buffer");
 
-  NS::SharedPtr<MTL::ComputeCommandEncoder> encoder =
-      NS::TransferPtr(commandBuffer->computeCommandEncoder());
-  TORCH_CHECK(encoder.get() != nullptr, "Failed to create compute command encoder");
+  MTL::ComputeCommandEncoder* encoder = commandBuffer->computeCommandEncoder();
+  TORCH_CHECK(encoder != nullptr, "Failed to create compute command encoder");
 
   encoder->setComputePipelineState(pipelineState.get());
 
   auto* inputBuffer = getMTLBuffer(input);
   auto* outputBuffer = getMTLBuffer(output);
+  TORCH_CHECK(inputBuffer != nullptr, "Input buffer is null");
+  TORCH_CHECK(outputBuffer != nullptr, "Output buffer is null");
 
   encoder->setBuffer(inputBuffer, input.storage_offset() * input.element_size(), 0);
   encoder->setBuffer(outputBuffer, output.storage_offset() * output.element_size(), 1);
@@ -91,9 +95,6 @@ torch::Tensor& dispatchReluKernel(const torch::Tensor& input, torch::Tensor& out
   encoder->endEncoding();
 
   commandBuffer->commit();
-  commandBuffer->waitUntilCompleted();
-
-  return output;
 }
 
 void relu(torch::Tensor& out, const torch::Tensor& input) {

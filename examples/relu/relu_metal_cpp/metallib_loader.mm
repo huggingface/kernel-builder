@@ -1,5 +1,7 @@
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
+#include <ATen/mps/MPSDevice.h>
+#include <ATen/mps/MPSStream.h>
 
 #ifdef EMBEDDED_METALLIB_HEADER
 #include EMBEDDED_METALLIB_HEADER
@@ -19,6 +21,21 @@ extern "C" {
       *errorMsg = strdup([error.localizedDescription UTF8String]);
     }
 
+    // Manually retain since we're not using ARC
+    // The caller will wrap in NS::TransferPtr which assumes ownership
+    if (library) {
+      [library retain];
+    }
     return (__bridge void*)library;
+  }
+
+  // Get PyTorch's MPS device (returns id<MTLDevice> as void*)
+  void* getMPSDevice() {
+    return (__bridge void*)at::mps::MPSDevice::getInstance()->device();
+  }
+
+  // Get PyTorch's current MPS command queue (returns id<MTLCommandQueue> as void*)
+  void* getMPSCommandQueue() {
+    return (__bridge void*)at::mps::getCurrentMPSStream()->commandQueue();
   }
 }
