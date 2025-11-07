@@ -73,6 +73,8 @@ See [dockerfiles/README.md](./dockerfiles/README.md) for more options, including
 
 - [Writing Hub kernels](./docs/writing-kernels.md)
 - [Building kernels with Nix](./docs/nix.md)
+- Framework-specific notes:
+  - [Metal](docs/metal.md)
 - [Building kernels with Docker](./docs/docker.md) (for systems without Nix)
 - [Local kernel development](docs/local-dev.md) (IDE integration)
 - [Kernel security](./docs/security.md)
