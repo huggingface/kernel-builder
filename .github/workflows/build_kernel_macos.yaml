@@ -10,8 +10,12 @@ on:
 jobs:
   build:
     name: Build kernel
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
+      - name: "Select Xcode"
+        run: sudo xcrun xcode-select -s /Applications/Xcode_26.0.app
+      - name: "Install Metal Toolchain"
+        run: xcodebuild -downloadComponent metalToolchain
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v15
