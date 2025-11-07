@@ -6,6 +6,7 @@
   callPackage,
   stdenv,
   stdenvGlibc_2_27,
+  cudaPackages,
   rocmPackages,
   writeScriptBin,
   xpuPackages,
@@ -28,6 +29,12 @@ let
     }
   );
 
+  cuda_nvcc = cudaPackages.cuda_nvcc.override {
+    backendStdenv = cudaPackages.backendStdenv.override {
+      stdenv = effectiveStdenv;
+    };
+  };
+
   oneapi-torch-dev = xpuPackages.oneapi-torch-dev.override { stdenv = effectiveStdenv; };
   onednn-xpu = xpuPackages.onednn-xpu.override {
     inherit oneapi-torch-dev;
@@ -45,6 +52,7 @@ in
   mkExtension = callPackage ./arch.nix {
     inherit
       clr
+      cuda_nvcc
       oneapi-torch-dev
       onednn-xpu
       torch

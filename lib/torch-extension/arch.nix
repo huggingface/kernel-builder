@@ -10,6 +10,7 @@
   build2cmake,
   cmake,
   cmakeNvccThreadsHook,
+  cuda_nvcc,
   get-kernel-check,
   kernel-abi-check,
   ninja,
@@ -133,7 +134,7 @@ stdenv.mkDerivation (prevAttrs: {
   ]
   ++ lib.optionals cudaSupport [
     cmakeNvccThreadsHook
-    cudaPackages.cuda_nvcc
+    cuda_nvcc
   ]
   ++ lib.optionals rocmSupport [
     clr

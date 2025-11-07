@@ -3,10 +3,9 @@
   cudaSupport ? config.cudaSupport,
   fetchFromGitHub,
   overrideCC,
-  system,
   wrapBintoolsWith,
   wrapCCWith,
-  gcc12Stdenv,
+  gcc13Stdenv,
   stdenv,
   bintools-unwrapped,
   cudaPackages,
@@ -19,7 +18,7 @@ let
     repo = "nixpkgs";
     rev = "a9eb3eed170fa916e0a8364e5227ee661af76fde";
     hash = "sha256-1ycrr9HMrGA3ZDM8qmKcZICBupE5UShnIIhPRWdvAzA=";
-  }) { inherit system; };
+  }) { inherit (stdenv.hostPlatform) system; };
 
   glibc_2_27 = nixpkgs_20191230.glibc.overrideAttrs (prevAttrs: {
     # Slight adjustments for compatibility with modern nixpkgs:
@@ -64,10 +63,9 @@ let
           bintools = bintools-unwrapped;
           libc = newGlibc;
         };
-        libcxx = cc.lib;
       };
     in
     overrideCC stdenv compilerWrapped;
 
 in
-stdenvWith glibc_2_27 (if cudaSupport then cudaPackages.backendStdenv else gcc12Stdenv).cc.cc stdenv
+stdenvWith glibc_2_27 (if cudaSupport then cudaPackages.backendStdenv else gcc13Stdenv).cc.cc stdenv
