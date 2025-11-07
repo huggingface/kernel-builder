@@ -24,7 +24,7 @@
   xpuPackages,
 
   # Build inputs
-  apple-sdk_15,
+  apple-sdk_26,
   clr,
   oneapi-torch-dev,
   onednn-xpu,
@@ -96,6 +96,24 @@ stdenv.mkDerivation (prevAttrs: {
     } --ops-id ${rev} build.toml
   '';
 
+  preConfigure =
+    # This is a workaround for https://openradar.appspot.com/FB20389216 - even
+    # if the user dowrnloaded the Metal toolchain, the mapping is not set up
+    # for the Nix build users. To make things worse, we cannot set up a mapping
+    # because the Nix build users do not have a writable home directory and
+    # showComponent/downloadComponent do not respect the HOME variable. So
+    # instead, we'll use showComponent (which will emit a lot of warnings due
+    # to the above) to grab the path of the Metal toolchain.
+    lib.optionalString metalSupport ''
+      METAL_PATH=$(${xcrunHost}/bin/xcrunHost xcodebuild -showComponent MetalToolchain 2> /dev/null | sed -rn "s/Toolchain Search Path: (.*)/\1/p")
+      if [ ! -d "$METAL_PATH" ]; then
+        >&2 echo "Cannot find Metal toolchain, use: xcodebuild -downloadComponent MetalToolchain"
+        exit 1
+      fi
+
+      cmakeFlagsArray+=("-DMETAL_TOOLCHAIN=$METAL_PATH/Metal.xctoolchain")
+    '';
+
   # hipify copies files, but its target is run in the CMake build and install
   # phases. Since some of the files come from the Nix store, this fails the
   # second time around.
@@ -160,7 +178,7 @@ stdenv.mkDerivation (prevAttrs: {
     onednn-xpu
   ])
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
-    apple-sdk_15
+    apple-sdk_26
   ]
   ++ extraDeps;
 
@@ -197,7 +215,8 @@ stdenv.mkDerivation (prevAttrs: {
   ]
   ++ lib.optionals metalSupport [
     # Use host compiler for Metal. Not included in the redistributable SDK.
-    (lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
+    # Re-enable when the issue mentioned in preConfigure is solved.
+    #(lib.cmakeFeature "METAL_COMPILER" "${xcrunHost}/bin/xcrunHost")
   ];
 
   postInstall = ''

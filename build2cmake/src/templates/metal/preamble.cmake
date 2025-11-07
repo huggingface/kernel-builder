@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project({{name}} LANGUAGES CXX C OBJC OBJCXX)
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum macOS deployment version")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "26.0" CACHE STRING "Minimum macOS deployment version")
 
 install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
 
