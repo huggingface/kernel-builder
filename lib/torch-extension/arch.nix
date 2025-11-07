@@ -99,7 +99,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   preConfigure =
     # This is a workaround for https://openradar.appspot.com/FB20389216 - even
-    # if the user dowrnloaded the Metal toolchain, the mapping is not set up
+    # if the user downloaded the Metal toolchain, the mapping is not set up
     # for the Nix build users. To make things worse, we cannot set up a mapping
     # because the Nix build users do not have a writable home directory and
     # showComponent/downloadComponent do not respect the HOME variable. So
