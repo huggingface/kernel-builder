@@ -4,6 +4,7 @@
 
   build2cmake,
   get-kernel-check,
+  remove-bytecode-hook,
   torch,
 }:
 
@@ -30,6 +31,7 @@ stdenv.mkDerivation (prevAttrs: {
 
   nativeBuildInputs = [
     build2cmake
+    remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
     get-kernel-check
