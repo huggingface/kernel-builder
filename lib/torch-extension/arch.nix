@@ -27,10 +27,10 @@
   # Build inputs
   apple-sdk_26,
   clr,
+  metal-cpp,
   oneapi-torch-dev,
   onednn-xpu,
   torch,
-  metal-cpp,
 }:
 
 {
