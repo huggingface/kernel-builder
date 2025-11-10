@@ -30,6 +30,7 @@
   oneapi-torch-dev,
   onednn-xpu,
   torch,
+  metal-cpp,
 }:
 
 {
