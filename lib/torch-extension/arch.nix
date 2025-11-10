@@ -223,21 +223,26 @@ stdenv.mkDerivation (prevAttrs: {
   postInstall = ''
     (
       cd ..
-      cp -r torch-ext/${extensionName} $out/
+      cp -r torch-ext/${extensionName}/* $out/
     )
-    cp $out/_${extensionName}_*/* $out/${extensionName}
-    rm -rf $out/_${extensionName}_*
+    mv $out/_${extensionName}_*/* $out/
+    rm -d $out/_${extensionName}_${rev}
+
+    # Set up a compatibility module for older kernels versions, remove when
+    # the updated kernels has been around for a while.
+    mkdir $out/${extensionName}
+    cp ${./compat.py} $out/${extensionName}/__init__.py
   ''
   + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
-    find $out/${extensionName} -name '*.so' \
+    find $out/ -name '*.so' \
       -exec patchelf --set-rpath "" {} \;
   ''
   + (lib.optionalString (stripRPath && stdenv.hostPlatform.isDarwin)) ''
-    find $out/${extensionName} -name '*.so' \
+    find $out/ -name '*.so' \
       -exec rewrite-nix-paths-macho {} \;
 
     # Stub some rpath.
-    find $out/${extensionName} -name '*.so' \
+    find $out/ -name '*.so' \
       -exec install_name_tool -add_rpath "@loader_path/lib" {} \;
   '';
 

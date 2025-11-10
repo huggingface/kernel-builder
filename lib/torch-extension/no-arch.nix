@@ -48,7 +48,9 @@ stdenv.mkDerivation (prevAttrs: {
 
   installPhase = ''
     mkdir -p $out
-    cp -r torch-ext/${extensionName} $out/
+    cp -r torch-ext/${extensionName}/* $out/
+    mkdir $out/${extensionName}
+    cp ${./compat.py} $out/${extensionName}/__init__.py
   '';
 
   doInstallCheck = true;
