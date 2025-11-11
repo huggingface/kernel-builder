@@ -1,5 +1,5 @@
 [general]
-name = "cutlass_gemm"
+name = "cutlass-gemm"
 universal = false
 
 [torch]

@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.library import opcheck
 
-import relu
+import relu_backprop_compile
 
 
 def get_device():
@@ -30,21 +30,21 @@ def test_relu_forward(dtype):
     device = get_device()
     x = torch.randn(1024, 1024, dtype=dtype, device=device)
     expected = F.relu(x)
-    actual = relu.relu(x)
+    actual = relu_backprop_compile.relu(x)
     torch.testing.assert_close(expected, actual)
 
 
 def test_relu_gradient_numerical():
     device = get_device()
     x = torch.randn(32, 32, dtype=torch.float64, device=device, requires_grad=True)
-    assert torch.autograd.gradcheck(relu.relu, x)
+    assert torch.autograd.gradcheck(relu_backprop_compile.relu, x)
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_relu_gradient_large_tensor(dtype):
     device = get_device()
     x = torch.randn(1024, 1024, dtype=dtype, device=device, requires_grad=True)
-    y = relu.relu(x)
+    y = relu_backprop_compile.relu(x)
     loss = y.sum()
     loss.backward()
 
@@ -69,7 +69,7 @@ def test_relu_gradient_comparison(dtype):
     )
 
     x_kernel = x_data.clone().requires_grad_(True)
-    y_kernel = relu.relu(x_kernel)
+    y_kernel = relu_backprop_compile.relu(x_kernel)
     loss_custom = y_kernel.sum()
     loss_custom.backward()
 
@@ -86,7 +86,7 @@ def test_relu_gradient_comparison(dtype):
 def test_relu_backward_chain(dtype):
     device = get_device()
     x = torch.randn(64, 128, dtype=dtype, device=device, requires_grad=True)
-    y = relu.relu(x)
+    y = relu_backprop_compile.relu(x)
     z = y * 2.0
     loss = z.sum()
     loss.backward()
@@ -115,7 +115,7 @@ def test_relu_backward_chain(dtype):
 def test_relu_fwd_opcheck(shape, dtype):
     device = get_device()
     x = torch.randn(shape, dtype=dtype, device=device, requires_grad=True)
-    opcheck(relu.ops.relu_fwd, (x,))
+    opcheck(relu_backprop_compile.ops.relu_fwd, (x,))
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
@@ -128,7 +128,7 @@ def test_relu_torch_compile(dtype):
             self.linear = torch.nn.Linear(1024, 1024)
 
         def forward(self, x):
-            return relu.relu(self.linear(x))
+            return relu_backprop_compile.relu(self.linear(x))
 
     model = SimpleModel().to(device).to(dtype)
     compiled_model = torch.compile(model, fullgraph=True)
@@ -168,7 +168,7 @@ def test_torch_compile_recompilation_and_graph_break(dtype):
             self.linear = torch.nn.Linear(16, 16)
 
         def forward(self, x):
-            return relu.relu(self.linear(x))
+            return relu_backprop_compile.relu(self.linear(x))
 
     model = SimpleModel().to(device).to(dtype)
     compiled_model = torch.compile(model, fullgraph=True)
