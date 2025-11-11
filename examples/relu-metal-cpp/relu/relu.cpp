@@ -3,7 +3,6 @@
 
 // Include metal-cpp headers from system
 #include <Metal/Metal.hpp>
-#include <Foundation/Foundation.hpp>
 #include <Foundation/NSSharedPtr.hpp>
 
 #include <torch/torch.h>

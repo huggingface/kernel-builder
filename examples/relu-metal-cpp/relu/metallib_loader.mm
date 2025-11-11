@@ -1,5 +1,4 @@
 #import <Metal/Metal.h>
-#import <Foundation/Foundation.h>
 #include <ATen/mps/MPSDevice.h>
 #include <ATen/mps/MPSStream.h>
 
