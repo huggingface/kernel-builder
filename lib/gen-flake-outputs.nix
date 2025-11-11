@@ -61,13 +61,15 @@ let
         buildConfig // {
           bundleBuild = buildConfig.bundleBuild or false;
           framework =
-            if buildConfig ? cudaVersion then
+            if buildConfig.cpu or false then
+              "cpu"
+            else if buildConfig ? cudaVersion then
               "cuda"
             else if buildConfig ? rocmVersion then
               "rocm"
             else if buildConfig ? xpuVersion then
               "xpu"
-            else if system == "aarch64-darwin" then
+            else if buildConfig.metal or false then
               "metal"
             else
               throw "Cannot determine framework for build set";
@@ -180,7 +182,8 @@ in
             framework: builtins.filter (set: set.buildConfig.framework == framework) buildSetsSorted;
           # It is too costly to build all variants in CI, so we just build one per framework.
           onePerFramework =
-            (headOrEmpty (setsWithFramework "cuda"))
+            (headOrEmpty (setsWithFramework "cpu"))
+            ++ (headOrEmpty (setsWithFramework "cuda"))
             ++ (headOrEmpty (setsWithFramework "metal"))
             ++ (headOrEmpty (setsWithFramework "rocm"))
             ++ (headOrEmpty (setsWithFramework "xpu"));
