@@ -5,7 +5,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.follows = "hf-nix/nixpkgs";
     flake-compat.url = "github:edolstra/flake-compat";
-    hf-nix.url = "github:huggingface/hf-nix/bump-metal-cpp-version";
+    hf-nix.url = "github:huggingface/hf-nix";
   };
 
   outputs =

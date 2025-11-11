@@ -73,16 +73,15 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1762804970,
+        "lastModified": 1762833384,
         "narHash": "sha256-YPLcoqJBlYYGgmTG/J7bDx7lHqPnJ8beLs0+9OLfFhM=",
         "owner": "huggingface",
         "repo": "hf-nix",
-        "rev": "389aa480b495775803cf42894dc119299460016d",
+        "rev": "752645bcda8793906249809319fa9b8dc11d7af6",
         "type": "github"
       },
       "original": {
         "owner": "huggingface",
-        "ref": "bump-metal-cpp-version",
         "repo": "hf-nix",
         "type": "github"
       }
