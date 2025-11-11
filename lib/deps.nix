@@ -33,8 +33,8 @@ let
       #torch.cxxdev
     ];
     "cutlass_sycl" = [ torch.xpuPackages.cutlass-sycl ];
-    "metal-cpp" = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-      pkgs.metal-cpp.dev
+    "metal-cpp" = [
+      pkgs.metal-cpp.dev 
     ];
   };
 in
