@@ -344,7 +344,9 @@ fn clean(
     // Clean up empty directories
     let dirs_to_check = [
         target_dir.join("cmake"),
-        target_dir.join("torch-ext").join(&build.general.name),
+        target_dir
+            .join("torch-ext")
+            .join(build.general.python_name()),
         target_dir.join("torch-ext"),
     ];
 

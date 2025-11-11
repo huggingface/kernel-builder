@@ -56,6 +56,13 @@ pub struct General {
     pub hub: Option<Hub>,
 }
 
+impl General {
+    /// Name of the kernel as a Python extension.
+    pub fn python_name(&self) -> String {
+        self.name.replace("-", "_")
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Hub {

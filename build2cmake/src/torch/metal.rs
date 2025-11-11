@@ -47,7 +47,7 @@ pub fn write_torch_ext_metal(
         &mut file_set,
     )?;
 
-    write_ops_py(env, &build.general.name, &ops_name, &mut file_set)?;
+    write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
 
     write_pyproject_toml(env, &mut file_set)?;
 

@@ -42,7 +42,7 @@
   # Whether to run get-kernel-check.
   doGetKernelCheck ? true,
 
-  extensionName,
+  kernelName,
 
   # Extra dependencies (such as CUTLASS).
   extraDeps ? [ ],
@@ -65,6 +65,8 @@ assert (buildConfig ? xpuVersion) -> xpuSupport;
 assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 
 let
+  extensionName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
   xcrunHost = writeScriptBin "xcrunHost" ''

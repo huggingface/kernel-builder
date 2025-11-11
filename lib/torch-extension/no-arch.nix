@@ -13,7 +13,7 @@
   # Whether to run get-kernel-check.
   doGetKernelCheck ? true,
 
-  extensionName,
+  kernelName,
 
   # Revision to bake into the ops name.
   rev,
@@ -21,8 +21,12 @@
   src,
 }:
 
+let
+  extensionName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+in
+
 stdenv.mkDerivation (prevAttrs: {
-  name = "${extensionName}-torch-ext";
+  name = "${kernelName}-torch-ext";
 
   inherit extensionName src;
 

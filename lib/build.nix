@@ -145,7 +145,7 @@ rec {
           rev
           doGetKernelCheck
           ;
-        extensionName = buildToml.general.name;
+        kernelName = buildToml.general.name;
       }
     else
       extension.mkExtension {
@@ -159,7 +159,7 @@ rec {
           rev
           ;
 
-        extensionName = buildToml.general.name;
+        kernelName = buildToml.general.name;
         doAbiCheck = true;
       };
 
