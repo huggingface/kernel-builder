@@ -12,9 +12,9 @@ src = [
 [kernel.relu_metal]
 backend = "metal"
 src = [
-  "relu.cpp",
-  "metallib_loader.mm",
-  "relu_cpp.metal",
-  "common.h",
+  "relu/relu.cpp",
+  "relu/metallib_loader.mm",
+  "relu/relu_cpp.metal",
+  "relu/common.h",
 ]
 depends = [ "torch", "metal-cpp" ]
