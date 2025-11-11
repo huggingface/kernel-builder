@@ -9,6 +9,8 @@ final: prev: {
 
   kernel-abi-check = prev.callPackage ./pkgs/kernel-abi-check { };
 
+  kernel-layout-check = prev.callPackage ./pkgs/kernel-layout-check { };
+
   rewrite-nix-paths-macho = prev.callPackage ./pkgs/rewrite-nix-paths-macho { };
 
   remove-bytecode-hook = prev.callPackage ./pkgs/remove-bytecode-hook { };

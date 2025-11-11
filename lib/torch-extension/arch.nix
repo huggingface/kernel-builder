@@ -13,6 +13,7 @@
   cuda_nvcc,
   get-kernel-check,
   kernel-abi-check,
+  kernel-layout-check,
   ninja,
   python3,
   remove-bytecode-hook,
@@ -79,7 +80,12 @@ in
 stdenv.mkDerivation (prevAttrs: {
   name = "${extensionName}-torch-ext";
 
-  inherit doAbiCheck nvccThreads src;
+  inherit
+    doAbiCheck
+    extensionName
+    nvccThreads
+    src
+    ;
 
   # Generate build files.
   postPatch = ''
@@ -123,10 +129,11 @@ stdenv.mkDerivation (prevAttrs: {
   '';
 
   nativeBuildInputs = [
-    kernel-abi-check
     cmake
     ninja
     build2cmake
+    kernel-abi-check
+    kernel-layout-check
     remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
@@ -247,8 +254,6 @@ stdenv.mkDerivation (prevAttrs: {
   '';
 
   doInstallCheck = true;
-
-  getKernelCheck = extensionName;
 
   # We need access to the host system on Darwin for the Metal compiler.
   __noChroot = metalSupport;
