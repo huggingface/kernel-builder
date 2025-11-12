@@ -22,13 +22,13 @@
 }:
 
 let
-  extensionName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+  moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
 in
 
 stdenv.mkDerivation (prevAttrs: {
   name = "${kernelName}-torch-ext";
 
-  inherit extensionName src;
+  inherit moduleName src;
 
   # Add Torch as a dependency, so that devshells for universal kernels
   # also get torch as a build input.
@@ -54,9 +54,9 @@ stdenv.mkDerivation (prevAttrs: {
 
   installPhase = ''
     mkdir -p $out
-    cp -r torch-ext/${extensionName}/* $out/
-    mkdir $out/${extensionName}
-    cp ${./compat.py} $out/${extensionName}/__init__.py
+    cp -r torch-ext/${moduleName}/* $out/
+    mkdir $out/${moduleName}
+    cp ${./compat.py} $out/${moduleName}/__init__.py
   '';
 
   doInstallCheck = true;

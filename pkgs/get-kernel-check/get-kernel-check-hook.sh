@@ -5,12 +5,12 @@ echo "Sourcing get-kernel-check-hook.sh"
 _getKernelCheckHook() {
   echo "Checking loading kernel with get_kernel"
 
-  if [ -z ${extensionName+x} ]; then
-    echo "extensionName must be set in derivation"
+  if [ -z ${moduleName+x} ]; then
+    echo "moduleName must be set in derivation"
     exit 1
   fi
 
-  echo "Check whether the kernel can be loaded with get-kernel: ${extensionName}"
+  echo "Check whether the kernel can be loaded with get-kernel: ${moduleName}"
 
   # We strip the full library paths from the extension. Unfortunately,
   # in a Nix environment, the library dependencies cannot be found
@@ -35,7 +35,7 @@ _getKernelCheckHook() {
   mkdir -p "${TMPDIR}/build"
   ln -s "$out" "${TMPDIR}/build/${BUILD_VARIANT}"
 
-  python -c "from pathlib import Path; import kernels; kernels.get_local_kernel(Path('${TMPDIR}'), '${extensionName}')"
+  python -c "from pathlib import Path; import kernels; kernels.get_local_kernel(Path('${TMPDIR}'), '${moduleName}')"
 }
 
 postInstallCheckHooks+=(_getKernelCheckHook)

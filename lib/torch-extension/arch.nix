@@ -65,7 +65,7 @@ assert (buildConfig ? xpuVersion) -> xpuSupport;
 assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 
 let
-  extensionName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+  moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
 
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
@@ -80,11 +80,11 @@ let
 in
 
 stdenv.mkDerivation (prevAttrs: {
-  name = "${extensionName}-torch-ext";
+  name = "${kernelName}-torch-ext";
 
   inherit
     doAbiCheck
-    extensionName
+    moduleName
     nvccThreads
     src
     ;
@@ -232,15 +232,15 @@ stdenv.mkDerivation (prevAttrs: {
   postInstall = ''
     (
       cd ..
-      cp -r torch-ext/${extensionName}/* $out/
+      cp -r torch-ext/${moduleName}/* $out/
     )
-    mv $out/_${extensionName}_*/* $out/
-    rm -d $out/_${extensionName}_${rev}
+    mv $out/_${moduleName}_*/* $out/
+    rm -d $out/_${moduleName}_${rev}
 
     # Set up a compatibility module for older kernels versions, remove when
     # the updated kernels has been around for a while.
-    mkdir $out/${extensionName}
-    cp ${./compat.py} $out/${extensionName}/__init__.py
+    mkdir $out/${moduleName}
+    cp ${./compat.py} $out/${moduleName}/__init__.py
   ''
   + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
     find $out/ -name '*.so' \
