@@ -33,6 +33,9 @@ let
       #torch.cxxdev
     ];
     "cutlass_sycl" = [ torch.xpuPackages.cutlass-sycl ];
+    "metal-cpp" = [
+      pkgs.metal-cpp.dev
+    ];
   };
 in
 let

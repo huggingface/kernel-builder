@@ -254,6 +254,8 @@ pub enum Dependencies {
     Cutlass4_0,
     #[serde(rename = "cutlass_sycl")]
     CutlassSycl,
+    #[serde(rename = "metal-cpp")]
+    MetalCpp,
     Torch,
 }
 
