@@ -35,6 +35,8 @@ final: prev: {
             sha256 = "sha256-6N1W3jLQIS1yEAdNR2X9CuFdMw4Ia0yzBBVQ4Kujv8U=";
           };
         });
+
+        pyclibrary = python-self.callPackage ./pkgs/python-modules/pyclibrary { };
       }
     )
   ];
