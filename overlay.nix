@@ -24,6 +24,15 @@ final: prev: {
         cuda-bindings = python-self.callPackage ./pkgs/python-modules/cuda-bindings { };
 
         cuda-pathfinder = python-self.callPackage ./pkgs/python-modules/cuda-pathfinder { };
+
+        # Starting with the CUDA 12.8 version, cuda-python is a metapackage
+        # that pulls in relevant dependencies. For CUDA 12.6 it is just
+        # cuda-bindings.
+        cuda-python =
+          if final.cudaPackages.cudaMajorMinorVersion == "12.6" then
+            python-self.cuda-bindings
+          else
+            python-self.callPackage ./pkgs/python-modules/cuda-python { };
         kernel-abi-check = callPackage ./pkgs/python-modules/kernel-abi-check { };
 
         kernels = python-super.kernels.overrideAttrs (oldAttrs: {
