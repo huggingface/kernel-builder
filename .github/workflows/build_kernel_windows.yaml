@@ -1,7 +1,7 @@
 name: "Build and test kernel - Windows"
 on:
   push:
-    branches: [main]
+    branches: [main, build-and-release-ci-win]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened] # trigger on PRs
@@ -58,7 +58,7 @@ jobs:
           cache: 'pip'
 
       - name: Install PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cu129
+        run: pip install torch --index-url https://download.pytorch.org/whl/${{ matrix.torch.wheel }}
 
       - name: Build activation kernel
         run: ( scripts\windows\builder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
