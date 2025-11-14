@@ -21,6 +21,7 @@ final: prev: {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (
       python-self: python-super: with python-self; {
+        cuda-bindings = python-self.callPackage ./pkgs/python-modules/cuda-bindings { };
 
         cuda-pathfinder = python-self.callPackage ./pkgs/python-modules/cuda-pathfinder { };
         kernel-abi-check = callPackage ./pkgs/python-modules/kernel-abi-check { };
