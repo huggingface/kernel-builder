@@ -4,7 +4,7 @@ use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
-use super::kernel_ops_identifier;
+use super::{common::write_pyproject_toml, kernel_ops_identifier};
 use crate::{
     config::{Build, Kernel, Torch},
     fileset::FileSet,
@@ -49,7 +49,7 @@ pub fn write_torch_ext_metal(
 
     write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
 
-    write_pyproject_toml(env, &mut file_set)?;
+    write_pyproject_toml(env, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
 
@@ -220,17 +220,6 @@ fn write_ops_py(
             },
             writer,
         )
-        .wrap_err("Cannot render kernel template")?;
-
-    Ok(())
-}
-
-fn write_pyproject_toml(env: &Environment, file_set: &mut FileSet) -> Result<()> {
-    let writer = file_set.entry("pyproject.toml");
-
-    env.get_template("pyproject.toml")
-        .wrap_err("Cannot get pyproject.toml template")?
-        .render_to_write(context! {}, writer)
         .wrap_err("Cannot render kernel template")?;
 
     Ok(())

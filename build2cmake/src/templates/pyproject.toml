@@ -6,5 +6,6 @@ requires = [
   "setuptools>=61",
   "torch",
   "wheel",
+  {{python_dependencies}}
 ]
 build-backend = "setuptools.build_meta"

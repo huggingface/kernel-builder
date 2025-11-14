@@ -54,6 +54,8 @@ pub struct General {
     pub cuda_minver: Option<Version>,
 
     pub hub: Option<Hub>,
+
+    pub python_depends: Option<Vec<PythonDependency>>,
 }
 
 impl General {
@@ -68,6 +70,22 @@ impl General {
 pub struct Hub {
     pub repo_id: Option<String>,
     pub branch: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum PythonDependency {
+    Einops,
+    NvidiaCutlassDsl,
+}
+
+impl Display for PythonDependency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PythonDependency::Einops => write!(f, "einops"),
+            PythonDependency::NvidiaCutlassDsl => write!(f, "nvidia-cutlass-dsl"),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -107,7 +125,7 @@ pub enum Kernel {
     #[serde(rename_all = "kebab-case")]
     Cpu {
         cxx_flags: Option<Vec<String>>,
-        depends: Vec<Dependencies>,
+        depends: Vec<Dependency>,
         include: Option<Vec<String>>,
         src: Vec<String>,
     },
@@ -117,21 +135,21 @@ pub enum Kernel {
         cuda_flags: Option<Vec<String>>,
         cuda_minver: Option<Version>,
         cxx_flags: Option<Vec<String>>,
-        depends: Vec<Dependencies>,
+        depends: Vec<Dependency>,
         include: Option<Vec<String>>,
         src: Vec<String>,
     },
     #[serde(rename_all = "kebab-case")]
     Metal {
         cxx_flags: Option<Vec<String>>,
-        depends: Vec<Dependencies>,
+        depends: Vec<Dependency>,
         include: Option<Vec<String>>,
         src: Vec<String>,
     },
     #[serde(rename_all = "kebab-case")]
     Rocm {
         cxx_flags: Option<Vec<String>>,
-        depends: Vec<Dependencies>,
+        depends: Vec<Dependency>,
         rocm_archs: Option<Vec<String>>,
         hip_flags: Option<Vec<String>>,
         include: Option<Vec<String>>,
@@ -140,7 +158,7 @@ pub enum Kernel {
     #[serde(rename_all = "kebab-case")]
     Xpu {
         cxx_flags: Option<Vec<String>>,
-        depends: Vec<Dependencies>,
+        depends: Vec<Dependency>,
         sycl_flags: Option<Vec<String>>,
         include: Option<Vec<String>>,
         src: Vec<String>,
@@ -178,7 +196,7 @@ impl Kernel {
         }
     }
 
-    pub fn depends(&self) -> &[Dependencies] {
+    pub fn depends(&self) -> &[Dependency] {
         match self {
             Kernel::Cpu { depends, .. }
             | Kernel::Cuda { depends, .. }
@@ -239,7 +257,7 @@ impl FromStr for Backend {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[non_exhaustive]
 #[serde(rename_all = "lowercase")]
-pub enum Dependencies {
+pub enum Dependency {
     #[serde(rename = "cutlass_2_10")]
     Cutlass2_10,
     #[serde(rename = "cutlass_3_5")]
@@ -284,6 +302,7 @@ impl General {
             cuda_maxver: None,
             cuda_minver: None,
             hub: None,
+            python_depends: None,
         }
     }
 }

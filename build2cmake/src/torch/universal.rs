@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use eyre::{Context, Result};
+use itertools::Itertools;
 use minijinja::{context, Environment};
 
 use crate::{
-    config::{Build, Torch},
+    config::{Build, General, Torch},
     fileset::FileSet,
     torch::kernel_ops_identifier,
 };
@@ -20,12 +21,7 @@ pub fn write_torch_ext_universal(
     let ops_name = kernel_ops_identifier(&target_dir, &build.general.python_name(), ops_id);
 
     write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
-    write_pyproject_toml(
-        env,
-        build.torch.as_ref(),
-        &build.general.name,
-        &mut file_set,
-    )?;
+    write_pyproject_toml(env, build.torch.as_ref(), &build.general, &mut file_set)?;
 
     Ok(file_set)
 }
@@ -58,18 +54,27 @@ fn write_ops_py(
 fn write_pyproject_toml(
     env: &Environment,
     torch: Option<&Torch>,
-    name: &str,
+    general: &General,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let writer = file_set.entry("pyproject.toml");
 
+    let name = &general.name;
     let data_globs = torch.and_then(|torch| torch.data_globs().map(|globs| globs.join(", ")));
+    let python_dependencies = general
+        .python_depends
+        .as_ref()
+        .unwrap_or(&vec![])
+        .iter()
+        .map(|d| format!("\"{d}\""))
+        .join(", ");
 
     env.get_template("universal/pyproject.toml")
         .wrap_err("Cannot get universal pyproject.toml template")?
         .render_to_write(
             context! {
                 data_globs => data_globs,
+                python_dependencies => python_dependencies,
                 name => name,
             },
             writer,
