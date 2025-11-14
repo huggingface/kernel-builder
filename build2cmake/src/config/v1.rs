@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use serde::Deserialize;
 
-use super::v2::Dependencies;
+use super::v2::Dependency;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -40,7 +40,7 @@ pub struct Kernel {
     pub rocm_archs: Option<Vec<String>>,
     #[serde(default)]
     pub language: Language,
-    pub depends: Vec<Dependencies>,
+    pub depends: Vec<Dependency>,
     pub include: Option<Vec<String>>,
     pub src: Vec<String>,
 }

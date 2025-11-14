@@ -6,8 +6,9 @@ use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
+use super::common::write_pyproject_toml;
 use super::kernel_ops_identifier;
-use crate::config::{Build, Dependencies, Kernel, Torch};
+use crate::config::{Build, Dependency, Kernel, Torch};
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
@@ -47,7 +48,7 @@ pub fn write_torch_ext_xpu(
 
     write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
 
-    write_pyproject_toml(env, &mut file_set)?;
+    write_pyproject_toml(env, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
 
@@ -61,17 +62,6 @@ fn write_torch_registration_macros(file_set: &mut FileSet) -> Result<()> {
     file_set
         .entry(path)
         .extend_from_slice(REGISTRATION_H.as_bytes());
-
-    Ok(())
-}
-
-fn write_pyproject_toml(env: &Environment, file_set: &mut FileSet) -> Result<()> {
-    let writer = file_set.entry("pyproject.toml");
-
-    env.get_template("pyproject.toml")
-        .wrap_err("Cannot get pyproject.toml template")?
-        .render_to_write(context! {}, writer)
-        .wrap_err("Cannot render pyproject.toml template")?;
 
     Ok(())
 }
@@ -196,11 +186,11 @@ fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Resu
 
     for dep in deps {
         match dep {
-            Dependencies::CutlassSycl => {
+            Dependency::CutlassSycl => {
                 env.get_template("xpu/dep-cutlass-sycl.cmake")?
                     .render_to_write(context! {}, &mut *write)?;
             }
-            Dependencies::Torch => (),
+            Dependency::Torch => (),
             _ => {
                 // XPU supports CUTLASS-SYCL instead of CUTLASS
                 eprintln!("Warning: XPU backend doesn't need/support dependency: {dep:?}");
