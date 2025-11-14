@@ -33,6 +33,9 @@ final: prev: {
             python-self.cuda-bindings
           else
             python-self.callPackage ./pkgs/python-modules/cuda-python { };
+
+        nvidia-cutlass-dsl = python-self.callPackage ./pkgs/python-modules/nvidia-cutlass-dsl { };
+
         kernel-abi-check = callPackage ./pkgs/python-modules/kernel-abi-check { };
 
         kernels = python-super.kernels.overrideAttrs (oldAttrs: {
