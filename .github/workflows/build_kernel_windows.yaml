@@ -1,7 +1,7 @@
 name: "Build and test kernel - Windows"
 on:
   push:
-    branches: [main, build-and-release-ci-win]
+    branches: [main]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened] # trigger on PRs
