@@ -15,7 +15,7 @@ jobs:
         python: [ 3.12 ]
         torch: [
           { version: '2.9.1', cuda: '12.6.3', wheel: '126' },
-          { version: '2.9.1', cuda: '12.8.1', wheel: '128' }
+          { version: '2.9.1', cuda: '12.8.1', wheel: '128' },
           { version: '2.9.1', cuda: '13.0.1', wheel: '130' }
         ]
 
