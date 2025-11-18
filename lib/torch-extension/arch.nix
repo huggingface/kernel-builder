@@ -6,6 +6,7 @@
   lib,
   pkgs,
   stdenv,
+  writeText,
 
   # Native build inputs
   build2cmake,
@@ -76,6 +77,12 @@ let
   dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
 
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+
+  metadata = builtins.toJSON {
+    python-depends = pythonDeps;
+  };
+
+  metadataFile = writeText "metadata.json" metadata;
 
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
   # It's not supported by the nixpkgs shim.
@@ -251,6 +258,8 @@ stdenv.mkDerivation (prevAttrs: {
     # the updated kernels has been around for a while.
     mkdir $out/${moduleName}
     cp ${./compat.py} $out/${moduleName}/__init__.py
+
+    cp ${metadataFile} $out/metadata.json
   ''
   + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
     find $out/ -name '*.so' \

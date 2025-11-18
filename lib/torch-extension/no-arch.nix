@@ -8,6 +8,8 @@
   kernel-layout-check,
   python3,
   remove-bytecode-hook,
+  writeText,
+
   torch,
 }:
 
@@ -32,6 +34,10 @@ let
   inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
   dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
+  metadata = builtins.toJSON {
+    python-depends = pythonDeps;
+  };
+  metadataFile = writeText "metadata.json" metadata;
 in
 
 stdenv.mkDerivation (prevAttrs: {
@@ -66,6 +72,7 @@ stdenv.mkDerivation (prevAttrs: {
     cp -r torch-ext/${moduleName}/* $out/
     mkdir $out/${moduleName}
     cp ${./compat.py} $out/${moduleName}/__init__.py
+    cp ${metadataFile} $out/metadata.json
   '';
 
   doInstallCheck = true;
