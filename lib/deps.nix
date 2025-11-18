@@ -40,6 +40,6 @@ let
   getPythonDep = dep: pythonDeps.${dep} or (throw "Unknown Python dependency: ${dep}");
 in
 {
-  resolveDeps = deps: lib.flatten (map getCppDep deps);
+  resolveCppDeps = deps: lib.flatten (map getCppDep deps);
   resolvePythonDeps = deps: lib.flatten (map getPythonDep deps);
 }

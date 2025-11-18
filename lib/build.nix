@@ -27,8 +27,6 @@ let
   inherit (import ./build-variants.nix { inherit lib; }) computeFramework;
 in
 rec {
-  resolveDeps = import ./deps.nix { inherit lib; };
-
   readToml = path: builtins.fromTOML (builtins.readFile path);
 
   validateBuildConfig =
@@ -122,10 +120,10 @@ rec {
       );
       extraDeps =
         let
-          inherit (import ./deps.nix { inherit lib pkgs torch; }) resolveDeps;
+          inherit (import ./deps.nix { inherit lib pkgs torch; }) resolveCppDeps;
           kernelDeps = lib.unique (lib.flatten (lib.mapAttrsToList (_: kernel: kernel.depends) kernels));
         in
-        resolveDeps kernelDeps;
+        resolveCppDeps kernelDeps;
 
       # Use the mkSourceSet function to get the source
       src = mkSourceSet path;
