@@ -108,6 +108,9 @@ depends = [ "torch" ]
   build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
   This option is provided for kernels that require functionality only
   provided by newer CUDA toolkits.
+- `python-depends` (**experimental**): a list of additional Python dependencies
+  that the kernel requires. The only supported dependencies are `einops`
+  and `nvidia-cutlass-dsl`.
 
 ### `torch`
 
