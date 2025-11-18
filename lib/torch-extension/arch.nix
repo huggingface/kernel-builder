@@ -4,6 +4,7 @@
   xpuSupport ? torch.xpuSupport,
 
   lib,
+  pkgs,
   stdenv,
 
   # Native build inputs
@@ -49,6 +50,11 @@
 
   nvccThreads,
 
+  # A stringly-types list of
+  # list of derivations, but we also need to write the dependencies to
+  # the output.
+  pythonDeps,
+
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
 
@@ -65,6 +71,10 @@ assert (buildConfig ? xpuVersion) -> xpuSupport;
 assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 
 let
+  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
+
+  dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
+
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
 
   # On Darwin, we need the host's xcrun for `xcrun metal` to compile Metal shaders.
@@ -139,7 +149,7 @@ stdenv.mkDerivation (prevAttrs: {
     remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
-    get-kernel-check
+    (get-kernel-check.override { python3 = python3.withPackages (ps: dependencies); })
   ]
   ++ lib.optionals cudaSupport [
     cmakeNvccThreadsHook
@@ -261,6 +271,6 @@ stdenv.mkDerivation (prevAttrs: {
   __noChroot = metalSupport;
 
   passthru = {
-    inherit torch;
+    inherit dependencies torch;
   };
 })

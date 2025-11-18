@@ -1,10 +1,12 @@
 {
   lib,
+  pkgs,
   stdenv,
 
   build2cmake,
   get-kernel-check,
   kernel-layout-check,
+  python3,
   remove-bytecode-hook,
   torch,
 }:
@@ -19,9 +21,16 @@
   rev,
 
   src,
+
+  # A stringly-types list of Python dependencies. Ideally we'd take a
+  # list of derivations, but we also need to write the dependencies to
+  # the output.
+  pythonDeps,
 }:
 
 let
+  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
+  dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
 in
 
@@ -40,7 +49,7 @@ stdenv.mkDerivation (prevAttrs: {
     remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
-    get-kernel-check
+    (get-kernel-check.override { python3 = python3.withPackages (ps: dependencies); })
   ];
 
   dontBuild = true;
@@ -60,4 +69,8 @@ stdenv.mkDerivation (prevAttrs: {
   '';
 
   doInstallCheck = true;
+
+  passthru = {
+    inherit dependencies;
+  };
 })

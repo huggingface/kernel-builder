@@ -31,11 +31,13 @@ _getKernelCheckHook() {
   # Emulate the bundle layout that kernels expects. This even works
   # for universal kernels, since kernels checks the non-universal
   # path first.
-  BUILD_VARIANT=$(python -c "from kernels.utils import build_variant; print(build_variant())")
+  PYTHONPATH="@kernels@" \
+    BUILD_VARIANT=$(@python3@ -c "from kernels.utils import build_variant; print(build_variant())")
   mkdir -p "${TMPDIR}/build"
   ln -s "$out" "${TMPDIR}/build/${BUILD_VARIANT}"
 
-  python -c "from pathlib import Path; import kernels; kernels.get_local_kernel(Path('${TMPDIR}'), '${moduleName}')"
+  PYTHONPATH="@kernels@" \
+    @python3@ -c "from pathlib import Path; import kernels; kernels.get_local_kernel(Path('${TMPDIR}'), '${moduleName}')"
 }
 
 postInstallCheckHooks+=(_getKernelCheckHook)

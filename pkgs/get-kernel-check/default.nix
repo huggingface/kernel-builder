@@ -2,7 +2,8 @@
 
 makeSetupHook {
   name = "get-kernel-check-hook";
-  propagatedBuildInputs = [
-    (python3.withPackages (ps: with ps; [ kernels ]))
-  ];
+  substitutions = {
+    python3 = "${python3}/bin/python";
+    kernels = "${with python3.pkgs; makePythonPath [ kernels ]}";
+  };
 } ./get-kernel-check-hook.sh

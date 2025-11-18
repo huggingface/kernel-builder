@@ -120,10 +120,12 @@ rec {
       kernels = lib.filterAttrs (_: kernel: computeFramework buildConfig == kernel.backend) (
         buildToml.kernel or { }
       );
-      extraDeps = resolveDeps {
-        inherit pkgs torch;
-        deps = lib.unique (lib.flatten (lib.mapAttrsToList (_: kernel: kernel.depends) kernels));
-      };
+      extraDeps =
+        let
+          inherit (import ./deps.nix { inherit lib pkgs torch; }) resolveDeps;
+          kernelDeps = lib.unique (lib.flatten (lib.mapAttrsToList (_: kernel: kernel.depends) kernels));
+        in
+        resolveDeps kernelDeps;
 
       # Use the mkSourceSet function to get the source
       src = mkSourceSet path;
@@ -146,6 +148,7 @@ rec {
           doGetKernelCheck
           ;
         kernelName = buildToml.general.name;
+        pythonDeps = buildToml.general.python-depends or [ ];
       }
     else
       extension.mkExtension {
@@ -160,6 +163,7 @@ rec {
           ;
 
         kernelName = buildToml.general.name;
+        pythonDeps = buildToml.general.python-depends or [ ];
         doAbiCheck = true;
       };
 
@@ -237,23 +241,28 @@ rec {
           pkgs = buildSet.pkgs;
           rocmSupport = pkgs.config.rocmSupport or false;
           mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
+          extension = mkTorchExtension buildSet { inherit path rev doGetKernelCheck; };
         in
         {
           name = buildName buildSet.buildConfig;
           value = mkShell {
             nativeBuildInputs = with pkgs; pythonNativeCheckInputs python3.pkgs;
 
-            buildInputs =
-              with pkgs;
-              [
-                buildSet.torch
-                python3.pkgs.pytest
-              ]
-              ++ (pythonCheckInputs python3.pkgs);
+            buildInputs = with pkgs; [
+              (python3.withPackages (
+                ps:
+                with ps;
+                extension.dependencies
+                ++ pythonCheckInputs ps
+                ++ [
+                  buildSet.torch
+                  pytest
+                ]
+                ++ pythonCheckInputs ps
+              ))
+            ];
             shellHook = ''
-              export PYTHONPATH=''${PYTHONPATH}:${
-                mkTorchExtension buildSet { inherit path rev doGetKernelCheck; }
-              }
+              export PYTHONPATH=''${PYTHONPATH}:${extension}
             '';
           };
         };
@@ -277,25 +286,51 @@ rec {
           rocmSupport = pkgs.config.rocmSupport or false;
           xpuSupport = pkgs.config.xpuSupport or false;
           mkShell = pkgs.mkShell.override { inherit (buildSet.extension) stdenv; };
+          extension = mkTorchExtension buildSet { inherit path rev doGetKernelCheck; };
+          python = (
+            pkgs.python3.withPackages (
+              ps:
+              with ps;
+              extension.dependencies
+              ++ pythonCheckInputs ps
+              ++ [
+                buildSet.torch
+                pip
+                pytest
+              ]
+            )
+          );
         in
         {
           name = buildName buildSet.buildConfig;
-          value = mkShell {
+          value = mkShell rec {
             nativeBuildInputs =
               with pkgs;
               [
                 build2cmake
                 kernel-abi-check
-                python3.pkgs.venvShellHook
               ]
               ++ (pythonNativeCheckInputs python3.pkgs);
-            buildInputs = with pkgs; [ python3.pkgs.pytest ] ++ (pythonCheckInputs python3.pkgs);
-            inputsFrom = [ (mkTorchExtension buildSet { inherit path rev doGetKernelCheck; }) ];
+            buildInputs = [ python ];
+            inputsFrom = [ extension ];
             env = lib.optionalAttrs rocmSupport {
               PYTORCH_ROCM_ARCH = lib.concatStringsSep ";" buildSet.torch.rocmArchs;
               HIP_PATH = pkgs.rocmPackages.clr;
             };
+
             venvDir = "./.venv";
+
+            # We don't use venvShellHook because we want to use our wrapped
+            # Python interpreter.
+            shellHook = ''
+              if [ -d "${venvDir}" ]; then
+                echo "Skipping venv creation, '${venvDir}' already exists"
+              else
+                echo "Creating new venv environment in path: '${venvDir}'"
+                ${python}/bin/python -m venv --system-site-packages "${venvDir}"
+              fi
+              source "${venvDir}/bin/activate"
+            '';
           };
         };
     in

@@ -1,15 +1,11 @@
 {
   lib,
-}:
-
-{
   pkgs,
   torch,
-  deps,
 }:
 
 let
-  knownDeps = with pkgs.cudaPackages; {
+  cppDeps = {
     "cutlass_2_10" = [
       pkgs.cutlass_2_10
     ];
@@ -30,18 +26,20 @@ let
     ];
     "torch" = [
       torch
-      #torch.cxxdev
     ];
     "cutlass_sycl" = [ torch.xpuPackages.cutlass-sycl ];
     "metal-cpp" = [
       pkgs.metal-cpp.dev
     ];
   };
+  pythonDeps = with pkgs.python3.pkgs; {
+    "einops" = [ einops ];
+    "nvidia-cutlass-dsl" = [ nvidia-cutlass-dsl ];
+  };
+  getCppDep = dep: cppDeps.${dep} or (throw "Unknown dependency: ${dep}");
+  getPythonDep = dep: pythonDeps.${dep} or (throw "Unknown Python dependency: ${dep}");
 in
-let
-  depToPkg =
-    dep:
-    assert lib.assertMsg (builtins.hasAttr dep knownDeps) "Unknown dependency: ${dep}";
-    knownDeps.${dep};
-in
-lib.flatten (map depToPkg deps)
+{
+  resolveDeps = deps: lib.flatten (map getCppDep deps);
+  resolvePythonDeps = deps: lib.flatten (map getPythonDep deps);
+}
