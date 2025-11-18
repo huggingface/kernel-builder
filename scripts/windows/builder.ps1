@@ -145,6 +145,69 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+#region Environment Initialization
+
+function Initialize-XPUEnvironment {
+    <#
+    .SYNOPSIS
+        Initializes Intel oneAPI environment for XPU builds on Windows
+    #>
+    
+    if ($env:OS -ne 'Windows_NT') {
+        return # Only needed on Windows
+    }
+    
+    # Check if already initialized
+    if (Get-Command icx -ErrorAction SilentlyContinue) {
+        Write-Status "Intel oneAPI environment already initialized" -Type Info
+        return
+    }
+    
+    Write-Status "Initializing Intel oneAPI environment for XPU build..." -Type Info
+    
+    # Intel oneAPI 2025.2 paths
+    $oneAPICompilerBin = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\bin"
+    $oneAPICompilerBinCompiler = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\bin\compiler"
+    $oneAPICompilerLib = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\lib"
+    $oneAPIOCLOC = "C:\Program Files (x86)\Intel\oneAPI\ocloc\2025.2\bin"
+    $oneAPIDNNL = "C:\Program Files (x86)\Intel\oneAPI\dnnl\2025.1\lib"
+    
+    # Add to PATH
+    if (Test-Path $oneAPICompilerBin) {
+        $env:PATH = "$oneAPICompilerBin;$oneAPICompilerBinCompiler;$oneAPIOCLOC;$env:PATH"
+        Write-Status "Added Intel oneAPI compiler to PATH" -Type Info
+    } else {
+        Write-Status "Intel oneAPI compiler not found at: $oneAPICompilerBin" -Type Warning
+        Write-Status "Please install Intel oneAPI Base Toolkit 2025.2" -Type Warning
+        return
+    }
+    
+    # Add to LIB
+    if (Test-Path $oneAPICompilerLib) {
+        $env:LIB = "$oneAPICompilerLib;$oneAPIDNNL;$env:LIB"
+        Write-Status "Added Intel oneAPI libraries to LIB environment" -Type Info
+    }
+    
+    # Check if a conda environment is active
+    if ($env:CONDA_DEFAULT_ENV) {
+        Write-Status "Using conda environment: $env:CONDA_DEFAULT_ENV" -Type Info
+    } else {
+        Write-Status "No conda environment detected. Using system Python." -Type Info
+        Write-Status "For best results, activate a conda environment with PyTorch XPU before running this script." -Type Warning
+    }
+    
+    # Verify installation
+    $icx = Get-Command icx -ErrorAction SilentlyContinue
+    if ($icx) {
+        Write-Status "Intel oneAPI environment initialized successfully" -Type Success
+        Write-Status "Using icx compiler: $($icx.Source)" -Type Info
+    } else {
+        Write-Status "Warning: icx compiler still not found after initialization" -Type Warning
+    }
+}
+
+#endregion
+
 #region Helper Functions
 
 function Write-Status {
@@ -319,16 +382,35 @@ function Get-CMakeConfigureArgs {
     #>
     param(
         [bool]$ShouldInstall,
-        [string]$InstallPrefix
+        [string]$InstallPrefix,
+        [string]$Backend
     )
 
-    # Detect platform architecture
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
-    $vsArch = if ($arch -eq 'Arm64') { 'ARM64' } else { 'x64' }
+    # For XPU backend, use Ninja generator with Intel compilers
+    if ($Backend -and $Backend.ToLower() -eq 'xpu') {
+        Write-Status "Using Ninja generator for XPU backend with Intel SYCL compilers" -Type Info
+        
+        $kwargs = @("..", "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release")
+        
+        # Verify Intel compilers are available (CMakeLists.txt will set them correctly)
+        $icx = Get-Command icx -ErrorAction SilentlyContinue
+        
+        if ($icx) {
+            Write-Status "Found Intel compiler: $($icx.Source)" -Type Info
+            Write-Status "CMakeLists.txt will configure icx for Windows (MSVC-compatible mode)" -Type Info
+        } else {
+            Write-Status "Intel compilers not found in PATH. Make sure oneAPI environment is initialized." -Type Warning
+            Write-Status "Run: & `"C:\Program Files (x86)\Intel\oneAPI\setvars.bat`"" -Type Warning
+        }
+    } else {
+        # Use Visual Studio generator for other backends
+        $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+        $vsArch = if ($arch -eq 'Arm64') { 'ARM64' } else { 'x64' }
 
-    Write-Status "Detected platform: $arch, using Visual Studio architecture: $vsArch" -Type Info
+        Write-Status "Detected platform: $arch, using Visual Studio architecture: $vsArch" -Type Info
 
-    $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", $vsArch)
+        $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", $vsArch)
+    }
 
     # Detect Python from current environment
     $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -382,13 +464,14 @@ function Invoke-CMakeBuild {
         [string]$BuildConfig,
         [bool]$RunLocalInstall = $false,
         [bool]$RunKernelsInstall = $false,
-        [string]$InstallPrefix = $null
+        [string]$InstallPrefix = $null,
+        [string]$Backend = $null
     )
 
     Write-Status "Building project with CMake..." -Type Info
     Write-Status "Configuration: $BuildConfig" -Type Info
 
-    # Ensure VS environment is initialized
+    # Ensure VS environment is initialized (needed for Ninja and MSVC)
     Initialize-VSEnvironment
 
     # Create build directory
@@ -402,7 +485,7 @@ function Invoke-CMakeBuild {
     Write-Status "Configuring CMake project..." -Type Info
     Push-Location $buildDir
     try {
-        $configureArgs = Get-CMakeConfigureArgs -ShouldInstall ($RunKernelsInstall -or $RunLocalInstall) -InstallPrefix $InstallPrefix
+        $configureArgs = Get-CMakeConfigureArgs -ShouldInstall ($RunKernelsInstall -or $RunLocalInstall) -InstallPrefix $InstallPrefix -Backend $Backend
 
         cmake @configureArgs
 
@@ -412,7 +495,13 @@ function Invoke-CMakeBuild {
 
         # Build with CMake
         Write-Status "Building project..." -Type Info
-        cmake --build . --config $BuildConfig
+        
+        # For Ninja generator, don't specify --config
+        if ($Backend -and $Backend.ToLower() -eq 'xpu') {
+            cmake --build .
+        } else {
+            cmake --build . --config $BuildConfig
+        }
 
         if ($LASTEXITCODE -ne 0) {
             throw "CMake build failed with exit code $LASTEXITCODE"
@@ -462,6 +551,30 @@ function Invoke-Backend {
     if ($Backend -and $Backend -ne 'universal') { $kwargs += '--backend', $Backend }
 
     Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $kwargs
+    
+    # Post-process CMakeLists.txt for XPU on Windows: use icx instead of icpx
+    if ($Backend -and $Backend.ToLower() -eq 'xpu' -and $env:OS -eq 'Windows_NT') {
+        $targetPath = if ($Target) { $Target } else { Split-Path $BuildToml -Parent }
+        $cmakeListsPath = Join-Path $targetPath 'CMakeLists.txt'
+        
+        if (Test-Path $cmakeListsPath) {
+            Write-Status "Patching CMakeLists.txt for XPU on Windows (using icx instead of icpx)..." -Type Info
+            
+            $content = Get-Content $cmakeListsPath -Raw
+            
+            # Replace the CMAKE_CXX_COMPILER line to use icx on Windows
+            $oldLine = '    set(CMAKE_CXX_COMPILER ${ICPX_COMPILER})'
+            $newLine = '    set(CMAKE_CXX_COMPILER ${ICX_COMPILER}) # Using icx (MSVC-compatible) on Windows'
+            
+            if ($content.Contains($oldLine)) {
+                $content = $content.Replace($oldLine, $newLine)
+                Set-Content $cmakeListsPath -Value $content -NoNewline
+                Write-Status "Applied Windows XPU fix: CMAKE_CXX_COMPILER=icx" -Type Success
+            } else {
+                Write-Status "Could not apply automatic patch. Manually edit CMakeLists.txt if build fails." -Type Warning
+            }
+        }
+    }
 }
 
 function Set-BackendArchitecture {
@@ -530,6 +643,11 @@ try {
     if ($Backend -and $Backend.ToLower() -eq 'metal') {
         throw "Metal backend is not supported on Windows. Metal is only available on macOS."
     }
+    
+    # Initialize Intel oneAPI environment for XPU backend on Windows
+    if ($Backend -and $Backend.ToLower() -eq 'xpu') {
+        Initialize-XPUEnvironment
+    }
 
     $options = @{
         Force = $Force.IsPresent
@@ -573,7 +691,8 @@ try {
                 -BuildConfig $BuildConfig `
                 -RunLocalInstall $LocalInstall.IsPresent `
                 -RunKernelsInstall $KernelsInstall.IsPresent `
-                -InstallPrefix $InstallPrefix
+                -InstallPrefix $InstallPrefix `
+                -Backend $Backend
         }
     }
 
