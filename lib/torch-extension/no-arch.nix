@@ -24,7 +24,7 @@
 
   src,
 
-  # A stringly-types list of Python dependencies. Ideally we'd take a
+  # A stringly-typed list of Python dependencies. Ideally we'd take a
   # list of derivations, but we also need to write the dependencies to
   # the output.
   pythonDeps,
