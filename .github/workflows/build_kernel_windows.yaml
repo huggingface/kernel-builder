@@ -62,8 +62,8 @@ jobs:
 
       - name: Build cutlass GEMM kernel
         run: ( scripts\windows\builder.ps1 -SourceFolder examples/cutlass-gemm -BuildConfig Release -Backend cuda -Build -Force )
-      - name: Copy cutlass GEMM kernel
-        run: cp -rL examples/cutlass-gemm/result cutlass-gemm-kernel
+#      - name: Copy cutlass GEMM kernel
+#        run: cp -rL examples/cutlass-gemm/result cutlass-gemm-kernel
 
       - name: Build relu kernel
         run: ( scripts\windows\builder.ps1 -SourceFolder examples/relu -BuildConfig Release -Backend cuda -Build -Force )
