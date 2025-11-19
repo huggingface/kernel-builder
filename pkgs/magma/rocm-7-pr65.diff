@@ -1,0 +1,809 @@
+From 1b966b72402e3f37ebd462f3d7e019e669e510ff Mon Sep 17 00:00:00 2001
+From: Jeff Daily <jeff.daily@amd.com>
+Date: Thu, 25 Sep 2025 20:57:41 +0000
+Subject: [PATCH 1/3] [ROCm] use HIPBLAS_V2 types and APIs, ROCm 7 ready
+
+---
+ include/magma_types.h                       |  5 ----
+ interface_cuda/blas_h_v2.cpp                | 16 +++++------
+ magmablas/zgemm_batched.cpp                 |  4 +--
+ magmablas/zgetf2_kernels.cu                 |  2 +-
+ make.inc-examples/make.inc.hip-gcc-mkl      |  6 ----
+ make.inc-examples/make.inc.hip-gcc-openblas |  6 ----
+ sparse/blas/magma_z_blaswrapper.cpp         |  9 ------
+ sparse/blas/magma_zmatrixtools_gpu.cu       |  5 ----
+ sparse/blas/magma_ztrisolve.cpp             |  9 ------
+ sparse/blas/zilu.cpp                        |  9 ------
+ sparse/blas/zmergecg.cu                     | 10 -------
+ sparse/control/magma_zmconvert.cpp          |  5 ----
+ sparse/control/magma_zmtranspose.cpp        |  5 ----
+ sparse/src/zcustomic.cpp                    |  5 ----
+ sparse/src/zcustomilu.cpp                   |  5 ----
+ sparse/src/zparict.cpp                      |  6 ----
+ sparse/src/zparilut.cpp                     |  5 ----
+ sparse/testing/testing_zspmm.cpp            |  9 ------
+ sparse/testing/testing_zspmv.cpp            |  9 ------
+ src/shpotrf_gpu.cpp                         |  8 +++---
+ src/xhsgetrf_gpu.cpp                        | 32 ++++++++++-----------
+ src/xshgetrf_gpu.cpp                        | 32 ++++++++++-----------
+ testing/testing_sgemm_fp16.cpp              | 16 +++++------
+ testing/testing_zgemm_batched.cpp           | 20 ++++++-------
+ testing/testing_zgemv_batched.cpp           | 20 ++++++-------
+ testing/testing_zgeqrf_batched.cpp          |  4 +--
+ testing/testing_zgetrf_batched.cpp          |  2 +-
+ testing/testing_ztrsm_batched.cpp           |  6 ++--
+ testing/testing_ztrsv_batched.cpp           |  4 +--
+ tools/hipify-perl                           | 17 ++++-------
+ tools/magmasubs.py                          |  3 +-
+ 31 files changed, 89 insertions(+), 205 deletions(-)
+
+diff --git a/include/magma_types.h b/include/magma_types.h
+index c5820c878..657766369 100644
+--- a/include/magma_types.h
++++ b/include/magma_types.h
+@@ -230,8 +230,6 @@ typedef double real_Double_t;
+ 
+     /* double complex */
+ 
+-    //typedef hipblasDoubleComplex magmaDoubleComplex;
+-
+     /* simple double complex definition that should be binary compatible with hipBLAS */
+     typedef struct {
+ 
+@@ -278,9 +276,6 @@ typedef double real_Double_t;
+ 
+     /* float complex */
+ 
+-    //typedef hipComplex magmaFloatComplex;
+-    //typedef hipblasComplex magmaFloatComplex;
+-
+     /* basic definition of float complex that should be binary compatible with hipBLAS */
+     typedef struct {
+ 
+diff --git a/interface_cuda/blas_h_v2.cpp b/interface_cuda/blas_h_v2.cpp
+index 2f61a1d6f..56683fe29 100644
+--- a/interface_cuda/blas_h_v2.cpp
++++ b/interface_cuda/blas_h_v2.cpp
+@@ -118,10 +118,10 @@ magma_hgemm(
+ 		      hipblas_trans_const( transA ),
+ 		      hipblas_trans_const( transB ),
+ 		      int(m), int(n), int(k),
+-		      (void*)&alpha, (void*)dA, HIPBLAS_R_16F, int(ldda),
+-		      (void*)dB, HIPBLAS_R_16F, int(lddb),
+-		      (void *)&beta,  (void*)dC, HIPBLAS_R_16F, int(lddc),
+-		      HIPBLAS_R_16F,
++		      (void*)&alpha, (void*)dA, HIP_R_16F, int(ldda),
++		      (void*)dB, HIP_R_16F, int(lddb),
++		      (void *)&beta,  (void*)dC, HIP_R_16F, int(lddc),
++		      HIPBLAS_COMPUTE_16F,
+ 		      HIPBLAS_GEMM_DEFAULT);
+     }
+     else {
+@@ -151,10 +151,10 @@ magma_hgemmx(
+ 		      hipblas_trans_const( transA ),
+ 		      hipblas_trans_const( transB ),
+ 		      int(m), int(n), int(k),
+-		      (void*)&alpha, (void*)dA, HIPBLAS_R_16F, int(ldda),
+-                                     (void*)dB, HIPBLAS_R_16F, int(lddb),
+-		      (void*)&beta,  (void*)dC, HIPBLAS_R_32F, int(lddc),
+-		      HIPBLAS_R_32F,
++		      (void*)&alpha, (void*)dA, HIP_R_16F, int(ldda),
++                                     (void*)dB, HIP_R_16F, int(lddb),
++		      (void*)&beta,  (void*)dC, HIP_R_32F, int(lddc),
++		      HIPBLAS_COMPUTE_32F,
+ 		      HIPBLAS_GEMM_DEFAULT);
+     }
+     else {
+diff --git a/magmablas/zgemm_batched.cpp b/magmablas/zgemm_batched.cpp
+index 2b4ea3ba1..86a82971d 100644
+--- a/magmablas/zgemm_batched.cpp
++++ b/magmablas/zgemm_batched.cpp
+@@ -28,13 +28,13 @@
+  *       */
+ #ifdef PRECISION_z
+   #ifdef MAGMA_HAVE_HIP
+-    typedef hipblasDoubleComplex BackendFloat_t;
++    typedef hipDoubleComplex BackendFloat_t;
+   #else
+     typedef cuDoubleComplex BackendFloat_t;
+   #endif
+ #elif defined(PRECISION_c)
+   #ifdef MAGMA_HAVE_HIP
+-    typedef hipblasComplex BackendFloat_t;
++    typedef hipComplex BackendFloat_t;
+   #else
+     typedef cuFloatComplex BackendFloat_t;
+   #endif
+diff --git a/magmablas/zgetf2_kernels.cu b/magmablas/zgetf2_kernels.cu
+index db8e7058f..3ff73755d 100644
+--- a/magmablas/zgetf2_kernels.cu
++++ b/magmablas/zgetf2_kernels.cu
+@@ -211,7 +211,7 @@ magma_izamax_native(
+         hipblasGetPointerMode(queue->hipblas_handle(), &ptr_mode);
+         hipblasSetPointerMode(queue->hipblas_handle(), CUBLAS_POINTER_MODE_DEVICE);
+ 
+-        hipblasIzamax(queue->hipblas_handle(), length, (const hipblasDoubleComplex*)x, 1, (int*)(ipiv));
++        hipblasIzamax(queue->hipblas_handle(), length, (const hipDoubleComplex*)x, 1, (int*)(ipiv));
+         magma_zpivcast<<< 1, 1, 0, queue->cuda_stream() >>>( ipiv );
+ 
+         hipblasSetPointerMode(queue->hipblas_handle(), ptr_mode);
+diff --git a/make.inc-examples/make.inc.hip-gcc-mkl b/make.inc-examples/make.inc.hip-gcc-mkl
+index 7a04a97bb..146cc5d82 100644
+--- a/make.inc-examples/make.inc.hip-gcc-mkl
++++ b/make.inc-examples/make.inc.hip-gcc-mkl
+@@ -104,12 +104,6 @@ ifeq ($(BACKEND),cuda)
+     DEVCCFLAGS += -Xcompiler "$(FPIC)" -Xcompiler "$(FOPENMP)" -std=c++11
+ else ifeq ($(BACKEND),hip)
+     DEVCCFLAGS += $(FPIC) $(FOPENMP) -std=c++11
+-    # check for older versions of ROCM
+-    ifeq ($(shell hipconfig --version | cut -b -3),3.0)
+-        $(info Building with HIP 3.0)
+-        # they don't have hipblasComplex yet, so replace it manually
+-        DEVCCFLAGS += -DhipblasComplex=hipComplex -DhipblasDoubleComplex=hipDoubleComplex
+-    endif
+ endif
+ 
+ 
+diff --git a/make.inc-examples/make.inc.hip-gcc-openblas b/make.inc-examples/make.inc.hip-gcc-openblas
+index 4e3fe3809..75547fc75 100644
+--- a/make.inc-examples/make.inc.hip-gcc-openblas
++++ b/make.inc-examples/make.inc.hip-gcc-openblas
+@@ -108,12 +108,6 @@ ifeq ($(BACKEND),cuda)
+     DEVCCFLAGS += -Xcompiler "$(FPIC)" -Xcompiler "$(FOPENMP)" -std=c++11
+ else ifeq ($(BACKEND),hip)
+     DEVCCFLAGS += $(FPIC) $(FOPENMP) -std=c++11
+-    # check for older versions of ROCM
+-    ifeq ($(shell hipconfig --version | cut -b -3),3.0)
+-        $(info Building with HIP 3.0)
+-        # they don't have hipblasComplex yet, so replace it manually
+-        DEVCCFLAGS += -DhipblasComplex=hipComplex -DhipblasDoubleComplex=hipDoubleComplex
+-    endif
+ endif
+ 
+ 
+diff --git a/sparse/blas/magma_z_blaswrapper.cpp b/sparse/blas/magma_z_blaswrapper.cpp
+index 1e3d3d887..e70618e3c 100644
+--- a/sparse/blas/magma_z_blaswrapper.cpp
++++ b/sparse/blas/magma_z_blaswrapper.cpp
+@@ -13,15 +13,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-  #elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+ #if CUDA_VERSION >= 12000
+   #define CUSPARSE_CSRMV_ALG2 CUSPARSE_SPMV_CSR_ALG2
+   #define CUSPARSE_CSRMV_ALG1 CUSPARSE_SPMV_CSR_ALG1
+diff --git a/sparse/blas/magma_zmatrixtools_gpu.cu b/sparse/blas/magma_zmatrixtools_gpu.cu
+index dcb8952d0..ba801300d 100644
+--- a/sparse/blas/magma_zmatrixtools_gpu.cu
++++ b/sparse/blas/magma_zmatrixtools_gpu.cu
+@@ -14,11 +14,6 @@
+ 
+ #define SWAP(a, b)  { tmp = a; a = b; b = tmp; }
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ 
+ 
+ __global__ void 
+diff --git a/sparse/blas/magma_ztrisolve.cpp b/sparse/blas/magma_ztrisolve.cpp
+index f51ee65b3..29aa54b89 100644
+--- a/sparse/blas/magma_ztrisolve.cpp
++++ b/sparse/blas/magma_ztrisolve.cpp
+@@ -13,15 +13,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-  #elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+ magma_int_t magma_ztrisolve_analysis(magma_z_matrix M, magma_solve_info_t *solve_info, bool upper_triangular, bool unit_diagonal, bool transpose, magma_queue_t queue)
+ {
+     magma_int_t info = 0;
+diff --git a/sparse/blas/zilu.cpp b/sparse/blas/zilu.cpp
+index c3f5709bb..4150de259 100644
+--- a/sparse/blas/zilu.cpp
++++ b/sparse/blas/zilu.cpp
+@@ -16,15 +16,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-  #elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+ #if CUDA_VERSION >= 12000
+    #define cusparseCreateCsrsm2Info(info)
+    #define cusparseDestroyCsrsm2Info(info)
+diff --git a/sparse/blas/zmergecg.cu b/sparse/blas/zmergecg.cu
+index 7b472fa85..44d4b8720 100644
+--- a/sparse/blas/zmergecg.cu
++++ b/sparse/blas/zmergecg.cu
+@@ -13,16 +13,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-  #elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+-
+ #define BLOCK_SIZE 512
+ 
+ #if CUDA_VERSION >= 12000
+diff --git a/sparse/control/magma_zmconvert.cpp b/sparse/control/magma_zmconvert.cpp
+index 15e9a3d9a..83948bb3a 100644
+--- a/sparse/control/magma_zmconvert.cpp
++++ b/sparse/control/magma_zmconvert.cpp
+@@ -13,11 +13,6 @@
+ #include <cuda.h>  // for CUDA_VERSION
+ 
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ 
+ // todo: check if we need buf later
+ #if CUDA_VERSION >= 11000
+diff --git a/sparse/control/magma_zmtranspose.cpp b/sparse/control/magma_zmtranspose.cpp
+index 60b91f1d1..9de019349 100644
+--- a/sparse/control/magma_zmtranspose.cpp
++++ b/sparse/control/magma_zmtranspose.cpp
+@@ -14,11 +14,6 @@
+ 
+ #include <cuda.h>  // for CUDA_VERSION
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ // todo: check if we need buf later
+ #if CUDA_VERSION >= 11000
+ #define cusparseZcsr2csc(handle, m, n, nnz, valA, rowA, colA, valB, colB, rowB,                \
+diff --git a/sparse/src/zcustomic.cpp b/sparse/src/zcustomic.cpp
+index 1859cd29f..5214769be 100644
+--- a/sparse/src/zcustomic.cpp
++++ b/sparse/src/zcustomic.cpp
+@@ -16,11 +16,6 @@
+ 
+ #define COMPLEX
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ /**
+     Purpose
+     -------
+diff --git a/sparse/src/zcustomilu.cpp b/sparse/src/zcustomilu.cpp
+index c118125f3..2ceb8844a 100644
+--- a/sparse/src/zcustomilu.cpp
++++ b/sparse/src/zcustomilu.cpp
+@@ -16,11 +16,6 @@
+ 
+ #define COMPLEX
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ /**
+     Purpose
+     -------
+diff --git a/sparse/src/zparict.cpp b/sparse/src/zparict.cpp
+index d1e72ea76..8337fd69c 100644
+--- a/sparse/src/zparict.cpp
++++ b/sparse/src/zparict.cpp
+@@ -21,12 +21,6 @@
+ #define PRECISION_z
+ 
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+-
+ /***************************************************************************//**
+     Purpose
+     -------
+diff --git a/sparse/src/zparilut.cpp b/sparse/src/zparilut.cpp
+index 55caecd13..747e1620d 100644
+--- a/sparse/src/zparilut.cpp
++++ b/sparse/src/zparilut.cpp
+@@ -20,11 +20,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#ifdef MAGMA_HAVE_HIP
+-  #define hipblasDoubleComplex hipDoubleComplex
+-#endif
+-
+ /***************************************************************************//**
+     Purpose
+     -------
+diff --git a/sparse/testing/testing_zspmm.cpp b/sparse/testing/testing_zspmm.cpp
+index de21c66c8..2682af900 100644
+--- a/sparse/testing/testing_zspmm.cpp
++++ b/sparse/testing/testing_zspmm.cpp
+@@ -70,15 +70,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-#elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+ /* ////////////////////////////////////////////////////////////////////////////
+    -- testing sparse matrix vector product
+ */
+diff --git a/sparse/testing/testing_zspmv.cpp b/sparse/testing/testing_zspmv.cpp
+index 2eff03f63..776920a9c 100644
+--- a/sparse/testing/testing_zspmv.cpp
++++ b/sparse/testing/testing_zspmv.cpp
+@@ -72,15 +72,6 @@
+ 
+ #define PRECISION_z
+ 
+-/* For hipSPARSE, they use a separate complex type than for hipBLAS */
+-#if defined(MAGMA_HAVE_HIP)
+-  #ifdef PRECISION_z
+-    #define hipblasDoubleComplex hipDoubleComplex
+-#elif defined(PRECISION_c)
+-    #define hipblasComplex hipComplex
+-  #endif
+-#endif
+-
+ /* ////////////////////////////////////////////////////////////////////////////
+    -- testing sparse matrix vector product
+ */
+diff --git a/src/shpotrf_gpu.cpp b/src/shpotrf_gpu.cpp
+index 6c57f2b57..d981760d1 100644
+--- a/src/shpotrf_gpu.cpp
++++ b/src/shpotrf_gpu.cpp
+@@ -55,10 +55,10 @@ magma_sgemm_fp16(
+     hipblasGemmEx( queue->hipblas_handle(),
+ 		           hipblas_trans_const( transA ), hipblas_trans_const( transB ),
+ 		           int(m), int(n), int(k),
+-		           (void*)&alpha, (void*)dhA, HIPBLAS_R_16F, (int)lddha,
+-                                  (void*)dhB, HIPBLAS_R_16F, (int)lddhb,
+-		           (void*)&beta,  (void*)dC,  HIPBLAS_R_32F, (int)lddc,
+-		           HIPBLAS_R_32F, HIPBLAS_GEMM_DEFAULT);
++		           (void*)&alpha, (void*)dhA, HIP_R_16F, (int)lddha,
++                                  (void*)dhB, HIP_R_16F, (int)lddhb,
++		           (void*)&beta,  (void*)dC,  HIP_R_32F, (int)lddc,
++		           HIPBLAS_COMPUTE_32F, HIPBLAS_GEMM_DEFAULT);
+     return 0;
+     #else
+     return MAGMA_ERR_NOT_SUPPORTED;
+diff --git a/src/xhsgetrf_gpu.cpp b/src/xhsgetrf_gpu.cpp
+index 0a0a0c7ae..7b1e9d615 100644
+--- a/src/xhsgetrf_gpu.cpp
++++ b/src/xhsgetrf_gpu.cpp
+@@ -403,10 +403,10 @@ magma_xhsgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(nextjb), int(m-nextj), int(jb),
+-                            &c_neg_one, dAT_hp(j,     nextj), HIPBLAS_R_16F, int(lddat),
+-                                        dAT_hp(nextj, j    ), HIPBLAS_R_16F, int(lddat),
+-                            &c_one,     dAT_hp(nextj, nextj), HIPBLAS_R_16F, int(lddat),
+-                            HIPBLAS_R_32F, ALGO);
++                            &c_neg_one, dAT_hp(j,     nextj), HIP_R_16F, int(lddat),
++                                        dAT_hp(nextj, j    ), HIP_R_16F, int(lddat),
++                            &c_one,     dAT_hp(nextj, nextj), HIP_R_16F, int(lddat),
++                            HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_GEMEX_I16_O16_C16 ) {
+@@ -422,10 +422,10 @@ magma_xhsgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(nextjb), int(m-nextj), int(jb),
+-                            &h_neg_one, dAT_hp(j,     nextj), HIPBLAS_R_16F, int(lddat),
+-                                        dAT_hp(nextj, j    ), HIPBLAS_R_16F, int(lddat),
+-                            &h_one,     dAT_hp(nextj, nextj), HIPBLAS_R_16F, int(lddat),
+-                            HIPBLAS_R_16F, ALGO);
++                            &h_neg_one, dAT_hp(j,     nextj), HIP_R_16F, int(lddat),
++                                        dAT_hp(nextj, j    ), HIP_R_16F, int(lddat),
++                            &h_one,     dAT_hp(nextj, nextj), HIP_R_16F, int(lddat),
++                            HIPBLAS_COMPUTE_16F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_HGEMM ) {
+@@ -480,10 +480,10 @@ magma_xhsgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(maxn-(nextj+nextjb)), int(m-nextj), int(jb),
+-                            &c_neg_one, dAT_hp(j,     nextj+nextjb), HIPBLAS_R_16F, int(lddat),
+-                                        dAT_hp(nextj, j           ), HIPBLAS_R_16F, int(lddat),
+-                            &c_one,     dAT_hp(nextj, nextj+nextjb), HIPBLAS_R_16F, int(lddat),
+-                            HIPBLAS_R_32F, ALGO);
++                            &c_neg_one, dAT_hp(j,     nextj+nextjb), HIP_R_16F, int(lddat),
++                                        dAT_hp(nextj, j           ), HIP_R_16F, int(lddat),
++                            &c_one,     dAT_hp(nextj, nextj+nextjb), HIP_R_16F, int(lddat),
++                            HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_GEMEX_I16_O16_C16 ) {
+@@ -499,10 +499,10 @@ magma_xhsgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(maxn-(nextj+nextjb)), int(m-nextj), int(jb),
+-                            &h_neg_one, dAT_hp(j,     nextj+nextjb), HIPBLAS_R_16F, int(lddat),
+-                                        dAT_hp(nextj, j           ), HIPBLAS_R_16F, int(lddat),
+-                            &h_one,     dAT_hp(nextj, nextj+nextjb), HIPBLAS_R_16F, int(lddat),
+-                            HIPBLAS_R_16F, ALGO);
++                            &h_neg_one, dAT_hp(j,     nextj+nextjb), HIP_R_16F, int(lddat),
++                                        dAT_hp(nextj, j           ), HIP_R_16F, int(lddat),
++                            &h_one,     dAT_hp(nextj, nextj+nextjb), HIP_R_16F, int(lddat),
++                            HIPBLAS_COMPUTE_16F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_HGEMM ) {
+diff --git a/src/xshgetrf_gpu.cpp b/src/xshgetrf_gpu.cpp
+index 96ec1d97f..345aefa1a 100644
+--- a/src/xshgetrf_gpu.cpp
++++ b/src/xshgetrf_gpu.cpp
+@@ -270,10 +270,10 @@ magma_xshgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+ 		                    hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+ 		                    int(nextjb), int(m-nextj), int(jb),
+-		                    &c_neg_one, dAtrsm1_hp,        HIPBLAS_R_16F, int(maxnb),
+-		                                dApanel_hp,        HIPBLAS_R_16F, int(jb),
+-		                    &c_one,     dAT(nextj, nextj), HIPBLAS_R_32F, int(lddat),
+-		                    HIPBLAS_R_32F, ALGO);
++		                    &c_neg_one, dAtrsm1_hp,        HIP_R_16F, int(maxnb),
++		                                dApanel_hp,        HIP_R_16F, int(jb),
++		                    &c_one,     dAT(nextj, nextj), HIP_R_32F, int(lddat),
++		                    HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_GEMEX_I32_O32_C32 ) {
+@@ -289,10 +289,10 @@ magma_xshgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(nextjb), int(m-nextj), int(jb),
+-                            &c_neg_one, dAT(j,     nextj), HIPBLAS_R_32F, int(lddat),
+-                                        dAT(nextj,     j), HIPBLAS_R_32F, int(lddat),
+-                            &c_one,     dAT(nextj, nextj), HIPBLAS_R_32F, int(lddat),
+-                            HIPBLAS_R_32F, ALGO);
++                            &c_neg_one, dAT(j,     nextj), HIP_R_32F, int(lddat),
++                                        dAT(nextj,     j), HIP_R_32F, int(lddat),
++                            &c_one,     dAT(nextj, nextj), HIP_R_32F, int(lddat),
++                            HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_SGEMM ) {
+@@ -343,10 +343,10 @@ magma_xshgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(maxn-(nextj+nextjb)), int(m-nextj), int(jb),
+-                            &c_neg_one, dAtrsm2_hp              , HIPBLAS_R_16F, int(maxm),
+-                                        dApanel_hp              , HIPBLAS_R_16F, int(jb),
+-                            &c_one,     dAT(nextj, nextj+nextjb), HIPBLAS_R_32F, int(lddat),
+-                            HIPBLAS_R_32F, ALGO);
++                            &c_neg_one, dAtrsm2_hp              , HIP_R_16F, int(maxm),
++                                        dApanel_hp              , HIP_R_16F, int(jb),
++                            &c_one,     dAT(nextj, nextj+nextjb), HIP_R_32F, int(lddat),
++                            HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_GEMEX_I32_O32_C32 ) {
+@@ -362,10 +362,10 @@ magma_xshgetrf_gpu(
+                     hipblasGemmEx( queues[1]->hipblas_handle(),
+                             hipblas_trans_const( MagmaNoTrans ), hipblas_trans_const( MagmaNoTrans ),
+                             int(maxn-(nextj+nextjb)), int(m-nextj), int(jb),
+-                            &c_neg_one, dAT(j    , nextj+nextjb), HIPBLAS_R_32F, int(lddat),
+-                                        dAT(nextj, j           ), HIPBLAS_R_32F, int(lddat),
+-                            &c_one,     dAT(nextj, nextj+nextjb), HIPBLAS_R_32F, int(lddat),
+-                            HIPBLAS_R_32F, ALGO);
++                            &c_neg_one, dAT(j    , nextj+nextjb), HIP_R_32F, int(lddat),
++                                        dAT(nextj, j           ), HIP_R_32F, int(lddat),
++                            &c_one,     dAT(nextj, nextj+nextjb), HIP_R_32F, int(lddat),
++                            HIPBLAS_COMPUTE_32F, ALGO);
+                     #endif
+                 }
+                 else if( mp_algo_type == Magma_MP_SGEMM ) {
+diff --git a/testing/testing_sgemm_fp16.cpp b/testing/testing_sgemm_fp16.cpp
+index 84f24b95a..0fbfc0b33 100644
+--- a/testing/testing_sgemm_fp16.cpp
++++ b/testing/testing_sgemm_fp16.cpp
+@@ -59,10 +59,10 @@ magma_sgemm_fp16_v1(
+     hipblasGemmEx( magma_queue_get_hipblas_handle( queue ),
+ 		           hipblas_trans_const( transA ), hipblas_trans_const( transB ),
+ 		           int(m), int(n), int(k),
+-		           (void*)&alpha, (void*)dhA, HIPBLAS_R_16F, (int)ldda,
+-                                  (void*)dhB, HIPBLAS_R_16F, (int)lddb,
+-		           (void*)&beta,  (void*)dC,  HIPBLAS_R_32F, (int)lddc,
+-		           HIPBLAS_R_32F, HIPBLAS_GEMM_DEFAULT);
++		           (void*)&alpha, (void*)dhA, HIP_R_16F, (int)ldda,
++                                  (void*)dhB, HIP_R_16F, (int)lddb,
++		           (void*)&beta,  (void*)dC,  HIP_R_32F, (int)lddc,
++		           HIPBLAS_COMPUTE_32F, HIPBLAS_GEMM_DEFAULT);
+     #endif
+     return 0;
+ }
+@@ -97,10 +97,10 @@ magma_sgemm_fp16_v2(
+     hipblasGemmEx( magma_queue_get_hipblas_handle( queue ),
+ 		           hipblas_trans_const( transA ), hipblas_trans_const( transB ),
+ 		           int(m), int(n), int(k),
+-		           (void*)&alpha, (void*)dhA, HIPBLAS_R_16F, (int)ldda,
+-                                  (void*)dhB, HIPBLAS_R_16F, (int)lddb,
+-		           (void*)&beta,  (void*)dC,  HIPBLAS_R_32F, (int)lddc,
+-		           HIPBLAS_R_32F, HIPBLAS_GEMM_DEFAULT);
++		           (void*)&alpha, (void*)dhA, HIP_R_16F, (int)ldda,
++                                  (void*)dhB, HIP_R_16F, (int)lddb,
++		           (void*)&beta,  (void*)dC,  HIP_R_32F, (int)lddc,
++		           HIPBLAS_COMPUTE_32F, HIPBLAS_GEMM_DEFAULT);
+     #endif
+     return 0;
+ }
+diff --git a/testing/testing_zgemm_batched.cpp b/testing/testing_zgemm_batched.cpp
+index 0b300d108..350d00498 100644
+--- a/testing/testing_zgemm_batched.cpp
++++ b/testing/testing_zgemm_batched.cpp
+@@ -190,11 +190,11 @@ int main( int argc, char** argv)
+                   hipblasZgemmBatched(
+                                    opts.handle, cublas_trans_const(opts.transA), cublas_trans_const(opts.transB),
+                                    int(M), int(N), int(K),
+-                                   (const hipblasDoubleComplex*)&alpha,
+-                                   (const hipblasDoubleComplex**) d_A_array, int(ldda),
+-                                   (const hipblasDoubleComplex**) d_B_array, int(lddb),
+-                                   (const hipblasDoubleComplex*)&beta,
+-                                   (hipblasDoubleComplex**)d_C_array, int(lddc), int(batchCount) );
++                                   (const hipDoubleComplex*)&alpha,
++                                   (const hipDoubleComplex**) d_A_array, int(ldda),
++                                   (const hipDoubleComplex**) d_B_array, int(lddb),
++                                   (const hipDoubleComplex*)&beta,
++                                   (hipDoubleComplex**)d_C_array, int(lddc), int(batchCount) );
+                 #endif
+             }
+             else{
+@@ -211,11 +211,11 @@ int main( int argc, char** argv)
+                 hipblasZgemmStridedBatched(
+                                    opts.handle, cublas_trans_const(opts.transA), cublas_trans_const(opts.transB),
+                                    int(M), int(N), int(K),
+-                                   (const hipblasDoubleComplex*)&alpha,
+-                                   (const hipblasDoubleComplex*) d_A, int(ldda), ldda * An,
+-                                   (const hipblasDoubleComplex*) d_B, int(lddb), lddb * Bn,
+-                                   (const hipblasDoubleComplex*)&beta,
+-                                   (hipblasDoubleComplex*)d_C, int(lddc), lddc*N, int(batchCount) );
++                                   (const hipDoubleComplex*)&alpha,
++                                   (const hipDoubleComplex*) d_A, int(ldda), ldda * An,
++                                   (const hipDoubleComplex*) d_B, int(lddb), lddb * Bn,
++                                   (const hipDoubleComplex*)&beta,
++                                   (hipDoubleComplex*)d_C, int(lddc), lddc*N, int(batchCount) );
+                 #endif
+             }
+ 
+diff --git a/testing/testing_zgemv_batched.cpp b/testing/testing_zgemv_batched.cpp
+index 9c63a405b..be1dea4cf 100644
+--- a/testing/testing_zgemv_batched.cpp
++++ b/testing/testing_zgemv_batched.cpp
+@@ -182,11 +182,11 @@ int main( int argc, char** argv)
+                 #else
+                 hipblasZgemvBatched(opts.handle, hipblas_trans_const(opts.transA),
+                                       M, N,
+-                                      (const hipblasDoubleComplex *)&alpha,
+-                                      (const hipblasDoubleComplex **)d_A_array, ldda,
+-                                      (const hipblasDoubleComplex **)d_X_array, incx,
+-                                      (const hipblasDoubleComplex *)&beta,
+-                                      (hipblasDoubleComplex **)d_Y_array, incy, batchCount);
++                                      (const hipDoubleComplex *)&alpha,
++                                      (const hipDoubleComplex **)d_A_array, ldda,
++                                      (const hipDoubleComplex **)d_X_array, incx,
++                                      (const hipDoubleComplex *)&beta,
++                                      (hipDoubleComplex **)d_Y_array, incy, batchCount);
+                 #endif
+             }
+             else{
+@@ -210,11 +210,11 @@ int main( int argc, char** argv)
+                 #else
+                 hipblasZgemvStridedBatched(opts.handle, hipblas_trans_const(opts.transA),
+                                       M, N,
+-                                      (const hipblasDoubleComplex *)&alpha,
+-                                      (const hipblasDoubleComplex *)d_A, ldda, ldda*N,
+-                                      (const hipblasDoubleComplex *)d_X, incx, incx*Xm,
+-                                      (const hipblasDoubleComplex *)&beta,
+-                                      (hipblasDoubleComplex *)d_Y, incy, incy*Ym, batchCount);
++                                      (const hipDoubleComplex *)&alpha,
++                                      (const hipDoubleComplex *)d_A, ldda, ldda*N,
++                                      (const hipDoubleComplex *)d_X, incx, incx*Xm,
++                                      (const hipDoubleComplex *)&beta,
++                                      (hipDoubleComplex *)d_Y, incy, incy*Ym, batchCount);
+                 #endif
+             }
+             device_time = magma_sync_wtime( opts.queue ) - device_time;
+diff --git a/testing/testing_zgeqrf_batched.cpp b/testing/testing_zgeqrf_batched.cpp
+index 6cc62ab63..acdb92754 100644
+--- a/testing/testing_zgeqrf_batched.cpp
++++ b/testing/testing_zgeqrf_batched.cpp
+@@ -195,8 +195,8 @@ int main( int argc, char** argv)
+             #endif
+             #else
+             hipblasZgeqrfBatched( opts.handle, int(M), int(N),
+-                                 (hipblasDoubleComplex**)dA_array, int(ldda),
+-                                 (hipblasDoubleComplex**)dtau_array,
++                                 (hipDoubleComplex**)dA_array, int(ldda),
++                                 (hipDoubleComplex**)dtau_array,
+                                  &device_info, int(batchCount) );
+             #endif
+ 
+diff --git a/testing/testing_zgetrf_batched.cpp b/testing/testing_zgetrf_batched.cpp
+index ea9871364..d23de5d93 100644
+--- a/testing/testing_zgetrf_batched.cpp
++++ b/testing/testing_zgetrf_batched.cpp
+@@ -238,7 +238,7 @@ int main( int argc, char** argv)
+                                      dinfo_device, int(batchCount) );
+                 #else
+                 hipblasZgetrfBatched( opts.handle, int(N),
+-                                     (hipblasDoubleComplex**)dA_array, int(ldda), dipiv_device,
++                                     (hipDoubleComplex**)dA_array, int(ldda), dipiv_device,
+                                      dinfo_device, int(batchCount) );
+                 #endif
+             }
+diff --git a/testing/testing_ztrsm_batched.cpp b/testing/testing_ztrsm_batched.cpp
+index c2b6d0d88..7a9f7c449 100644
+--- a/testing/testing_ztrsm_batched.cpp
++++ b/testing/testing_ztrsm_batched.cpp
+@@ -219,9 +219,9 @@ int main( int argc, char** argv)
+             hipblasZtrsmBatched(
+                 opts.handle, cublas_side_const(opts.side), cublas_uplo_const(opts.uplo),
+                 cublas_trans_const(opts.transA), cublas_diag_const(opts.diag),
+-                int(M), int(N), (const hipblasDoubleComplex*)&alpha,
+-                (hipblasDoubleComplex* const*) d_A_array, int(ldda),
+-                (      hipblasDoubleComplex**) d_B_array, int(lddb), int(batchCount) );
++                int(M), int(N), (const hipDoubleComplex*)&alpha,
++                (hipDoubleComplex* const*) d_A_array, int(ldda),
++                (      hipDoubleComplex**) d_B_array, int(lddb), int(batchCount) );
+             #endif
+ 
+             cublas_time = magma_sync_wtime( opts.queue ) - cublas_time;
+diff --git a/testing/testing_ztrsv_batched.cpp b/testing/testing_ztrsv_batched.cpp
+index 7cd5f9240..7e531bf03 100644
+--- a/testing/testing_ztrsv_batched.cpp
++++ b/testing/testing_ztrsv_batched.cpp
+@@ -153,8 +153,8 @@ int main( int argc, char** argv)
+                 device_time = magma_sync_wtime( opts.queue );
+                 hipblasZtrsvBatched(
+                     opts.handle, hipblas_uplo_const(opts.uplo), hipblas_trans_const(opts.transA), hipblas_diag_const(opts.diag),
+-                    (int)N, (const hipblasDoubleComplex **)d_A_array, (int)ldda,
+-                            (hipblasDoubleComplex **)d_b_array, (int)1, (int)batchCount );
++                    (int)N, (const hipDoubleComplex **)d_A_array, (int)ldda,
++                            (hipDoubleComplex **)d_b_array, (int)1, (int)batchCount );
+                 device_time = magma_sync_wtime( opts.queue ) - device_time;
+                 device_perf = gflops / device_time;
+             #endif
+diff --git a/tools/hipify-perl b/tools/hipify-perl
+index 1a7f889eb..aa6a06ec5 100755
+--- a/tools/hipify-perl
++++ b/tools/hipify-perl
+@@ -986,15 +986,8 @@ sub simpleSubstitutions {
+     $ft{'type'} += s/\bcsrilu02Info_t\b/csrilu02Info_t/g;
+     $ft{'type'} += s/\bcsrsv2Info_t\b/csrsv2Info_t/g;
+     $ft{'type'} += s/\bcuComplex\b/hipComplex/g;
+-    
+-    # original type subs
+-    #$ft{'type'} += s/\bcuDoubleComplex\b/hipDoubleComplex/g;
+-    #$ft{'type'} += s/\bcuFloatComplex\b/hipFloatComplex/g;
+-    
+-    # replace them with hipBLAS types
+-    $ft{'type'} += s/\bcuDoubleComplex\b/hipblasDoubleComplex/g;
+-    $ft{'type'} += s/\bcuFloatComplex\b/hipblasFloatComplex/g;
+-    
++    $ft{'type'} += s/\bcuDoubleComplex\b/hipDoubleComplex/g;
++    $ft{'type'} += s/\bcuFloatComplex\b/hipFloatComplex/g;
+     $ft{'type'} += s/\bcublasDataType_t\b/hipblasDatatype_t/g;
+     $ft{'type'} += s/\bcublasDiagType_t\b/hipblasDiagType_t/g;
+     $ft{'type'} += s/\bcublasFillMode_t\b/hipblasFillMode_t/g;
+@@ -1210,9 +1203,9 @@ sub simpleSubstitutions {
+     $ft{'numeric_literal'} += s/\bCUDA_ERROR_UNKNOWN\b/hipErrorUnknown/g;
+     $ft{'numeric_literal'} += s/\bCUDA_ERROR_UNMAP_FAILED\b/hipErrorUnmapFailed/g;
+     $ft{'numeric_literal'} += s/\bCUDA_ERROR_UNSUPPORTED_LIMIT\b/hipErrorUnsupportedLimit/g;
+-    $ft{'numeric_literal'} += s/\bCUDA_R_16F\b/HIPBLAS_R_16F/g;
+-    $ft{'numeric_literal'} += s/\bCUDA_R_32F\b/HIPBLAS_R_32F/g;
+-    $ft{'numeric_literal'} += s/\bCUDA_R_64F\b/HIPBLAS_R_64F/g;
++    $ft{'numeric_literal'} += s/\bCUDA_R_16F\b/HIP_R_16F/g;
++    $ft{'numeric_literal'} += s/\bCUDA_R_32F\b/HIP_R_32F/g;
++    $ft{'numeric_literal'} += s/\bCUDA_R_64F\b/HIP_R_64F/g;
+     $ft{'numeric_literal'} += s/\bCUDA_SUCCESS\b/hipSuccess/g;
+     $ft{'numeric_literal'} += s/\bCUDNN_16BIT_INDICES\b/HIPDNN_16BIT_INDICES/g;
+     $ft{'numeric_literal'} += s/\bCUDNN_32BIT_INDICES\b/HIPDNN_32BIT_INDICES/g;
+diff --git a/tools/magmasubs.py b/tools/magmasubs.py
+index f1e0dabca..00b8aed30 100644
+--- a/tools/magmasubs.py
++++ b/tools/magmasubs.py
+@@ -501,8 +501,7 @@ def title( table ):
+     ('float',                'double',               'cuFloatComplex',       'cuDoubleComplex'     ),
+     ('float',                'double',               'hipFloatComplex',      'hipDoubleComplex'    ),
+     ('CUDA_R_32F',           'CUDA_R_64F',           'CUDA_C_32F',           'CUDA_C_64F'          ),
+-    #('float',                'double',               'hipComplex',           'hipDoubleComplex'   ),
+-    ('float',                'double',               'hipblasComplex',       'hipblasDoubleComplex'),
++    ('float',                'double',               'hipComplex',           'hipDoubleComplex'    ),
+     ('float',                'double',               'MKL_Complex8',         'MKL_Complex16'       ),
+     ('magmaFloat_const_ptr', 'magmaDouble_const_ptr','magmaFloatComplex_const_ptr', 'magmaDoubleComplex_const_ptr'),  # before magmaDoubleComplex
+     ('magmaFloat_const_ptr', 'magmaDouble_const_ptr','magmaFloat_const_ptr',        'magmaDouble_const_ptr'       ),  # before magmaDoubleComplex
+
+From d6e4117bc88e73f06d26c6c2e14f064e8fc3d1ec Mon Sep 17 00:00:00 2001
+From: Jeff Daily <jeff.daily@amd.com>
+Date: Thu, 25 Sep 2025 21:19:21 +0000
+Subject: [PATCH 2/3] allow backward compatibility with older ROCm hipblas
+
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 14bb784de..09847ac62 100644
+--- a/Makefile
++++ b/Makefile
+@@ -808,7 +808,7 @@ ifeq ($(BACKEND),cuda)
+ d_ext := cu
+ else ifeq ($(BACKEND),hip)
+ d_ext := cpp
+-CXXFLAGS += -D__HIP_PLATFORM_AMD__
++CXXFLAGS += -D__HIP_PLATFORM_AMD__ -DHIPBLAS_V2
+ endif
+ 
+ 
+
+From 729cc46cd8fd9bf08821e2b9d0a1383d1da17ad3 Mon Sep 17 00:00:00 2001
+From: Jeff Daily <jeff.daily@amd.com>
+Date: Thu, 25 Sep 2025 22:19:41 +0000
+Subject: [PATCH 3/3] add -DHIPBLAS_V2 to CMakeLists.txt
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 57bdfc033..545ea697e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -294,7 +294,7 @@ if (MAGMA_ENABLE_HIP)
+     set(GPU_ARCH_FLAGS ${DEVCCFLAGS})
+ 
+     #add_compile_options(${GPU_ARCH_FLAGS})
+-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__HIP_PLATFORM_AMD__" )
++    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__HIP_PLATFORM_AMD__ -DHIPBLAS_V2" )
+   else()
+     message( STATUS "Could not find HIP" )
+   endif()

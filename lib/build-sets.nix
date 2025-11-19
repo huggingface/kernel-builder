@@ -1,7 +1,6 @@
 {
   nixpkgs,
   system,
-  hf-nix,
   torchVersions,
 }:
 
@@ -121,7 +120,6 @@ let
             xpuSupport = true;
           };
           overlays = [
-            hf-nix
             overlay
             (overlayForXpuVersion xpuVersion)
           ];
@@ -138,7 +136,6 @@ let
       allowUnfree = true;
     };
     overlays = [
-      hf-nix
       overlay
     ];
   };
@@ -157,7 +154,6 @@ let
             cudaSupport = true;
           };
           overlays = [
-            hf-nix
             overlay
             (overlayForCudaVersion cudaVersion)
           ];
@@ -179,7 +175,6 @@ let
             rocmSupport = true;
           };
           overlays = [
-            hf-nix
             overlay
             (overlayForRocmVersion rocmVersion)
           ];

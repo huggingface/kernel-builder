@@ -3,9 +3,10 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.follows = "hf-nix/nixpkgs";
+    # Put back to nixos-unstable-small the next bump. Exact revision is
+    # to avoid a rebuild during the hf-nix -> kernel-builder transition.
+    nixpkgs.url = "github:NixOS/nixpkgs/c543a59edf25ada193719764f3bc0c6ba835f94d";
     flake-compat.url = "github:edolstra/flake-compat";
-    hf-nix.url = "github:huggingface/hf-nix";
   };
 
   outputs =
@@ -13,7 +14,6 @@
       self,
       flake-compat,
       flake-utils,
-      hf-nix,
       nixpkgs,
     }:
     let
@@ -33,7 +33,6 @@
             name = system;
             value = import ./lib/build-sets.nix {
               inherit nixpkgs system torchVersions;
-              hf-nix = hf-nix.overlays.default;
             };
           }) systems
         );
