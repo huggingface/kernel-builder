@@ -1,3 +1,6 @@
+# Ensure _WIN32 is always defined on Windows
+add_compile_definitions(_WIN32)
+
 # Generate a standardized build variant name following the pattern:
 # torch<VERSION>-<ABI>-<COMPUTE>-windows
 #
