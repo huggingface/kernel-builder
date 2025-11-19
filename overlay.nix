@@ -50,6 +50,26 @@ final: prev: {
         });
 
         pyclibrary = python-self.callPackage ./pkgs/python-modules/pyclibrary { };
+
+        mkTorch = callPackage ./pkgs/python-modules/torch/binary { };
+
+        torch-bin_2_8 = mkTorch {
+          version = "2.8";
+          xpuPackages = final.xpuPackages_2025_1;
+        };
+
+        torch-bin_2_9 = mkTorch {
+          version = "2.9";
+          xpuPackages = final.xpuPackages_2025_2;
+        };
+
+        torch_2_8 = callPackage ./pkgs/python-modules/torch/source/2_8 {
+          xpuPackages = final.xpuPackages_2025_1;
+        };
+
+        torch_2_9 = callPackage ./pkgs/python-modules/torch/source/2_9 {
+          xpuPackages = final.xpuPackages_2025_2;
+        };
       }
     )
   ];

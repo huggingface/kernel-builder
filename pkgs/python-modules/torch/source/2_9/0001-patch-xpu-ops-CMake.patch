@@ -1,0 +1,50 @@
+From 3b5dd2c142173a9a6afe6b21a3107e04d7fcc0ea Mon Sep 17 00:00:00 2001
+From: "Wang, Yi A" <yi.a.wang@intel.com>
+Date: Mon, 25 Aug 2025 17:39:38 -0700
+Subject: [PATCH] patch xpu ops CMake
+
+Signed-off-by: Wang, Yi A <yi.a.wang@intel.com>
+---
+ cmake/BuildFlags.cmake       | 1 +
+ cmake/Modules/FindSYCL.cmake | 6 +++++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/BuildFlags.cmake b/cmake/BuildFlags.cmake
+index ec9aaccb..8f4740df 100644
+--- a/cmake/BuildFlags.cmake
++++ b/cmake/BuildFlags.cmake
+@@ -83,6 +83,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+     set(SYCL_KERNEL_OPTIONS ${SYCL_KERNEL_OPTIONS} -fno-approx-func)
+     set(SYCL_KERNEL_OPTIONS ${SYCL_KERNEL_OPTIONS} -Wno-absolute-value)
+     set(SYCL_KERNEL_OPTIONS ${SYCL_KERNEL_OPTIONS} -no-ftz)
++    set(SYCL_KERNEL_OPTIONS ${SYCL_KERNEL_OPTIONS} -D_GLIBCXX_USE_CXX11_ABI=1)
+   endif()
+ 
+   if(CMAKE_BUILD_TYPE MATCHES Debug)
+diff --git a/cmake/Modules/FindSYCL.cmake b/cmake/Modules/FindSYCL.cmake
+index 86457ba3..0feec0fa 100644
+--- a/cmake/Modules/FindSYCL.cmake
++++ b/cmake/Modules/FindSYCL.cmake
+@@ -34,7 +34,8 @@
+ #  SYCL_ADD_EXECUTABLE
+ #
+ #  SYCL_ADD_LIBRARY
+-
++set(SYCL_EXTRA_INCLUDE_DIRS $ENV{SYCL_EXTRA_INCLUDE_DIRS})
++string(REPLACE " " ";" SYCL_EXTRA_INCLUDE_DIRS "${SYCL_EXTRA_INCLUDE_DIRS}")
+ macro(SYCL_FIND_HELPER_FILE _name _extension)
+   set(_full_name "${_name}.${_extension}")
+   # CMAKE_CURRENT_LIST_FILE contains the full path to the file currently being
+@@ -216,6 +217,9 @@ macro(SYCL_WRAP_SRCS sycl_target generated_files)
+   set(generated_extension ${CMAKE_${SYCL_C_OR_CXX}_OUTPUT_EXTENSION})
+ 
+   set(SYCL_include_dirs "${SYCL_INCLUDE_DIR}")
++  if(DEFINED SYCL_EXTRA_INCLUDE_DIRS)
++    list(APPEND SYCL_include_dirs ${SYCL_EXTRA_INCLUDE_DIRS})
++  endif()
+   list(APPEND SYCL_include_dirs "$<TARGET_PROPERTY:${sycl_target},INCLUDE_DIRECTORIES>")
+ 
+   set(SYCL_compile_definitions "$<TARGET_PROPERTY:${sycl_target},COMPILE_DEFINITIONS>")
+-- 
+2.43.0
+
