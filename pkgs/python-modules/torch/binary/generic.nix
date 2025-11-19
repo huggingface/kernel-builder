@@ -22,6 +22,7 @@
   cudaPackages,
   rocmPackages,
   xpuPackages,
+  zlib,
 
   # Python dependencies
   filelock,
@@ -193,7 +194,9 @@ buildPythonPackage {
         intel-oneapi-mpi
         intel-pti
       ]
-    );
+    )
+    # Torch on aarch64-linux vendors libgfortran, which requires zlib.
+    ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64) [ zlib ];
 
   dependencies = [
     filelock
