@@ -165,45 +165,33 @@ function Initialize-XPUEnvironment {
     
     Write-Status "Initializing Intel oneAPI environment for XPU build..." -Type Info
     
-    # Intel oneAPI 2025.2 paths
-    $oneAPICompilerBin = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\bin"
-    $oneAPICompilerBinCompiler = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\bin\compiler"
-    $oneAPICompilerLib = "C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\lib"
-    $oneAPIOCLOC = "C:\Program Files (x86)\Intel\oneAPI\ocloc\2025.2\bin"
-    $oneAPIDNNL = "C:\Program Files (x86)\Intel\oneAPI\dnnl\2025.1\lib"
+    # Path to Intel oneAPI setvars.bat
+    $setvarsPath = "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
     
-    # Add to PATH
-    if (Test-Path $oneAPICompilerBin) {
-        $env:PATH = "$oneAPICompilerBin;$oneAPICompilerBinCompiler;$oneAPIOCLOC;$env:PATH"
-        Write-Status "Added Intel oneAPI compiler to PATH" -Type Info
-    } else {
-        Write-Status "Intel oneAPI compiler not found at: $oneAPICompilerBin" -Type Warning
-        Write-Status "Please install Intel oneAPI Base Toolkit 2025.2" -Type Warning
+    if (!(Test-Path $setvarsPath)) {
+        Write-Status "Intel oneAPI setvars.bat not found at: $setvarsPath" -Type Warning
+        Write-Status "Please install Intel oneAPI Base Toolkit" -Type Warning
         return
     }
     
-    # Add to LIB
-    if (Test-Path $oneAPICompilerLib) {
-        $env:LIB = "$oneAPICompilerLib;$oneAPIDNNL;$env:LIB"
-        Write-Status "Added Intel oneAPI libraries to LIB environment" -Type Info
+    # Execute setvars.bat and capture environment variables
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    
+    Write-Status "Running Intel oneAPI setvars.bat..." -Type Info
+    
+    # Run setvars.bat and export environment to temp file
+    cmd /c "`"$setvarsPath`" && set > `"$tempFile`""
+    
+    if ($LASTEXITCODE -ne 0) {
+        Remove-Item $tempFile -ErrorAction SilentlyContinue
+        throw "Failed to initialize Intel oneAPI environment. Please ensure Intel oneAPI Base Toolkit is properly installed."
     }
     
-    # Check if a conda environment is active
-    if ($env:CONDA_DEFAULT_ENV) {
-        Write-Status "Using conda environment: $env:CONDA_DEFAULT_ENV" -Type Info
-    } else {
-        Write-Status "No conda environment detected. Using system Python." -Type Info
-        Write-Status "For best results, activate a conda environment with PyTorch XPU before running this script." -Type Warning
-    }
+    # Parse and apply environment variables
+    Import-EnvironmentVariables -FilePath $tempFile
+    Remove-Item $tempFile -ErrorAction SilentlyContinue
     
-    # Verify installation
-    $icx = Get-Command icx -ErrorAction SilentlyContinue
-    if ($icx) {
-        Write-Status "Intel oneAPI environment initialized successfully" -Type Success
-        Write-Status "Using icx compiler: $($icx.Source)" -Type Info
-    } else {
-        Write-Status "Warning: icx compiler still not found after initialization" -Type Warning
-    }
+    Write-Status "Intel oneAPI environment initialized successfully" -Type Success
 }
 
 #endregion
