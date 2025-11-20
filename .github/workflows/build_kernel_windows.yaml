@@ -12,9 +12,11 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2022 ]
-        python: [ '3.12', '3.13' ]
+        python: [ 3.12 ]
         torch: [
-          { version: '2.8', cuda: '12.9.1', wheel: '129' }
+#          { version: '2.9.1', cuda: '12.6.3', wheel: '126' },
+          { version: '2.9.1', cuda: '12.8.1', wheel: '128' },
+#          { version: '2.9.1', cuda: '13.0.1', wheel: '130' }
         ]
 
     name: Build kernel
@@ -32,7 +34,7 @@ jobs:
       - uses: actions/checkout@v5
 
       # CUDA environment setup
-      - uses: N-Storm/cuda-toolkit@v0.2.28
+      - uses: Jimver/cuda-toolkit@v0.2.29
         id: setup-cuda-toolkit
         with:
           cuda: ${{ matrix.torch.cuda }}  # TODO(mfuntowicz): How can we test multiple CUDA versions than align with torch?
@@ -56,12 +58,7 @@ jobs:
           cache: 'pip'
 
       - name: Install PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cu129
-
-      - name: Build activation kernel
-        run: ( scripts\windows\builder.ps1 -SourceFolder examples/activation -BuildConfig Release -Backend cuda -Build -Force )
-#      - name: Copy activation kernel
-#        run: cp -rL examples/activation/build activation-kernel
+        run: pip install torch --index-url https://download.pytorch.org/whl/cu${{ matrix.torch.wheel }}
 
       - name: Build cutlass GEMM kernel
         run: ( scripts\windows\builder.ps1 -SourceFolder examples/cutlass-gemm -BuildConfig Release -Backend cuda -Build -Force )

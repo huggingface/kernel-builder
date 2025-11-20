@@ -104,10 +104,11 @@ message(STATUS "Rendered for platform {{ platform }}")
 {% if platform == 'windows' %}
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/windows.cmake)
 
-# This preprocessor macro should be defined in building with MSVC but not for CUDA and co.
-# Also, if not using MVSC, this may not be set too ...
-# So we explicitly set it to avoid any side effect due to preprocessor-guards not being defined.
-add_compile_definitions(_WIN32>)
+if(GPU_LANG STREQUAL "CUDA")
+  add_compile_definitions(USE_CUDA=1)
+elseif(GPU STREQUAL "HIP")
+  add_compile_definitions(USE_ROCM=1)
+endif()
 
 # Generate standardized build name
 run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
