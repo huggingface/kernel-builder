@@ -555,3 +555,16 @@ function (define_gpu_extension_target GPU_MOD_NAME)
 
   install(TARGETS ${GPU_MOD_NAME} LIBRARY DESTINATION ${GPU_DESTINATION} COMPONENT ${GPU_MOD_NAME})
 endfunction()
+
+include(CheckCXXSourceCompiles)
+
+macro(check_for_sve HAVE_SVE_VAR)
+  set(CMAKE_REQUIRED_FLAGS "-march=armv8.2-a+sve")
+  check_cxx_source_compiles("
+    #include <arm_sve.h>
+    int main() {
+      svint32_t v = svdup_s32(0);
+      return svaddv_s32(svptrue_b32(), v);
+    }
+  " ${HAVE_SVE_VAR})
+endmacro()

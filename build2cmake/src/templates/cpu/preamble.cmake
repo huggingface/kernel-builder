@@ -42,3 +42,8 @@ endif()
 {% endif %}
 
 add_compile_definitions(CPU_KERNEL)
+
+check_for_sve(HAVE_SVE)
+if(HAVE_SVE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8.2-a+sve")
+endif()
