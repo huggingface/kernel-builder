@@ -5,7 +5,7 @@ Script to generate torch-versions-hash.json from torch-versions.json
 
 This script downloads all the variants that are specified and computes
 their Nix store hashes. Variants for which the hash was already computed
-will not be proccessed again to avoid redownloading/hashing.
+will not be processed again to avoid redownloading/hashing.
 """
 
 import json

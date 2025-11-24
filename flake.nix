@@ -108,7 +108,7 @@
     flake-utils.lib.eachSystem systems (
       system:
       let
-        # Plain nixkpgs that we use to access utility funtions.
+        # Plain nixkpgs that we use to access utility functions.
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (nixpkgs) lib;
 
