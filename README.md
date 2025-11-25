@@ -17,13 +17,6 @@ Python package.
 
 This builder is a core component of the larger kernel build/distribution system.
 
-**Torch 2.9 note:** kernel-builder currently builds Torch 2.9 extensions based on
-the [fifth release candidate](https://dev-discuss.pytorch.org/t/reminder-calls-for-features-upcoming-branch-cut/3225).
-If you upload Torch 2.9 kernels, please validate them against
-the final Torch 2.9.0 release. In the unlikely case of an ABI-breaking
-change, you can rebuild and upload your kernel once kernel-builder
-is updated for the final release
-
 ## 🚀 Quick Start
 
 We recommend using [Nix](https://nixos.org/download.html) to build kernels. To speed up builds, first enable the Hugging Face binary cache:
