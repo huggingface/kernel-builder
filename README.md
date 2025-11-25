@@ -10,6 +10,8 @@
 </div>
 <hr/>
 
+[Join us on Discord](https://discord.gg/H6Tkmd88N3) for questions and discussions!
+
 This repo contains a Nix package that can be used to build custom machine learning kernels for PyTorch. The kernels are built using the [PyTorch C++ Frontend](https://pytorch.org/cppdocs/frontend.html) and can be loaded from the Hub with the [kernels](https://github.com/huggingface/kernels)
 Python package.
 
