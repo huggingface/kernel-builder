@@ -483,13 +483,7 @@ function Invoke-CMakeBuild {
 
         # Build with CMake
         Write-Status "Building project..." -Type Info
-        
-        # For Ninja generator, don't specify --config
-        if ($Backend -and $Backend.ToLower() -eq 'xpu') {
-            cmake --build .
-        } else {
-            cmake --build . --config $BuildConfig
-        }
+        cmake --build . --config $BuildConfig
 
         if ($LASTEXITCODE -ne 0) {
             throw "CMake build failed with exit code $LASTEXITCODE"
@@ -539,30 +533,6 @@ function Invoke-Backend {
     if ($Backend -and $Backend -ne 'universal') { $kwargs += '--backend', $Backend }
 
     Invoke-Build2Cmake -Build2CmakeExe $Build2CmakeExe -Arguments $kwargs
-    
-    # Post-process CMakeLists.txt for XPU on Windows: use icx instead of icpx
-    if ($Backend -and $Backend.ToLower() -eq 'xpu' -and $env:OS -eq 'Windows_NT') {
-        $targetPath = if ($Target) { $Target } else { Split-Path $BuildToml -Parent }
-        $cmakeListsPath = Join-Path $targetPath 'CMakeLists.txt'
-        
-        if (Test-Path $cmakeListsPath) {
-            Write-Status "Patching CMakeLists.txt for XPU on Windows (using icx instead of icpx)..." -Type Info
-            
-            $content = Get-Content $cmakeListsPath -Raw
-            
-            # Replace the CMAKE_CXX_COMPILER line to use icx on Windows
-            $oldLine = '    set(CMAKE_CXX_COMPILER ${ICPX_COMPILER})'
-            $newLine = '    set(CMAKE_CXX_COMPILER ${ICX_COMPILER}) # Using icx (MSVC-compatible) on Windows'
-            
-            if ($content.Contains($oldLine)) {
-                $content = $content.Replace($oldLine, $newLine)
-                Set-Content $cmakeListsPath -Value $content -NoNewline
-                Write-Status "Applied Windows XPU fix: CMAKE_CXX_COMPILER=icx" -Type Success
-            } else {
-                Write-Status "Could not apply automatic patch. Manually edit CMakeLists.txt if build fails." -Type Warning
-            }
-        }
-    }
 }
 
 function Set-BackendArchitecture {
@@ -635,6 +605,13 @@ try {
     # Initialize Intel oneAPI environment for XPU backend on Windows
     if ($Backend -and $Backend.ToLower() -eq 'xpu') {
         Initialize-XPUEnvironment
+        
+        # Set Intel compilers for Windows XPU builds (icx is MSVC-compatible)
+        if ($env:OS -eq 'Windows_NT') {
+            $env:CXX = 'icx'
+            $env:CC = 'icx'
+            Write-Status "Set CXX=icx and CC=icx for Windows XPU build" -Type Info
+        }
     }
 
     $options = @{
