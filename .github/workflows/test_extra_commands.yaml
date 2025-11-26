@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     name: Build kernel
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
@@ -21,7 +22,6 @@ jobs:
       - uses: cachix/cachix-action@v14
         with:
           name: huggingface
-          #authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
       - name: Test nix run .#kernels
