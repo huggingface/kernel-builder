@@ -551,15 +551,6 @@ try {
         throw "Metal backend is not supported on Windows. Metal is only available on macOS."
     }
 
-    if ($Backend -and $Backend.ToLower() -eq 'xpu') {
-        # Set Intel compilers for Windows XPU builds (icx is MSVC-compatible)
-        if ($env:OS -eq 'Windows_NT') {
-            $env:CXX = 'icx'
-            $env:CC = 'icx'
-            Write-Status "Set CXX=icx and CC=icx for Windows XPU build" -Type Info
-        }
-    }
-
     $options = @{
         Force = $Force.IsPresent
         OpsId = $OpsId

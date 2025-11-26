@@ -12,8 +12,16 @@ if(ICX_COMPILER AND ICPX_COMPILER)
     string(REGEX MATCH "[0-9]+\\.[0-9]+" DPCPP_VERSION "${ICPX_VERSION_OUTPUT}")
     set(DPCPP_VERSION "${DPCPP_VERSION}" CACHE STRING "DPCPP major.minor version")
     set(CMAKE_C_COMPILER ${ICX_COMPILER})
-    set(CMAKE_CXX_COMPILER ${ICPX_COMPILER})
-    message(STATUS "Using Intel SYCL C++ compiler: ${ICPX_COMPILER} and C compiler: ${ICX_COMPILER} Version: ${DPCPP_VERSION}")
+    
+    # On Windows, use icx (MSVC-compatible) for C++ to work with Ninja generator
+    # On Linux, use icpx (GNU-compatible) for C++
+    if(WIN32)
+        set(CMAKE_CXX_COMPILER ${ICX_COMPILER})
+        message(STATUS "Using Intel SYCL C++ compiler: ${ICX_COMPILER} and C compiler: ${ICX_COMPILER} Version: ${DPCPP_VERSION} (Windows MSVC-compatible mode)")
+    else()
+        set(CMAKE_CXX_COMPILER ${ICPX_COMPILER})
+        message(STATUS "Using Intel SYCL C++ compiler: ${ICPX_COMPILER} and C compiler: ${ICX_COMPILER} Version: ${DPCPP_VERSION}")
+    endif()
 else()
     message(FATAL_ERROR "Intel SYCL C++ compiler (icpx) and/or C compiler (icx) not found. Please install Intel oneAPI toolkit.")
 endif()
