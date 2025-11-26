@@ -145,7 +145,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-
 #region Helper Functions
 
 function Write-Status {
