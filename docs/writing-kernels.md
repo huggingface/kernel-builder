@@ -134,7 +134,8 @@ for an example with multiple kernel sections.
 The following options can be set for a kernel:
 
 - `backend` (required): the compute backend of the kernel. The currently
-  supported backends are `cuda`, `metal`, `rocm`, and `xpu`.
+  supported backends are `cpu`, `cuda`, `metal`, `rocm`, and `xpu`.
+  **The `cpu` backend is currently experimental and might still change.**
 - `depends` (required): a list of dependencies. The supported dependencies
   are listed in [`deps.nix`](../lib/deps.nix).
 - `src` (required): a list of source files and headers.
