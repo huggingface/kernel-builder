@@ -145,56 +145,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-#region Environment Initialization
-
-function Initialize-XPUEnvironment {
-    <#
-    .SYNOPSIS
-        Initializes Intel oneAPI environment for XPU builds on Windows
-    #>
-    
-    if ($env:OS -ne 'Windows_NT') {
-        return # Only needed on Windows
-    }
-    
-    # Check if already initialized
-    if (Get-Command icx -ErrorAction SilentlyContinue) {
-        Write-Status "Intel oneAPI environment already initialized" -Type Info
-        return
-    }
-    
-    Write-Status "Initializing Intel oneAPI environment for XPU build..." -Type Info
-    
-    # Path to Intel oneAPI setvars.bat
-    $setvarsPath = "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
-    
-    if (!(Test-Path $setvarsPath)) {
-        Write-Status "Intel oneAPI setvars.bat not found at: $setvarsPath" -Type Warning
-        Write-Status "Please install Intel oneAPI Base Toolkit" -Type Warning
-        return
-    }
-    
-    # Execute setvars.bat and capture environment variables
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    
-    Write-Status "Running Intel oneAPI setvars.bat..." -Type Info
-    
-    # Run setvars.bat and export environment to temp file
-    cmd /c "`"$setvarsPath`" && set > `"$tempFile`""
-    
-    if ($LASTEXITCODE -ne 0) {
-        Remove-Item $tempFile -ErrorAction SilentlyContinue
-        throw "Failed to initialize Intel oneAPI environment. Please ensure Intel oneAPI Base Toolkit is properly installed."
-    }
-    
-    # Parse and apply environment variables
-    Import-EnvironmentVariables -FilePath $tempFile
-    Remove-Item $tempFile -ErrorAction SilentlyContinue
-    
-    Write-Status "Intel oneAPI environment initialized successfully" -Type Success
-}
-
-#endregion
 
 #region Helper Functions
 
@@ -601,11 +551,8 @@ try {
     if ($Backend -and $Backend.ToLower() -eq 'metal') {
         throw "Metal backend is not supported on Windows. Metal is only available on macOS."
     }
-    
-    # Initialize Intel oneAPI environment for XPU backend on Windows
+
     if ($Backend -and $Backend.ToLower() -eq 'xpu') {
-        Initialize-XPUEnvironment
-        
         # Set Intel compilers for Windows XPU builds (icx is MSVC-compatible)
         if ($env:OS -eq 'Windows_NT') {
             $env:CXX = 'icx'
