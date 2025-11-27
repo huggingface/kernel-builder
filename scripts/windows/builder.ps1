@@ -336,8 +336,9 @@ function Get-CMakeConfigureArgs {
             Write-Status "Found Intel compiler: $($icx.Source)" -Type Info
             Write-Status "CMakeLists.txt will configure icx for Windows (MSVC-compatible mode)" -Type Info
         } else {
-            Write-Status "Intel compilers not found in PATH. Make sure oneAPI environment is initialized." -Type Warning
-            Write-Status "Run: & `"C:\Program Files (x86)\Intel\oneAPI\setvars.bat`"" -Type Warning
+            Write-Status "Intel compilers not found in PATH. Make sure oneAPI environment is initialized." -Type Error
+            Write-Status "Run: & `"C:\Program Files (x86)\Intel\oneAPI\setvars.bat`"" -Type Error
+            throw "Intel compilers (icx) are required for XPU backend but were not found in PATH. Please initialize oneAPI environment."
         }
     } else {
         # Use Visual Studio generator for other backends
