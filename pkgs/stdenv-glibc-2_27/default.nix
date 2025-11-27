@@ -33,6 +33,16 @@ let
 
     postInstall = prevAttrs.postInstall + ''
       install -Dm755 $bin/bin/getent -t $getent/bin
+
+      # libgcc_s.so is normally a linker script that adds -lgcc for static
+      # functions. However due to bootstrapping requirements, libgcc_s is
+      # also added to the glibc library directory. Unfortunately, here it
+      # is a symlink to libgcc_s.so.1. This breaks linkage with g++, since
+      # the static library is not used. Newer glibc versions allow fixing
+      # this easily by setting up the libgcc as a user-trusted directory.
+      # We'll fix it here by replacing libgcc_s.so by a linker script.
+      rm -f $out/lib/libgcc_s.so
+      echo "GROUP ( libgcc_s.so.1 -lgcc )" > $out/lib/libgcc_s.so
     '';
 
     passthru = prevAttrs.passthru // {
