@@ -478,7 +478,7 @@ buildPythonPackage rec {
     );
   }
   // lib.optionalAttrs rocmSupport {
-    AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton_0_10;
+    AOTRITON_INSTALLED_PREFIX = rocmPackages.aotriton_0_11;
   }
   // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
     USE_MPS = 1;
