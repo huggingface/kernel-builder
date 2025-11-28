@@ -6,12 +6,11 @@ use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
-use super::common::write_pyproject_toml;
+use super::common::{render_utils, write_pyproject_toml};
 use super::kernel_ops_identifier;
 use crate::config::{Build, Dependency, Kernel, Torch};
 use crate::FileSet;
 
-static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
 static REGISTRATION_H: &str = include_str!("../templates/registration.h");
 
 pub fn write_torch_ext_xpu(
@@ -126,12 +125,7 @@ fn write_cmake(
     ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
-    let mut utils_path = PathBuf::new();
-    utils_path.push("cmake");
-    utils_path.push("utils.cmake");
-    file_set
-        .entry(utils_path.clone())
-        .extend_from_slice(CMAKE_UTILS.as_bytes());
+    render_utils(env, torch, file_set)?;
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 

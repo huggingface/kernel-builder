@@ -540,6 +540,11 @@ function (define_gpu_extension_target GPU_MOD_NAME)
   target_compile_definitions(${GPU_MOD_NAME} PRIVATE
     "-DTORCH_EXTENSION_NAME=${GPU_MOD_NAME}")
 
+  {% if link_flags %}
+  target_link_options(${GPU_MOD_NAME} PRIVATE
+    "{{ link_flags }}")
+  {% endif %}
+
   target_include_directories(${GPU_MOD_NAME} PRIVATE csrc
     ${GPU_INCLUDE_DIRECTORIES})
 

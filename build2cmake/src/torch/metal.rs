@@ -4,13 +4,15 @@ use eyre::{bail, Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
-use super::{common::write_pyproject_toml, kernel_ops_identifier};
+use super::{
+    common::{render_utils, write_pyproject_toml},
+    kernel_ops_identifier,
+};
 use crate::{
     config::{Build, Kernel, Torch},
     fileset::FileSet,
 };
 
-static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
 static REGISTRATION_H: &str = include_str!("../templates/registration.h");
 static COMPILE_METAL_CMAKE: &str = include_str!("../templates/metal/compile-metal.cmake");
 static METALLIB_TO_HEADER_PY: &str = include_str!("../templates/metal/metallib_to_header.py");
@@ -64,12 +66,7 @@ fn write_cmake(
     ops_name: &str,
     file_set: &mut FileSet,
 ) -> Result<()> {
-    let mut utils_path = PathBuf::new();
-    utils_path.push("cmake");
-    utils_path.push("utils.cmake");
-    file_set
-        .entry(utils_path.clone())
-        .extend_from_slice(CMAKE_UTILS.as_bytes());
+    render_utils(env, torch, file_set)?;
 
     let mut compile_metal_path = PathBuf::new();
     compile_metal_path.push("cmake");

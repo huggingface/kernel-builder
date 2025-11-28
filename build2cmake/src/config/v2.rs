@@ -96,6 +96,8 @@ pub struct Torch {
 
     #[serde(default)]
     pub src: Vec<PathBuf>,
+
+    pub link_flags: Option<Vec<String>>,
 }
 
 impl Torch {
@@ -352,6 +354,7 @@ impl From<v1::Torch> for Torch {
     fn from(torch: v1::Torch) -> Self {
         Self {
             include: torch.include,
+            link_flags: None,
             pyext: torch.pyext,
             src: torch.src,
         }
