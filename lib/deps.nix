@@ -33,7 +33,7 @@ let
     ];
   };
   pythonDeps = with pkgs.python3.pkgs; {
-    "einops" = [ einops ];
+    "einops" = [ (einops.override { inherit torch; }) ];
     "nvidia-cutlass-dsl" = [ nvidia-cutlass-dsl ];
   };
   getCppDep = dep: cppDeps.${dep} or (throw "Unknown dependency: ${dep}");

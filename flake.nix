@@ -143,8 +143,10 @@
                     ++ lib.concatMap allOutputs buildSet.extension.extraBuildDeps
                     ++ allOutputs build2cmake
                     ++ allOutputs kernel-abi-check
+                    ++ allOutputs (python3Packages.einops.override { inherit (buildSet) torch; })
                     ++ allOutputs python3Packages.kernels
                     ++ lib.optionals stdenv.hostPlatform.isLinux (allOutputs stdenvGlibc_2_27)
+                    ++ lib.optionals (config ? cudaSupport && lib.versionAtLeast cudaPackages.cudaMajorMinorVersion "12.8") (allOutputs python3Packages.nvidia-cutlass-dsl)
                   );
                 buildSetLinkFarm =
                   buildSet: pkgs.linkFarm (buildName buildSet.buildConfig) (buildSetOutputs buildSet);
