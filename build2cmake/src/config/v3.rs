@@ -49,9 +49,7 @@ pub struct General {
     #[serde(default)]
     pub universal: bool,
 
-    pub cuda_maxver: Option<Version>,
-
-    pub cuda_minver: Option<Version>,
+    pub cuda: Option<CudaGeneral>,
 
     pub hub: Option<Hub>,
 
@@ -63,6 +61,13 @@ impl General {
     pub fn python_name(&self) -> String {
         self.name.replace("-", "_")
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct CudaGeneral {
+    pub minver: Option<Version>,
+    pub maxver: Option<Version>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -92,6 +97,8 @@ impl Display for PythonDependency {
 #[serde(deny_unknown_fields)]
 pub struct Torch {
     pub include: Option<Vec<String>>,
+    pub minver: Option<Version>,
+    pub maxver: Option<Version>,
     pub pyext: Option<Vec<String>>,
 
     #[serde(default)]
@@ -272,11 +279,19 @@ impl TryFrom<v2::Build> for Build {
 
 impl From<v2::General> for General {
     fn from(general: v2::General) -> Self {
+        let cuda = if general.cuda_minver.is_some() || general.cuda_maxver.is_some() {
+            Some(CudaGeneral {
+                minver: general.cuda_minver,
+                maxver: general.cuda_maxver,
+            })
+        } else {
+            None
+        };
+
         Self {
             name: general.name,
             universal: general.universal,
-            cuda_maxver: general.cuda_maxver,
-            cuda_minver: general.cuda_minver,
+            cuda,
             hub: general.hub.map(Into::into),
             python_depends: general
                 .python_depends
@@ -307,6 +322,8 @@ impl From<v2::Torch> for Torch {
     fn from(torch: v2::Torch) -> Self {
         Self {
             include: torch.include,
+            minver: torch.minver,
+            maxver: torch.maxver,
             pyext: torch.pyext,
             src: torch.src,
         }

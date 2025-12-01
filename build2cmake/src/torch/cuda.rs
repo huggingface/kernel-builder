@@ -166,8 +166,8 @@ fn write_cmake(
     render_preamble(
         env,
         name,
-        build.general.cuda_minver.as_ref(),
-        build.general.cuda_maxver.as_ref(),
+        build.general.cuda.as_ref().and_then(|c| c.minver.as_ref()),
+        build.general.cuda.as_ref().and_then(|c| c.maxver.as_ref()),
         torch.minver.as_ref(),
         torch.maxver.as_ref(),
         cmake_writer,
