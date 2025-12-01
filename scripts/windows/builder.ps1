@@ -605,10 +605,11 @@ try {
                 $pydFiles = Get-ChildItem -Path $buildPath -Filter "*.pyd" -Recurse -ErrorAction SilentlyContinue
                 
                 if ($pydFiles) {
-                    $pydFile = $pydFiles | Select-Object -First 1
-                    Write-Status "Copy dependencies for: $($pydFile.Name)" -Type Info
-                    
-                    & copy_deps.ps1 -PydFile $pydFile.FullName -ErrorAction Continue
+                    foreach ($pydFile in $pydFiles) {
+                        Write-Status "Copy dependencies for: $($pydFile.Name)" -Type Info
+                        
+                        & "$PSScriptRoot\copy_deps.ps1" -PydFile $pydFile.FullName -ErrorAction Continue
+                    }
                 } else {
                     Write-Status "No .pyd files found in build output" -Type Warning
                 }
