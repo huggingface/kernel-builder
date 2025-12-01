@@ -1,17 +1,14 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    fmt::Display,
-    path::PathBuf,
-    str::FromStr,
-};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
 
 use eyre::{bail, Result};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::version::Version;
 
-use super::v1::{self, Language};
+use super::{
+    common::Dependency,
+    v1::{self, Language},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -21,25 +18,6 @@ pub struct Build {
 
     #[serde(rename = "kernel", default)]
     pub kernels: HashMap<String, Kernel>,
-}
-
-impl Build {
-    pub fn has_kernel_with_backend(&self, backend: &Backend) -> bool {
-        self.backends().contains(backend)
-    }
-
-    pub fn backends(&self) -> BTreeSet<Backend> {
-        self.kernels
-            .values()
-            .map(|kernel| match kernel {
-                Kernel::Cpu { .. } => Backend::Cpu,
-                Kernel::Cuda { .. } => Backend::Cuda,
-                Kernel::Metal { .. } => Backend::Metal,
-                Kernel::Rocm { .. } => Backend::Rocm,
-                Kernel::Xpu { .. } => Backend::Xpu,
-            })
-            .collect()
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -56,13 +34,6 @@ pub struct General {
     pub hub: Option<Hub>,
 
     pub python_depends: Option<Vec<PythonDependency>>,
-}
-
-impl General {
-    /// Name of the kernel as a Python extension.
-    pub fn python_name(&self) -> String {
-        self.name.replace("-", "_")
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -98,27 +69,6 @@ pub struct Torch {
 
     #[serde(default)]
     pub src: Vec<PathBuf>,
-}
-
-impl Torch {
-    pub fn data_globs(&self) -> Option<Vec<String>> {
-        match self.pyext.as_ref() {
-            Some(exts) => {
-                let globs = exts
-                    .iter()
-                    .filter(|&ext| ext != "py" && ext != "pyi")
-                    .map(|ext| format!("\"**/*.{ext}\""))
-                    .collect_vec();
-                if globs.is_empty() {
-                    None
-                } else {
-                    Some(globs)
-                }
-            }
-
-            None => None,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -167,58 +117,6 @@ pub enum Kernel {
     },
 }
 
-impl Kernel {
-    pub fn cxx_flags(&self) -> Option<&[String]> {
-        match self {
-            Kernel::Cpu { cxx_flags, .. }
-            | Kernel::Cuda { cxx_flags, .. }
-            | Kernel::Metal { cxx_flags, .. }
-            | Kernel::Rocm { cxx_flags, .. }
-            | Kernel::Xpu { cxx_flags, .. } => cxx_flags.as_deref(),
-        }
-    }
-
-    pub fn include(&self) -> Option<&[String]> {
-        match self {
-            Kernel::Cpu { include, .. }
-            | Kernel::Cuda { include, .. }
-            | Kernel::Metal { include, .. }
-            | Kernel::Rocm { include, .. }
-            | Kernel::Xpu { include, .. } => include.as_deref(),
-        }
-    }
-
-    pub fn backend(&self) -> Backend {
-        match self {
-            Kernel::Cpu { .. } => Backend::Cpu,
-            Kernel::Cuda { .. } => Backend::Cuda,
-            Kernel::Metal { .. } => Backend::Metal,
-            Kernel::Rocm { .. } => Backend::Rocm,
-            Kernel::Xpu { .. } => Backend::Xpu,
-        }
-    }
-
-    pub fn depends(&self) -> &[Dependency] {
-        match self {
-            Kernel::Cpu { depends, .. }
-            | Kernel::Cuda { depends, .. }
-            | Kernel::Metal { depends, .. }
-            | Kernel::Rocm { depends, .. }
-            | Kernel::Xpu { depends, .. } => depends,
-        }
-    }
-
-    pub fn src(&self) -> &[String] {
-        match self {
-            Kernel::Cpu { src, .. }
-            | Kernel::Cuda { src, .. }
-            | Kernel::Metal { src, .. }
-            | Kernel::Rocm { src, .. }
-            | Kernel::Xpu { src, .. } => src,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Backend {
@@ -254,29 +152,6 @@ impl FromStr for Backend {
             _ => Err(format!("Unknown backend: {s}")),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[non_exhaustive]
-#[serde(rename_all = "lowercase")]
-pub enum Dependency {
-    #[serde(rename = "cutlass_2_10")]
-    Cutlass2_10,
-    #[serde(rename = "cutlass_3_5")]
-    Cutlass3_5,
-    #[serde(rename = "cutlass_3_6")]
-    Cutlass3_6,
-    #[serde(rename = "cutlass_3_8")]
-    Cutlass3_8,
-    #[serde(rename = "cutlass_3_9")]
-    Cutlass3_9,
-    #[serde(rename = "cutlass_4_0")]
-    Cutlass4_0,
-    #[serde(rename = "cutlass_sycl")]
-    CutlassSycl,
-    #[serde(rename = "metal-cpp")]
-    MetalCpp,
-    Torch,
 }
 
 impl TryFrom<v1::Build> for Build {

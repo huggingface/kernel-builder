@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use serde::Deserialize;
 
-use super::v2::Dependency;
+use super::common::Dependency;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
