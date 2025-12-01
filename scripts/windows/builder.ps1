@@ -596,6 +596,23 @@ try {
                 -RunKernelsInstall $KernelsInstall.IsPresent `
                 -InstallPrefix $InstallPrefix `
                 -Backend $Backend
+            
+            # Post-build: Copy DLLs to package directory using dumpbin analysis
+            if ($Backend -eq 'xpu') {
+                Write-Status "Running post-build DLL dependency analysis and copy..." -Type Info
+                
+                # Find the .pyd file in build directory
+                $pydFiles = Get-ChildItem -Path $buildPath -Filter "*.pyd" -Recurse -ErrorAction SilentlyContinue
+                
+                if ($pydFiles) {
+                    $pydFile = $pydFiles | Select-Object -First 1
+                    Write-Status "Copy dependencies for: $($pydFile.Name)" -Type Info
+                    
+                    & copy_deps.ps1 -PydFile $pydFile.FullName -ErrorAction Continue
+                } else {
+                    Write-Status "No .pyd files found in build output" -Type Warning
+                }
+            }
         }
     }
 
