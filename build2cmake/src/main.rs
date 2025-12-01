@@ -140,7 +140,7 @@ fn generate_torch(
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    let backend = match (backend, build.general.universal) {
+    let backend = match (backend, build.is_universal()) {
         (None, true) => {
             let file_set = write_torch_ext_universal(&env, &build, target_dir.clone(), ops_id)?;
             file_set.write(&target_dir, force)?;
@@ -393,7 +393,7 @@ fn get_generated_files(
         all_set.extend(set);
     }
 
-    if build.general.universal {
+    if build.is_universal() {
         let set = write_torch_ext_universal(env, build, target_dir, ops_id)?;
 
         all_set.extend(set);

@@ -24,6 +24,11 @@ pub struct Build {
 }
 
 impl Build {
+    /// Check if this is a universal build (supports all backends).
+    pub fn is_universal(&self) -> bool {
+        self.kernels.is_empty()
+    }
+
     pub fn has_kernel_with_backend(&self, backend: &Backend) -> bool {
         self.backends().contains(backend)
     }
@@ -46,8 +51,8 @@ impl Build {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct General {
     pub name: String,
-    #[serde(default)]
-    pub universal: bool,
+
+    pub backends: Vec<String>,
 
     pub cuda: Option<CudaGeneral>,
 
@@ -265,20 +270,38 @@ impl TryFrom<v2::Build> for Build {
     type Error = eyre::Error;
 
     fn try_from(build: v2::Build) -> Result<Self> {
+        let kernels: HashMap<String, Kernel> = build
+            .kernels
+            .into_iter()
+            .map(|(k, v)| (k, v.into()))
+            .collect();
+
+        let backends = if build.general.universal {
+            vec![
+                "cpu".to_string(),
+                "cuda".to_string(),
+                "metal".to_string(),
+                "rocm".to_string(),
+                "xpu".to_string(),
+            ]
+        } else {
+            let backend_set: BTreeSet<String> = kernels
+                .values()
+                .map(|kernel| kernel.backend().to_string())
+                .collect();
+            backend_set.into_iter().collect()
+        };
+
         Ok(Self {
-            general: build.general.into(),
+            general: General::from_v2(build.general, backends),
             torch: build.torch.map(Into::into),
-            kernels: build
-                .kernels
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
+            kernels,
         })
     }
 }
 
-impl From<v2::General> for General {
-    fn from(general: v2::General) -> Self {
+impl General {
+    fn from_v2(general: v2::General, backends: Vec<String>) -> Self {
         let cuda = if general.cuda_minver.is_some() || general.cuda_maxver.is_some() {
             Some(CudaGeneral {
                 minver: general.cuda_minver,
@@ -290,7 +313,7 @@ impl From<v2::General> for General {
 
         Self {
             name: general.name,
-            universal: general.universal,
+            backends,
             cuda,
             hub: general.hub.map(Into::into),
             python_depends: general
