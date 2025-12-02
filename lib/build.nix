@@ -188,8 +188,8 @@ rec {
     let
       extensionForTorch =
         { path, rev }:
-        buildSet: {
-          name = buildName buildSet.buildConfig;
+        buildSet: rec {
+          name = value.variant;
           value = mkTorchExtension buildSet {
             inherit path rev doGetKernelCheck;
             stripRPath = true;

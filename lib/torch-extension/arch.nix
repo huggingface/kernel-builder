@@ -74,6 +74,26 @@ assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 let
   inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
 
+  abiString = cxx11Abi: if cxx11Abi then "cxx11" else "cxx98";
+
+  computeStrings = {
+    cpu = "cpu";
+    cuda = "cu${flattenVersion (lib.versions.majorMinor buildConfig.cudaVersion)}";
+    metal = "metal";
+    rocm = "rocm${flattenVersion (lib.versions.majorMinor buildConfig.rocmVersion)}";
+    xpu = "xpu${flattenVersion (lib.versions.majorMinor buildConfig.xpuVersion)}";
+  };
+  computeString = computeStrings.${buildConfig.backend};
+
+  flattenVersion =
+    version: lib.replaceStrings [ "." ] [ "" ] (lib.versions.majorMinor (lib.versions.pad 2 version));
+
+  variant =
+    if buildConfig.system == "aarch64-darwin" then
+      "torch${flattenVersion buildConfig.torchVersion}-${computeString}-${buildConfig.system}"
+    else
+      "torch${flattenVersion buildConfig.torchVersion}-${abiString buildConfig.cxx11Abi}-${computeString}-${buildConfig.system}";
+
   dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
 
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
@@ -108,18 +128,9 @@ stdenv.mkDerivation (prevAttrs: {
 
   # Generate build files.
   postPatch = ''
-    build2cmake generate-torch --backend ${
-      if cudaSupport then
-        "cuda"
-      else if rocmSupport then
-        "rocm"
-      else if xpuSupport then
-        "xpu"
-      else if metalSupport then
-        "metal"
-      else
-        "cpu"
-    } --ops-id ${rev} build.toml
+    build2cmake generate-torch \
+      --backend ${buildConfig.backend} \
+      --ops-id ${rev} build.toml
   '';
 
   preConfigure =
@@ -280,6 +291,6 @@ stdenv.mkDerivation (prevAttrs: {
   __noChroot = metalSupport;
 
   passthru = {
-    inherit dependencies torch;
+    inherit dependencies torch variant;
   };
 })
