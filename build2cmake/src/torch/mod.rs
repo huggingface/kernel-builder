@@ -12,8 +12,8 @@ pub use metal::write_torch_ext_metal;
 mod ops_identifier;
 pub(crate) use ops_identifier::kernel_ops_identifier;
 
-mod universal;
-pub use universal::write_torch_ext_universal;
+mod noarch;
+pub use noarch::write_torch_ext_noarch;
 
 mod xpu;
 pub use xpu::write_torch_ext_xpu;

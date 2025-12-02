@@ -10,7 +10,7 @@ use crate::{
     torch::kernel_ops_identifier,
 };
 
-pub fn write_torch_ext_universal(
+pub fn write_torch_ext_noarch(
     env: &Environment,
     build: &Build,
     target_dir: PathBuf,

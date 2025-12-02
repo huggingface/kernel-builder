@@ -24,26 +24,12 @@ pub struct Build {
 }
 
 impl Build {
-    /// Check if this is a universal build (supports all backends).
-    pub fn is_universal(&self) -> bool {
+    pub fn is_noarch(&self) -> bool {
         self.kernels.is_empty()
     }
 
-    pub fn has_kernel_with_backend(&self, backend: &Backend) -> bool {
-        self.backends().contains(backend)
-    }
-
-    pub fn backends(&self) -> BTreeSet<Backend> {
-        self.kernels
-            .values()
-            .map(|kernel| match kernel {
-                Kernel::Cpu { .. } => Backend::Cpu,
-                Kernel::Cuda { .. } => Backend::Cuda,
-                Kernel::Metal { .. } => Backend::Metal,
-                Kernel::Rocm { .. } => Backend::Rocm,
-                Kernel::Xpu { .. } => Backend::Xpu,
-            })
-            .collect()
+    pub fn supports_backend(&self, backend: &Backend) -> bool {
+        self.general.backends.contains(backend)
     }
 }
 
@@ -52,7 +38,7 @@ impl Build {
 pub struct General {
     pub name: String,
 
-    pub backends: Vec<String>,
+    pub backends: Vec<Backend>,
 
     pub cuda: Option<CudaGeneral>,
 
@@ -278,17 +264,15 @@ impl TryFrom<v2::Build> for Build {
 
         let backends = if build.general.universal {
             vec![
-                "cpu".to_string(),
-                "cuda".to_string(),
-                "metal".to_string(),
-                "rocm".to_string(),
-                "xpu".to_string(),
+                Backend::Cpu,
+                Backend::Cuda,
+                Backend::Metal,
+                Backend::Rocm,
+                Backend::Xpu,
             ]
         } else {
-            let backend_set: BTreeSet<String> = kernels
-                .values()
-                .map(|kernel| kernel.backend().to_string())
-                .collect();
+            let backend_set: BTreeSet<Backend> =
+                kernels.values().map(|kernel| kernel.backend()).collect();
             backend_set.into_iter().collect()
         };
 
@@ -301,7 +285,7 @@ impl TryFrom<v2::Build> for Build {
 }
 
 impl General {
-    fn from_v2(general: v2::General, backends: Vec<String>) -> Self {
+    fn from_v2(general: v2::General, backends: Vec<Backend>) -> Self {
         let cuda = if general.cuda_minver.is_some() || general.cuda_maxver.is_some() {
             Some(CudaGeneral {
                 minver: general.cuda_minver,

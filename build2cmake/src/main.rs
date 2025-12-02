@@ -10,7 +10,7 @@ use minijinja::Environment;
 
 mod torch;
 use torch::{
-    write_torch_ext_cpu, write_torch_ext_cuda, write_torch_ext_metal, write_torch_ext_universal,
+    write_torch_ext_cpu, write_torch_ext_cuda, write_torch_ext_metal, write_torch_ext_noarch,
     write_torch_ext_xpu,
 };
 
@@ -140,51 +140,48 @@ fn generate_torch(
     env.set_trim_blocks(true);
     minijinja_embed::load_templates!(&mut env);
 
-    let backend = match (backend, build.is_universal()) {
-        (None, true) => {
-            let file_set = write_torch_ext_universal(&env, &build, target_dir.clone(), ops_id)?;
-            file_set.write(&target_dir, force)?;
-            return Ok(());
-        }
-        (Some(backend), true) => bail!("Universal kernel, cannot generate for backend {}", backend),
-        (Some(backend), false) => {
-            if !build.has_kernel_with_backend(&backend) {
-                bail!("No kernels found for backend {}", backend);
+    let backend = match backend {
+        Some(backend) => {
+            if !build.supports_backend(&backend) {
+                bail!("Kernel does not support backend: {}", backend);
             }
 
             backend
         }
-        (None, false) => {
-            let mut kernel_backends = build.backends();
-            let backend = if let Some(backend) = kernel_backends.pop_first() {
-                backend
-            } else {
-                bail!("No kernels found in build.toml");
-            };
+        None => {
+            let kernel_backends = &build.general.backends;
 
-            if !kernel_backends.is_empty() {
-                let kernel_backends: Vec<_> = build
-                    .backends()
-                    .into_iter()
-                    .map(|backend| backend.to_string())
-                    .collect();
+            if kernel_backends.len() > 1 {
+                let mut kernel_backends = kernel_backends
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>();
+                kernel_backends.sort();
                 bail!(
                     "Multiple supported backends found in build.toml: {}. Please specify one with --backend.",
                     kernel_backends.join(", ")
                 );
             }
 
-            backend
+            if let Some(backend) = kernel_backends.first() {
+                *backend
+            } else {
+                bail!("No backends are specified in build.toml");
+            }
         }
     };
 
-    let file_set = match backend {
-        Backend::Cpu => write_torch_ext_cpu(&env, &build, target_dir.clone(), ops_id)?,
-        Backend::Cuda | Backend::Rocm => {
-            write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id)?
+    let file_set = if build.is_noarch() {
+        write_torch_ext_noarch(&env, &build, target_dir.clone(), ops_id)?
+    } else {
+        match backend {
+            Backend::Cpu => write_torch_ext_cpu(&env, &build, target_dir.clone(), ops_id)?,
+            Backend::Cuda | Backend::Rocm => {
+                write_torch_ext_cuda(&env, backend, &build, target_dir.clone(), ops_id)?
+            }
+            Backend::Metal => write_torch_ext_metal(&env, &build, target_dir.clone(), ops_id)?,
+            Backend::Xpu => write_torch_ext_xpu(&env, &build, target_dir.clone(), ops_id)?,
         }
-        Backend::Metal => write_torch_ext_metal(&env, &build, target_dir.clone(), ops_id)?,
-        Backend::Xpu => write_torch_ext_xpu(&env, &build, target_dir.clone(), ops_id)?,
     };
     file_set.write(&target_dir, force)?;
 
@@ -378,25 +375,29 @@ fn get_generated_files(
 ) -> Result<Vec<PathBuf>> {
     let mut all_set = FileSet::new();
 
-    for backend in build.backends() {
-        let set = match backend {
-            Backend::Cpu => write_torch_ext_cpu(env, build, target_dir.clone(), ops_id.clone())?,
-            Backend::Cuda | Backend::Rocm => {
-                write_torch_ext_cuda(env, backend, build, target_dir.clone(), ops_id.clone())?
-            }
-            Backend::Metal => {
-                write_torch_ext_metal(env, build, target_dir.clone(), ops_id.clone())?
-            }
-            Backend::Xpu => write_torch_ext_xpu(env, build, target_dir.clone(), ops_id.clone())?,
-        };
+    if build.is_noarch() {
+        let set = write_torch_ext_noarch(env, build, target_dir.clone(), ops_id.clone())?;
 
         all_set.extend(set);
-    }
+    } else {
+        for backend in &build.general.backends {
+            let set = match backend {
+                Backend::Cpu => {
+                    write_torch_ext_cpu(env, build, target_dir.clone(), ops_id.clone())?
+                }
+                Backend::Cuda | Backend::Rocm => {
+                    write_torch_ext_cuda(env, *backend, build, target_dir.clone(), ops_id.clone())?
+                }
+                Backend::Metal => {
+                    write_torch_ext_metal(env, build, target_dir.clone(), ops_id.clone())?
+                }
+                Backend::Xpu => {
+                    write_torch_ext_xpu(env, build, target_dir.clone(), ops_id.clone())?
+                }
+            };
 
-    if build.is_universal() {
-        let set = write_torch_ext_universal(env, build, target_dir, ops_id)?;
-
-        all_set.extend(set);
+            all_set.extend(set);
+        }
     }
 
     Ok(all_set.into_names())
