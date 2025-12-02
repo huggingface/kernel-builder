@@ -10,12 +10,8 @@ let
   overlay = import ../overlay.nix;
 
   inherit (import ./torch-version-utils.nix { inherit lib; })
+    backend
     flattenSystems
-    isCpu
-    isCuda
-    isMetal
-    isRocm
-    isXpu
     ;
 
   # All build configurations supported by Torch.
@@ -23,10 +19,11 @@ let
     system:
     let
       filterMap = f: xs: builtins.filter (x: x != null) (builtins.map f xs);
+      systemBuildConfigs = filterMap (version: if version.system == system then version else null) (
+        flattenSystems torchVersions
+      );
     in
-    filterMap (version: if version.system == system then version else null) (
-      flattenSystems torchVersions
-    );
+    builtins.map (buildConfig: buildConfig // { backend = backend buildConfig; }) systemBuildConfigs;
 
   cudaVersions =
     let
@@ -61,8 +58,9 @@ let
     xpuPackages = super."xpuPackages_${flattenVersion xpuVersion}";
   };
   # Construct the nixpkgs package set for the given versions.
-  pkgsForVersions =
+  mkBuildSet =
     buildConfig@{
+      backend,
       cpu ? false,
       cudaVersion ? null,
       metal ? false,
@@ -76,15 +74,15 @@ let
     }:
     let
       pkgs =
-        if isCpu buildConfig then
+        if buildConfig.backend == "cpu" then
           pkgsForCpu
-        else if isCuda buildConfig then
+        else if buildConfig.backend == "cuda" then
           pkgsByCudaVer.${cudaVersion}
-        else if isRocm buildConfig then
+        else if buildConfig.backend == "rocm" then
           pkgsByRocmVer.${rocmVersion}
-        else if isMetal buildConfig then
+        else if buildConfig.backend == "metal" then
           pkgsForMetal
-        else if isXpu buildConfig then
+        else if buildConfig.backend == "xpu" then
           pkgsByXpuVer.${xpuVersion}
         else
           throw "No compute framework set in Torch version";
@@ -185,4 +183,4 @@ let
   pkgsByRocmVer = pkgsForRocmVersions rocmVersions;
 
 in
-map pkgsForVersions (buildConfigs system)
+map mkBuildSet (buildConfigs system)

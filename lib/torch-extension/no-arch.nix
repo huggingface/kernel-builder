@@ -1,4 +1,8 @@
 {
+  cudaSupport ? torch.cudaSupport,
+  rocmSupport ? torch.rocmSupport,
+  xpuSupport ? torch.xpuSupport,
+
   lib,
   pkgs,
   stdenv,
@@ -14,6 +18,8 @@
 }:
 
 {
+  buildConfig,
+
   # Whether to run get-kernel-check.
   doGetKernelCheck ? true,
 
@@ -30,6 +36,12 @@
   pythonDeps,
 }:
 
+# Extra validation - the environment should correspind to the build config.
+assert (buildConfig ? cudaVersion) -> cudaSupport;
+assert (buildConfig ? rocmVersion) -> rocmSupport;
+assert (buildConfig ? xpuVersion) -> xpuSupport;
+assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
+
 let
   inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
   dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
@@ -38,6 +50,7 @@ let
     python-depends = pythonDeps;
   };
   metadataFile = writeText "metadata.json" metadata;
+  metalSupport = buildConfig.metal or false;
 in
 
 stdenv.mkDerivation (prevAttrs: {
@@ -64,7 +77,18 @@ stdenv.mkDerivation (prevAttrs: {
   # build. But `build2cmake` does proper validation of the build.toml, so
   # we run it anyway.
   postPatch = ''
-    build2cmake generate-torch --ops-id ${rev} build.toml
+    build2cmake generate-torch --backend ${
+      if cudaSupport then
+        "cuda"
+      else if rocmSupport then
+        "rocm"
+      else if xpuSupport then
+        "xpu"
+      else if metalSupport then
+        "metal"
+      else
+        "cpu"
+    } --ops-id ${rev} build.toml
   '';
 
   installPhase = ''
