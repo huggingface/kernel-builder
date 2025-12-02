@@ -126,9 +126,9 @@ fn generate_torch(
 
     let build_compat = parse_and_validate(build_toml)?;
 
-    if matches!(build_compat, BuildCompat::V1(_)) {
+    if matches!(build_compat, BuildCompat::V1(_) | BuildCompat::V2(_)) {
         eprintln!(
-            "build.toml is in the deprecated V1 format, use `build2cmake update-build` to update."
+            "build.toml is in the deprecated V1 or V2 format, use `build2cmake update-build` to update."
         )
     }
 
@@ -191,7 +191,7 @@ fn generate_torch(
 fn update_build(build_toml: PathBuf) -> Result<()> {
     let build_compat: BuildCompat = parse_and_validate(&build_toml)?;
 
-    if matches!(build_compat, BuildCompat::V2(_)) {
+    if matches!(build_compat, BuildCompat::V3(_)) {
         return Ok(());
     }
 
@@ -263,9 +263,9 @@ fn clean(
 
     let build_compat = parse_and_validate(build_toml)?;
 
-    if matches!(build_compat, BuildCompat::V1(_)) {
+    if matches!(build_compat, BuildCompat::V1(_) | BuildCompat::V2(_)) {
         eprintln!(
-            "build.toml is in the deprecated V1 format, use `build2cmake update-build` to update."
+            "build.toml is in the deprecated V1 or V2 format, use `build2cmake update-build` to update."
         )
     }
 
