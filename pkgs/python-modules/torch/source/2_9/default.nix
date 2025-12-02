@@ -724,7 +724,11 @@ buildPythonPackage rec {
     # To help debug when a package is broken due to CUDA support
     inherit brokenConditions;
     tests = callPackage ./tests.nix { };
-  };
+  }
+  // (callPackage ../variant.nix {
+    inherit cxx11Abi;
+    torchVersion = version;
+  });
 
   meta = {
     changelog = "https://github.com/pytorch/pytorch/releases/tag/v${version}";

@@ -1,4 +1,5 @@
 {
+  callPackage,
   config,
   lib,
   stdenv,
@@ -7,6 +8,7 @@
   fetchurl,
 
   cudaSupport ? config.cudaSupport,
+  metalSupport ? config.metalSupport,
   rocmSupport ? config.rocmSupport,
   tritonSupport ? (!stdenv.hostPlatform.isDarwin),
   xpuSupport ? (config.xpuSupport or false),
@@ -329,7 +331,11 @@ buildPythonPackage {
 
     cudaCapabilities = if cudaSupport then supportedCudaCapabilities else [ ];
     rocmArchs = if rocmSupport then supportedTorchRocmArchs else [ ];
-  };
+  }
+  // (callPackage ../variant.nix {
+    inherit cxx11Abi;
+    torchVersion = version;
+  });
 
   meta = with lib; {
     description = "PyTorch: Tensors and Dynamic neural networks in Python with strong GPU acceleration";

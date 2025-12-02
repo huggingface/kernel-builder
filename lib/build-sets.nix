@@ -126,7 +126,16 @@ let
     );
   pkgsByXpuVer = pkgsForXpuVersions xpuVersions;
 
-  pkgsForMetal = pkgsForCpu;
+  pkgsForMetal = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfree = true;
+      metalSupport = true;
+    };
+    overlays = [
+      overlay
+    ];
+  };
 
   pkgsForCpu = import nixpkgs {
     inherit system;

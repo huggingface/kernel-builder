@@ -74,26 +74,6 @@ assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 let
   inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
 
-  abiString = cxx11Abi: if cxx11Abi then "cxx11" else "cxx98";
-
-  computeStrings = {
-    cpu = "cpu";
-    cuda = "cu${flattenVersion (lib.versions.majorMinor buildConfig.cudaVersion)}";
-    metal = "metal";
-    rocm = "rocm${flattenVersion (lib.versions.majorMinor buildConfig.rocmVersion)}";
-    xpu = "xpu${flattenVersion (lib.versions.majorMinor buildConfig.xpuVersion)}";
-  };
-  computeString = computeStrings.${buildConfig.backend};
-
-  flattenVersion =
-    version: lib.replaceStrings [ "." ] [ "" ] (lib.versions.majorMinor (lib.versions.pad 2 version));
-
-  variant =
-    if buildConfig.system == "aarch64-darwin" then
-      "torch${flattenVersion buildConfig.torchVersion}-${computeString}-${buildConfig.system}"
-    else
-      "torch${flattenVersion buildConfig.torchVersion}-${abiString buildConfig.cxx11Abi}-${computeString}-${buildConfig.system}";
-
   dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
 
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
@@ -291,6 +271,7 @@ stdenv.mkDerivation (prevAttrs: {
   __noChroot = metalSupport;
 
   passthru = {
-    inherit dependencies torch variant;
+    inherit dependencies torch;
+    inherit (torch) variant;
   };
 })

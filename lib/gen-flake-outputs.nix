@@ -17,8 +17,6 @@
 }:
 
 let
-  inherit (import ./build-variants.nix { inherit lib; }) buildName;
-
   supportedFormat = ''
     kernel-builder.lib.genFlakeOutputs {
       inherit self;
@@ -102,7 +100,7 @@ let
       throw "No build variant is compatible with this system"
     else
       builtins.head buildSetsSorted;
-  shellTorch = buildName bestBuildSet.buildConfig;
+  shellTorch = bestBuildSet.torch.variant;
   headOrEmpty = l: if l == [ ] then [ ] else [ (builtins.head l) ];
 in
 {

@@ -51,7 +51,6 @@ let
   };
   metadataFile = writeText "metadata.json" metadata;
   metalSupport = buildConfig.metal or false;
-  variant = "torch-${buildConfig.backend}";
 in
 
 stdenv.mkDerivation (prevAttrs: {
@@ -94,6 +93,7 @@ stdenv.mkDerivation (prevAttrs: {
   doInstallCheck = true;
 
   passthru = {
-    inherit dependencies variant;
+    inherit dependencies;
+    variant = torch.noarchVariant;
   };
 })

@@ -112,8 +112,6 @@
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (nixpkgs) lib;
 
-        buildName = (import ./lib/build-variants.nix { inherit lib; }).buildName;
-
         buildSets = defaultBuildSetsPerSystem.${system};
 
       in
@@ -151,12 +149,11 @@
                     ++ allOutputs python3Packages.kernels
                     ++ lib.optionals stdenv.hostPlatform.isLinux (allOutputs stdenvGlibc_2_27)
                   );
-                buildSetLinkFarm =
-                  buildSet: pkgs.linkFarm (buildName buildSet.buildConfig) (buildSetOutputs buildSet);
+                buildSetLinkFarm = buildSet: pkgs.linkFarm buildSet.torch.variant (buildSetOutputs buildSet);
               in
               pkgs.linkFarm "packages-for-cache" (
                 map (buildSet: {
-                  name = buildName (buildSet.buildConfig);
+                  name = buildSet.torch.variant;
                   path = buildSetLinkFarm buildSet;
                 }) buildSets
               );
@@ -182,7 +179,7 @@
             # This package set is exposed so that we can prebuild the Torch versions.
             torch = builtins.listToAttrs (
               map (buildSet: {
-                name = buildName (buildSet.buildConfig);
+                name = buildSet.torch.variant;
                 value = buildSet.torch;
               }) buildSets
             );
