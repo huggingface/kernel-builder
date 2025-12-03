@@ -11,7 +11,7 @@ _PLATFORM_NAMES = {
     "xpu": "XPU",
 }
 
-HEADER = """# Build variants
+SPECIFIC_VARIANTS = """# Build variants
 
 A kernel can be compliant for a specific compute framework (e.g. CUDA) or
 architecture (e.g. x86_64). For compliance with a compute framework and
@@ -19,12 +19,10 @@ architecture combination, all the build variants listed below must be
 available. This list will be updated as new PyTorch versions are released.\n
 """
 
-FOOTER = """## Universal
+NOARCH_VARIANTS = """## Python-only kernels
 
 Kernels that are in pure Python (e.g. Triton kernels) only need to provide
-a single build variant:
-
-- `torch-universal`
+one or more of the following variants:\n
 """
 
 
@@ -35,7 +33,7 @@ def json_to_markdown():
         data = json.load(f)
 
     with open(project_root / "docs" / "build-variants.md", "w") as f:
-        f.write(HEADER)
+        f.write(SPECIFIC_VARIANTS)
         for arch, platforms in data.items():
             for platform, variants in platforms.items():
                 f.write(f"## {_PLATFORM_NAMES[platform]} {arch}\n\n")
@@ -44,7 +42,10 @@ def json_to_markdown():
                     f.write(f"- `{variant}`\n")
 
                 f.write("\n")
-        f.write(FOOTER)
+        f.write(NOARCH_VARIANTS)
+        backends = { backend for platforms in data.values() for backend in platforms.keys() }
+        for backend in sorted(backends):
+            f.write(f"- `torch-{backend}`\n")
 
 
 if __name__ == "__main__":

@@ -53,9 +53,13 @@ available. This list will be updated as new PyTorch versions are released.
 - `torch28-cxx11-xpu20251-x86_64-linux`
 - `torch29-cxx11-xpu20252-x86_64-linux`
 
-## Universal
+## Python-only kernels
 
 Kernels that are in pure Python (e.g. Triton kernels) only need to provide
-a single build variant:
+one or more of the following variants:
 
-- `torch-universal`
+- `torch-cpu`
+- `torch-cuda`
+- `torch-metal`
+- `torch-rocm`
+- `torch-xpu`
