@@ -93,11 +93,14 @@ depends = [ "torch" ]
 
 - `name` (required): the name of the kernel. The Python code for a Torch
   extension must be stored in `torch-ext/<name>`.
-- `universal`: the kernel is a universal kernel when set to `true`. A
-  universal kernel is a pure Python package (no compiled files).
-  Universal kernels do not use the other sections described below.
-  A good example of a universal kernel is a Triton kernel.
-  Default: `false`
+- `backends` (required): a list of supported backends. Must be one or
+  more of `cpu`, `cuda`, `metal`, `rocm`, or `xpu`.
+- `python-depends` (**experimental**): a list of additional Python dependencies
+  that the kernel requires. The only supported dependencies are `einops`
+  and `nvidia-cutlass-dsl`.
+
+### `general.cuda`
+
 - `cuda-maxver`: the maximum CUDA toolkit version (inclusive). This option
   _must not_ be set under normal circumstances, since it can exclude Torch
   build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
@@ -108,9 +111,6 @@ depends = [ "torch" ]
   build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
   This option is provided for kernels that require functionality only
   provided by newer CUDA toolkits.
-- `python-depends` (**experimental**): a list of additional Python dependencies
-  that the kernel requires. The only supported dependencies are `einops`
-  and `nvidia-cutlass-dsl`.
 
 ### `torch`
 
