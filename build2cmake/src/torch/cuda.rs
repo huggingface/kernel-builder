@@ -168,6 +168,8 @@ fn write_cmake(
         name,
         build.general.cuda_minver.as_ref(),
         build.general.cuda_maxver.as_ref(),
+        torch.minver.as_ref(),
+        torch.maxver.as_ref(),
         cmake_writer,
     )?;
 
@@ -390,6 +392,8 @@ pub fn render_preamble(
     name: &str,
     cuda_minver: Option<&Version>,
     cuda_maxver: Option<&Version>,
+    torch_minver: Option<&Version>,
+    torch_maxver: Option<&Version>,
     write: &mut impl Write,
 ) -> Result<()> {
     env.get_template("cuda/preamble.cmake")
@@ -399,6 +403,8 @@ pub fn render_preamble(
                 name => name,
                 cuda_minver => cuda_minver.map(|v| v.to_string()),
                 cuda_maxver => cuda_maxver.map(|v| v.to_string()),
+                torch_minver => torch_minver.map(|v| v.to_string()),
+                torch_maxver => torch_maxver.map(|v| v.to_string()),
                 cuda_supported_archs => cuda_supported_archs(),
                 platform => env::consts::OS
             },

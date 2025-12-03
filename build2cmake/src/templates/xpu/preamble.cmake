@@ -43,8 +43,22 @@ find_package(Torch REQUIRED)
 
 # Intel XPU backend detection and setup
 if(NOT TORCH_VERSION)
-  run_python(TORCH_VERSION "import torch; print(torch.__version__)" "Failed to get Torch version")
+  run_python(TORCH_VERSION "import torch; print(torch.__version__.split('+')[0])" "Failed to get Torch version")
 endif()
+
+{% if torch_minver %}
+if (TORCH_VERSION VERSION_LESS {{ torch_minver }})
+  message(FATAL_ERROR "Torch version ${TORCH_VERSION} is too old. "
+    "Minimum required version is {{ torch_minver }}.")
+endif()
+{% endif %}
+
+{% if torch_maxver %}
+if (TORCH_VERSION VERSION_GREATER {{ torch_maxver }})
+  message(FATAL_ERROR "Torch version ${TORCH_VERSION} is too new. "
+    "Maximum supported version is {{ torch_maxver }}.")
+endif()
+{% endif %}
 
 # Check for Intel XPU support in PyTorch
 run_python(XPU_AVAILABLE

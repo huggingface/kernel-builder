@@ -73,6 +73,8 @@ rec {
       backends' = backends buildToml;
       minCuda = buildToml.general.cuda-minver or "11.8";
       maxCuda = buildToml.general.cuda-maxver or "99.9";
+      minTorch = buildToml.torch.minver or "2.0";
+      maxTorch = buildToml.torch.maxver or "99.9";
       versionBetween =
         minver: maxver: ver:
         builtins.compareVersions ver minver >= 0 && builtins.compareVersions ver maxver <= 0;
@@ -89,8 +91,11 @@ rec {
           cudaVersionSupported =
             !(isCuda buildSet.buildConfig)
             || versionBetween minCuda maxCuda buildSet.pkgs.cudaPackages.cudaMajorMinorVersion;
+          torchVersionParts = lib.splitString "." buildSet.torch.version;
+          torchMajorMinor = lib.concatStringsSep "." (lib.take 2 torchVersionParts);
+          torchVersionSupported = versionBetween minTorch maxTorch torchMajorMinor;
         in
-        backendSupported && cudaVersionSupported;
+        backendSupported && cudaVersionSupported && torchVersionSupported;
     in
     builtins.filter supportedBuildSet buildSets;
 

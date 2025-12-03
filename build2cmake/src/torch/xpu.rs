@@ -9,6 +9,7 @@ use minijinja::{context, Environment};
 use super::common::write_pyproject_toml;
 use super::kernel_ops_identifier;
 use crate::config::{Build, Dependency, Kernel, Torch};
+use crate::version::Version;
 use crate::FileSet;
 
 static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
@@ -135,7 +136,13 @@ fn write_cmake(
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, name, cmake_writer)?;
+    render_preamble(
+        env,
+        name,
+        torch.minver.as_ref(),
+        torch.maxver.as_ref(),
+        cmake_writer,
+    )?;
 
     render_deps(env, build, cmake_writer)?;
 
@@ -263,12 +270,20 @@ pub fn render_extension(
     Ok(())
 }
 
-pub fn render_preamble(env: &Environment, name: &str, write: &mut impl Write) -> Result<()> {
+pub fn render_preamble(
+    env: &Environment,
+    name: &str,
+    torch_minver: Option<&Version>,
+    torch_maxver: Option<&Version>,
+    write: &mut impl Write,
+) -> Result<()> {
     env.get_template("xpu/preamble.cmake")
         .wrap_err("Cannot get CMake prelude template")?
         .render_to_write(
             context! {
                 name => name,
+                torch_minver => torch_minver.map(|v| v.to_string()),
+                torch_maxver => torch_maxver.map(|v| v.to_string()),
             },
             &mut *write,
         )

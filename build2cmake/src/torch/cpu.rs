@@ -8,6 +8,7 @@ use super::{common::write_pyproject_toml, kernel_ops_identifier};
 use crate::{
     config::{Build, Kernel, Torch},
     fileset::FileSet,
+    version::Version,
 };
 
 static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
@@ -71,7 +72,13 @@ fn write_cmake(
 
     let cmake_writer = file_set.entry("CMakeLists.txt");
 
-    render_preamble(env, name, cmake_writer)?;
+    render_preamble(
+        env,
+        name,
+        torch.minver.as_ref(),
+        torch.maxver.as_ref(),
+        cmake_writer,
+    )?;
 
     // Add deps once we have any non-CUDA deps.
     // render_deps(env, build, cmake_writer)?;
@@ -168,12 +175,20 @@ pub fn render_kernel(
     Ok(())
 }
 
-fn render_preamble(env: &Environment, name: &str, write: &mut impl Write) -> Result<()> {
+fn render_preamble(
+    env: &Environment,
+    name: &str,
+    torch_minver: Option<&Version>,
+    torch_maxver: Option<&Version>,
+    write: &mut impl Write,
+) -> Result<()> {
     env.get_template("cpu/preamble.cmake")
         .wrap_err("Cannot get CMake prelude template")?
         .render_to_write(
             context! {
                 name => name,
+                torch_minver => torch_minver.map(|v| v.to_string()),
+                torch_maxver => torch_maxver.map(|v| v.to_string()),
             },
             &mut *write,
         )

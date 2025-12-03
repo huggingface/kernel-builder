@@ -123,6 +123,8 @@ options:
   `["py", "pyi"]`.
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
+- `maxver` (optional): the maximum supported PyTorch version (inclusive).
+- `minver` (optional): the minimum supported PyTorch version.
 
 ### `kernel.<name>`
 

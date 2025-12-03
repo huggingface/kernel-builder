@@ -92,6 +92,8 @@ impl Display for PythonDependency {
 #[serde(deny_unknown_fields)]
 pub struct Torch {
     pub include: Option<Vec<String>>,
+    pub minver: Option<Version>,
+    pub maxver: Option<Version>,
     pub pyext: Option<Vec<String>>,
 
     #[serde(default)]
@@ -352,6 +354,8 @@ impl From<v1::Torch> for Torch {
     fn from(torch: v1::Torch) -> Self {
         Self {
             include: torch.include,
+            minver: None,
+            maxver: None,
             pyext: torch.pyext,
             src: torch.src,
         }
