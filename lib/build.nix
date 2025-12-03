@@ -44,9 +44,7 @@ rec {
         xpu = false;
       };
     in
-    lib.foldl (backends: backend: backends // { ${backend} = true; }) init (
-      buildToml.general.backends
-    );
+    lib.foldl (backends: backend: backends // { ${backend} = true; }) init (buildToml.general.backends);
 
   # Backends for which there is a native (compiled kernel).
   kernelBackends =
