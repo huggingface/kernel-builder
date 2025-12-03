@@ -23,14 +23,13 @@ rec {
   validateBuildConfig =
     buildToml:
     let
+      hasBackends = buildToml.general ? backends;
       kernels = lib.attrValues (buildToml.kernel or { });
-      hasOldUniversal = builtins.hasAttr "universal" (buildToml.torch or { });
-      hasLanguage = lib.any (kernel: kernel ? language) kernels;
 
     in
-    assert lib.assertMsg (!hasOldUniversal && !hasLanguage) ''
+    assert lib.assertMsg hasBackends ''
       build.toml seems to be of an older version, update it with:
-            build2cmake update-build build.toml'';
+            nix run github:huggingface/kernel-builder#build2cmake update-build build.toml'';
     buildToml;
 
   # Backends supported by the kernel.
@@ -46,7 +45,7 @@ rec {
       };
     in
     lib.foldl (backends: backend: backends // { ${backend} = true; }) init (
-      buildToml.general.backends or [ ]
+      buildToml.general.backends
     );
 
   # Backends for which there is a native (compiled kernel).
@@ -79,9 +78,8 @@ rec {
     buildToml: buildSets:
     let
       backends' = backends buildToml;
-      # COMPAT: buildToml.general.cuda-{minver,maxver} are backwards compat for v2 build.toml.
-      minCuda = buildToml.general.cuda.cuda-minver or buildToml.general.cuda-minver or "11.8";
-      maxCuda = buildToml.general.cuda.cuda-maxver or buildToml.general.cuda-maxver or "99.9";
+      minCuda = buildToml.general.cuda.cuda-minver or "11.8";
+      maxCuda = buildToml.general.cuda.cuda-maxver or "99.9";
       minTorch = buildToml.torch.minver or "2.0";
       maxTorch = buildToml.torch.maxver or "99.9";
       versionBetween =
