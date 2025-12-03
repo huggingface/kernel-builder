@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.library import opcheck
 
-from silu_and_mul_universal import ops, silu_and_mul
+from silu_and_mul import ops, silu_and_mul
 
 
 def silu_and_mul_ref(x: torch.Tensor) -> torch.Tensor:

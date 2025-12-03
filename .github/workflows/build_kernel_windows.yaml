@@ -79,5 +79,5 @@ jobs:
 #      - name: Build relu kernel (specific Torch version)
 #        run: ( cd examples/relu-specific-torch && nix build . )
 
-      - name: Build silu-and-mul-universal kernel
-        run: ( scripts\windows\builder.ps1 -SourceFolder examples/silu-and-mul-universal -BuildConfig Release -Build -Force)
+      - name: Build silu-and-mul kernel
+        run: ( scripts\windows\builder.ps1 -SourceFolder examples/silu-and-mul -BuildConfig Release -Build -Force)

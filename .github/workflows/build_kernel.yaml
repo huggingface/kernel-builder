@@ -58,10 +58,10 @@ jobs:
       - name: Test that we can build a test shell (e.g. that gcc corresponds to CUDA-required)
         run: ( cd examples/relu && nix build .#devShells.x86_64-linux.test )
 
-      - name: Build silu-and-mul-universal kernel
-        run: ( cd examples/silu-and-mul-universal && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
-      - name: Copy silu-and-mul-universal kernel
-        run: cp -rL examples/silu-and-mul-universal/result silu-and-mul-universal-kernel
+      - name: Build silu-and-mul kernel
+        run: ( cd examples/silu-and-mul && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
+      - name: Copy silu-and-mul kernel
+        run: cp -rL examples/silu-and-mul/result silu-and-mul-kernel
 
       - name: Upload kernel artifacts
         uses: actions/upload-artifact@v4
@@ -73,7 +73,7 @@ jobs:
             relu-kernel
             relu-kernel-cpu
             relu-backprop-compile-kernel
-            silu-and-mul-universal-kernel
+            silu-and-mul-kernel
 
   test:
     name: Test kernels

@@ -1,5 +1,5 @@
 [general]
-name = "silu-and-mul-universal"
+name = "silu-and-mul"
 backends = [
     "cpu",
     "cuda",
