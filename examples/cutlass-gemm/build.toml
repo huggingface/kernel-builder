@@ -1,6 +1,9 @@
 [general]
 name = "cutlass-gemm"
-universal = false
+backends = [
+    "cuda",
+    "xpu",
+]
 
 [torch]
 src = [

@@ -1,6 +1,12 @@
 [general]
 name = "relu"
-universal = false
+backends = [
+    "cpu",
+    "cuda",
+    "metal",
+    "rocm",
+    "xpu",
+]
 
 [torch]
 src = [

@@ -1,6 +1,9 @@
 [general]
 name = "relu-backprop-compile"
-universal = false
+backends = [
+    "cuda",
+    "rocm",
+]
 
 [torch]
 src = [

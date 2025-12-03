@@ -1,6 +1,10 @@
 [general]
 name = "relu-compiler-flags"
-universal = false
+backends = [
+    "cuda",
+    "rocm",
+    "xpu",
+]
 
 [torch]
 src = ["torch-ext/torch_binding.cpp", "torch-ext/torch_binding.h"]

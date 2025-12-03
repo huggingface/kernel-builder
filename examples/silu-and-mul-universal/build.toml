@@ -1,3 +1,9 @@
 [general]
 name = "silu-and-mul-universal"
-universal = true
+backends = [
+    "cpu",
+    "cuda",
+    "metal",
+    "rocm",
+    "xpu",
+]

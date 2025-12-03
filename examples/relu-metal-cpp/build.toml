@@ -1,6 +1,6 @@
 [general]
 name = "relu"
-universal = false
+backends = ["metal"]
 
 [torch]
 src = [

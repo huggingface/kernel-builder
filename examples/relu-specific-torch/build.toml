@@ -1,6 +1,9 @@
 [general]
 name = "relu-specific-torch"
-universal = false
+backends = [
+    "cuda",
+    "rocm",
+]
 
 [torch]
 src = [
