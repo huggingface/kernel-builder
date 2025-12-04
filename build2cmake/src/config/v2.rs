@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use eyre::{bail, Result};
 use serde::{Deserialize, Serialize};
@@ -115,43 +115,6 @@ pub enum Kernel {
         include: Option<Vec<String>>,
         src: Vec<String>,
     },
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum Backend {
-    Cpu,
-    Cuda,
-    Metal,
-    Rocm,
-    Xpu,
-}
-
-impl Display for Backend {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Backend::Cpu => write!(f, "cpu"),
-            Backend::Cuda => write!(f, "cuda"),
-            Backend::Metal => write!(f, "metal"),
-            Backend::Rocm => write!(f, "rocm"),
-            Backend::Xpu => write!(f, "xpu"),
-        }
-    }
-}
-
-impl FromStr for Backend {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "cpu" => Ok(Backend::Cpu),
-            "cuda" => Ok(Backend::Cuda),
-            "metal" => Ok(Backend::Metal),
-            "rocm" => Ok(Backend::Rocm),
-            "xpu" => Ok(Backend::Xpu),
-            _ => Err(format!("Unknown backend: {s}")),
-        }
-    }
 }
 
 impl TryFrom<v1::Build> for Build {
