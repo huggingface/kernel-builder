@@ -1,7 +1,8 @@
 { lib }:
 let
   inherit (import ./torch-version-utils.nix { inherit lib; })
-    backend flattenSystems
+    backend
+    flattenSystems
     ;
 in
 rec {
