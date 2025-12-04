@@ -1,7 +1,7 @@
 { lib }:
 let
   inherit (import ./torch-version-utils.nix { inherit lib; })
-    flattenSystems
+    backend flattenSystems
     ;
 in
 rec {
@@ -11,15 +11,15 @@ rec {
       inherit (import ./version-utils.nix { inherit lib; }) abiString flattenVersion;
       computeString =
         version:
-        if version.backend == "cpu" then
+        if backend version == "cpu" then
           "cpu"
-        else if version.backend == "cuda" then
+        else if backend version == "cuda" then
           "cu${flattenVersion (lib.versions.majorMinor version.cudaVersion)}"
-        else if version.backend == "rocm" then
+        else if backend version == "rocm" then
           "rocm${flattenVersion (lib.versions.majorMinor version.rocmVersion)}"
-        else if version.backend == "metal" then
+        else if backend version == "metal" then
           "metal"
-        else if version.backend == "xpu" then
+        else if backend version == "xpu" then
           "xpu${flattenVersion (lib.versions.majorMinor version.xpuVersion)}"
         else
           throw "No compute framework set in Torch version";
@@ -41,7 +41,7 @@ rec {
       let
         path = [
           version.system
-          version.backend
+          (backend version)
         ];
         pathVersions = lib.attrByPath path [ ] acc ++ [ (buildName version) ];
       in
