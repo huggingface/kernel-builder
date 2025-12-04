@@ -123,8 +123,10 @@ options:
   `["py", "pyi"]`.
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
-- `maxver` (optional): the maximum supported PyTorch version (inclusive).
-- `minver` (optional): the minimum supported PyTorch version.
+- `maxver` (optional): only build for this Torch version and earlier. Use cautiously, since this option produces
+   non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
+- `minver` (optional): only build for this Torch version and later. Use cautiously, since this option produces
+   non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
 
 ### `kernel.<name>`
 
