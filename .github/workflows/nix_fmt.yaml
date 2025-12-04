@@ -1,4 +1,4 @@
-name: "Check Nix formatting"
+name: "Nix checks"
 on:
   push:
     branches: [main]
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Check Nix formatting
+    name: Nix checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,5 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: Check formatting
         run: nix fmt -- --ci
+      - name: Nix checks
+        run: nix build .\#checks.x86_64-linux.default

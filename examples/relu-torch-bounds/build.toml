@@ -4,7 +4,7 @@ universal = false
 
 [torch]
 src = ["torch-ext/torch_binding.cpp", "torch-ext/torch_binding.h"]
-minver = "2.8"
+minver = "2.9"
 maxver = "2.9"
 
 [kernel.relu]

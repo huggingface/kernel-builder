@@ -118,6 +118,11 @@
 
       in
       rec {
+        checks.default = pkgs.callPackage ./lib/checks.nix {
+          inherit buildSets;
+          build = defaultBuildPerSystem.${system};
+        };
+
         formatter = pkgs.nixfmt-tree;
 
         packages =
