@@ -76,8 +76,8 @@ rec {
     buildToml: buildSets:
     let
       backends' = backends buildToml;
-      minCuda = buildToml.general.cuda.cuda-minver or "11.8";
-      maxCuda = buildToml.general.cuda.cuda-maxver or "99.9";
+      minCuda = buildToml.general.cuda.minver or "11.8";
+      maxCuda = buildToml.general.cuda.maxver or "99.9";
       minTorch = buildToml.torch.minver or "2.0";
       maxTorch = buildToml.torch.maxver or "99.9";
       versionBetween =

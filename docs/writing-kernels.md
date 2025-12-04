@@ -101,12 +101,12 @@ depends = [ "torch" ]
 
 ### `general.cuda`
 
-- `cuda-maxver`: the maximum CUDA toolkit version (inclusive). This option
+- `maxver`: the maximum CUDA toolkit version (inclusive). This option
   _must not_ be set under normal circumstances, since it can exclude Torch
   build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
   This option is provided for kernels that cause compiler errors on
   newer CUDA toolkit versions.
-- `cuda-minver`: the minimum required CUDA toolkit version. This option
+- `minver`: the minimum required CUDA toolkit version. This option
   _must not_ be set under normal circumstances, since it can exclude Torch
   build variants that are [required for compliant kernels](https://github.com/huggingface/kernels/blob/main/docs/kernel-requirements.md).
   This option is provided for kernels that require functionality only
