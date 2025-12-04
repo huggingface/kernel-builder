@@ -59,7 +59,7 @@ jobs:
         run: ( cd examples/relu && nix build .#devShells.x86_64-linux.test )
 
       - name: Build silu-and-mul kernel
-        run: ( cd examples/silu-and-mul && nix build .\#redistributable.torch29-cxx11-cu126-x86_64-linux )
+        run: ( cd examples/silu-and-mul && nix build .\#redistributable.torch-cuda )
       - name: Copy silu-and-mul kernel
         run: cp -rL examples/silu-and-mul/result silu-and-mul-kernel
 
