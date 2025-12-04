@@ -1,7 +1,7 @@
 import torch
 
 from ._ops import ops
-from .silu_and_mul import _silu_and_mul
+from .op import _silu_and_mul
 
 
 def silu_and_mul(x: torch.Tensor) -> torch.Tensor:
