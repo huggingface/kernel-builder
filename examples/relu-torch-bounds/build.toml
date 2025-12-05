@@ -1,11 +1,17 @@
 [general]
 name = "relu"
-universal = false
+backends = [
+    "cuda",
+    "rocm",
+]
 
 [torch]
-src = ["torch-ext/torch_binding.cpp", "torch-ext/torch_binding.h"]
 minver = "2.9"
 maxver = "2.9"
+src = [
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
+]
 
 [kernel.relu]
 backend = "cuda"
@@ -14,6 +20,7 @@ src = ["relu_cuda/relu.cu"]
 
 [kernel.relu_rocm]
 backend = "rocm"
+depends = ["torch"]
 rocm-archs = [
     "gfx906",
     "gfx908",
@@ -25,5 +32,4 @@ rocm-archs = [
     "gfx1100",
     "gfx1101",
 ]
-depends = ["torch"]
 src = ["relu_cuda/relu.cu"]
