@@ -18,7 +18,7 @@ let
   format = "wheel";
   pyShortVersion = "cp" + builtins.replaceStrings [ "." ] [ "" ] python.pythonVersion;
   hashes = {
-    cp313-x86_64-linux = "sha256-k1ZgSvyPYqrEZjSzoSuvjLPzpvLkTjmNz+bsmP8ajRs=";
+    cp313-x86_64-linux = "sha256-Lm7cFGjZjhdg4YXftwjcmaAVThSg9IOejUkc61YzoZk=";
   };
   hash =
     hashes."${pyShortVersion}-${stdenv.system}"
@@ -27,7 +27,7 @@ let
 in
 buildPythonPackage rec {
   pname = "nvidia-cutlass-dsl";
-  version = "4.2.1";
+  version = "4.3.0";
   inherit format;
 
   src = fetchPypi {
