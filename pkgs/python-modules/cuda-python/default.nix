@@ -11,14 +11,14 @@
 
 buildPythonPackage rec {
   pname = "cuda-python";
-  version = "13.0.3";
+  version = "13.1.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "cuda-python";
     rev = "v${version}";
-    hash = "sha256-Uq1oQWtilocQPh6cZ3P/L/L6caCHv17u1y67sm5fhhA=";
+    hash = "sha256-aF06WwThJmGEqUcVP4dooym1uqYjUM45arqZaxjlTuA=";
   };
 
   sourceRoot = "source/cuda_python";
