@@ -6,14 +6,14 @@
 
 buildPythonPackage rec {
   pname = "cuda-pathfinder";
-  version = "1.3.2";
+  version = "1.3.3";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "cuda-python";
     rev = "${pname}-v${version}";
-    hash = "sha256-hm/LoOVpJVKkOuKrBdHnYi1JMCNeB2ozAvz/N6RG0zU=";
+    hash = "sha256-aF06WwThJmGEqUcVP4dooym1uqYjUM45arqZaxjlTuA=";
   };
 
   sourceRoot = "source/cuda_pathfinder";
