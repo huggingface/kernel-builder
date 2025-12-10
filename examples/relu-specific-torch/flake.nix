@@ -17,7 +17,6 @@
         {
           torchVersion = "2.9";
           cudaVersion = "12.8";
-          cxx11Abi = true;
           systems = [
             "x86_64-linux"
             "aarch64-linux"

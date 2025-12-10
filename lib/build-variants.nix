@@ -9,7 +9,7 @@ rec {
 
   buildName =
     let
-      inherit (import ./version-utils.nix { inherit lib; }) abiString flattenVersion;
+      inherit (import ./version-utils.nix { inherit lib; }) flattenVersion;
       computeString =
         version:
         if backend version == "cpu" then
@@ -29,7 +29,7 @@ rec {
     if version.system == "aarch64-darwin" then
       "torch${flattenVersion version.torchVersion}-${computeString version}-${version.system}"
     else
-      "torch${flattenVersion version.torchVersion}-${abiString version.cxx11Abi}-${computeString version}-${version.system}";
+      "torch${flattenVersion version.torchVersion}-cxx11-${computeString version}-${version.system}";
 
   # Build variants included in bundle builds.
   buildVariants =

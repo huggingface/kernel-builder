@@ -26,7 +26,6 @@
   mpi,
   nvtx,
   buildDocs ? false,
-  cxx11Abi ? true,
 
   # tests.cudaAvailable:
   callPackage,
@@ -420,7 +419,7 @@ buildPythonPackage rec {
   CMAKE_GENERATOR = "Ninja";
 
   # Whether to use C++11 ABI (or earlier).
-  _GLIBCXX_USE_CXX11_ABI = setBool cxx11Abi;
+  _GLIBCXX_USE_CXX11_ABI = setBool true;
 
   # Unlike MKL, oneDNN (née MKLDNN) is FOSS, so we enable support for
   # it by default. PyTorch currently uses its own vendored version
@@ -728,7 +727,6 @@ buildPythonPackage rec {
     inherit
       cudaSupport
       cudaPackages
-      cxx11Abi
       rocmSupport
       rocmPackages
       xpuSupport
@@ -743,7 +741,6 @@ buildPythonPackage rec {
     tests = callPackage ./tests.nix { };
   }
   // (callPackage ../variant.nix {
-    inherit cxx11Abi;
     torchVersion = version;
   });
 

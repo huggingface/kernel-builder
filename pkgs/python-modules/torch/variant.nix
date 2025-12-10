@@ -12,15 +12,12 @@
   lib,
   stdenv,
 
-  cxx11Abi,
-
   torchVersion,
 }:
 
 let
   flattenVersion =
     version: lib.replaceStrings [ "." ] [ "" ] (lib.versions.majorMinor (lib.versions.pad 2 version));
-  abiString = cxx11Abi: if cxx11Abi then "cxx11" else "cxx98";
   backend =
     if cudaSupport then
       "cuda"
@@ -49,7 +46,7 @@ in
     if stdenv.hostPlatform.system == "aarch64-darwin" then
       "torch${flattenVersion (lib.versions.majorMinor torchVersion)}-${computeString}-${stdenv.hostPlatform.system}"
     else
-      "torch${flattenVersion (lib.versions.majorMinor torchVersion)}-${abiString cxx11Abi}-${computeString}-${stdenv.hostPlatform.system}";
+      "torch${flattenVersion (lib.versions.majorMinor torchVersion)}-cxx11-${computeString}-${stdenv.hostPlatform.system}";
 
   noarchVariant = "torch-${backend}";
 }

@@ -43,8 +43,6 @@
   url,
   hash,
   version,
-  # Remove, needed for compat.
-  cxx11Abi ? true,
 
   effectiveStdenv ? if cudaSupport then cudaPackages.backendStdenv else stdenv,
 }:
@@ -322,7 +320,6 @@ buildPythonPackage {
     inherit
       cudaSupport
       cudaPackages
-      cxx11Abi
       rocmSupport
       rocmPackages
       xpuSupport
@@ -333,7 +330,6 @@ buildPythonPackage {
     rocmArchs = if rocmSupport then supportedTorchRocmArchs else [ ];
   }
   // (callPackage ../variant.nix {
-    inherit cxx11Abi;
     torchVersion = version;
   });
 

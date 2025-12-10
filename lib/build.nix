@@ -12,7 +12,6 @@
 }:
 
 let
-  abi = torch: if torch.passthru.cxx11Abi then "cxx11" else "cxx98";
   supportedCudaCapabilities = builtins.fromJSON (
     builtins.readFile ../build2cmake/src/cuda_supported_archs.json
   );
