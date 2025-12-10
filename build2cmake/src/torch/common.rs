@@ -2,22 +2,23 @@ use eyre::{Context, Result};
 use itertools::Itertools;
 use minijinja::{context, Environment};
 
-use crate::{config::General, FileSet};
+use crate::config::{Backend, General};
+use crate::FileSet;
 
 pub fn write_pyproject_toml(
     env: &Environment,
+    backend: Backend,
     general: &General,
     file_set: &mut FileSet,
 ) -> Result<()> {
     let writer = file_set.entry("pyproject.toml");
 
-    let python_dependencies = general
-        .python_depends
-        .as_ref()
-        .unwrap_or(&vec![])
-        .iter()
-        .map(|d| format!("\"{d}\""))
-        .join(", ");
+    let python_dependencies = itertools::process_results(
+        general
+            .python_depends()
+            .chain(general.backend_python_depends(backend)),
+        |iter| iter.map(|d| format!("\"{d}\"")).join(", "),
+    )?;
 
     env.get_template("pyproject.toml")
         .wrap_err("Cannot get pyproject.toml template")?

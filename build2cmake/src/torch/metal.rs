@@ -6,7 +6,7 @@ use minijinja::{context, Environment};
 
 use super::{common::write_pyproject_toml, kernel_ops_identifier};
 use crate::{
-    config::{Build, Kernel, Torch},
+    config::{Backend, Build, Kernel, Torch},
     fileset::FileSet,
     version::Version,
 };
@@ -50,7 +50,7 @@ pub fn write_torch_ext_metal(
 
     write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
 
-    write_pyproject_toml(env, &build.general, &mut file_set)?;
+    write_pyproject_toml(env, Backend::Metal, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
 
