@@ -330,6 +330,7 @@ rec {
                 ${python}/bin/python -m venv --system-site-packages "${venvDir}"
               fi
               source "${venvDir}/bin/activate"
+              unset LD_LIBRARY_PATH
             '';
           };
         };
