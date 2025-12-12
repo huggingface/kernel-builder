@@ -139,6 +139,8 @@ rec {
           _: kernel: builtins.length (kernel.cuda-capabilities or supportedCudaCapabilities)
         ) buildToml.kernel
       );
+      pythonDeps = (buildToml.general.python-depends or [ ]);
+      backendPythonDeps = lib.attrByPath [ buildConfig.backend "python-depends" ] [ ] buildToml.general;
     in
     if !kernelBackends'.${buildConfig.backend} then
       # No compiled kernel files? Treat it as a noarch package.
@@ -149,9 +151,10 @@ rec {
           src
           rev
           doGetKernelCheck
+          pythonDeps
+          backendPythonDeps
           ;
         kernelName = buildToml.general.name;
-        pythonDeps = buildToml.general.python-depends or [ ];
       }
     else
       extension.mkExtension {
@@ -163,10 +166,11 @@ rec {
           src
           stripRPath
           rev
+          pythonDeps
+          backendPythonDeps
           ;
 
         kernelName = buildToml.general.name;
-        pythonDeps = buildToml.general.python-depends or [ ];
         doAbiCheck = true;
       };
 
