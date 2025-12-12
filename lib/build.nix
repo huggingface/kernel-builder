@@ -263,6 +263,7 @@ rec {
             ];
             shellHook = ''
               export PYTHONPATH=''${PYTHONPATH}:${extension}
+              unset LD_LIBRARY_PATH
             '';
           };
         };
