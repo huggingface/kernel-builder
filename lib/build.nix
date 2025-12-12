@@ -263,6 +263,7 @@ rec {
             ];
             shellHook = ''
               export PYTHONPATH=''${PYTHONPATH}:${extension}
+              unset LD_LIBRARY_PATH
             '';
           };
         };
@@ -330,6 +331,7 @@ rec {
                 ${python}/bin/python -m venv --system-site-packages "${venvDir}"
               fi
               source "${venvDir}/bin/activate"
+              unset LD_LIBRARY_PATH
             '';
           };
         };
