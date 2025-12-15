@@ -34,6 +34,8 @@
   # list of derivations, but we also need to write the dependencies to
   # the output.
   pythonDeps,
+
+  backendPythonDeps,
 }:
 
 # Extra validation - the environment should correspind to the build config.
@@ -43,8 +45,11 @@ assert (buildConfig ? xpuVersion) -> xpuSupport;
 assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 
 let
-  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
-  dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
+  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps resolveBackendPythonDeps;
+  dependencies =
+    resolvePythonDeps pythonDeps
+    ++ resolveBackendPythonDeps buildConfig.backend backendPythonDeps
+    ++ [ torch ];
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
   metadata = builtins.toJSON {
     python-depends = pythonDeps;
@@ -68,7 +73,9 @@ stdenv.mkDerivation (prevAttrs: {
     remove-bytecode-hook
   ]
   ++ lib.optionals doGetKernelCheck [
-    (get-kernel-check.override { python3 = python3.withPackages (ps: dependencies); })
+    (get-kernel-check.override {
+      python3 = python3.withPackages (_: dependencies);
+    })
   ];
 
   dontBuild = true;

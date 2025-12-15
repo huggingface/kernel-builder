@@ -56,6 +56,8 @@
   # the output.
   pythonDeps,
 
+  backendPythonDeps,
+
   # Wheter to strip rpath for non-nix use.
   stripRPath ? false,
 
@@ -72,9 +74,12 @@ assert (buildConfig ? xpuVersion) -> xpuSupport;
 assert (buildConfig.metal or false) -> stdenv.hostPlatform.isDarwin;
 
 let
-  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps;
+  inherit (import ../deps.nix { inherit lib pkgs torch; }) resolvePythonDeps resolveBackendPythonDeps;
 
-  dependencies = resolvePythonDeps pythonDeps ++ [ torch ];
+  dependencies =
+    resolvePythonDeps pythonDeps
+    ++ resolveBackendPythonDeps buildConfig.backend backendPythonDeps
+    ++ [ torch ];
 
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
 

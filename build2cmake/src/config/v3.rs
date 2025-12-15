@@ -3,15 +3,75 @@ use std::{
     fmt::Display,
     path::PathBuf,
     str::FromStr,
+    sync::LazyLock,
 };
 
 use eyre::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-
-use crate::version::Version;
+use thiserror::Error;
 
 use super::{common::Dependency, v2};
+use crate::version::Version;
+
+#[derive(Debug, Error)]
+enum DependencyError {
+    #[error("No dependencies are defined for backend: {backend:?}")]
+    Backend { backend: String },
+    #[error("Unknown dependency `{dependency:?}` for backend `{backend:?}`")]
+    Dependency { backend: String, dependency: String },
+    #[error("Unknown dependency: `{dependency:?}`")]
+    GeneralDependency { dependency: String },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct PythonDependencies {
+    general: HashMap<String, PythonDependency>,
+    backends: HashMap<Backend, HashMap<String, PythonDependency>>,
+}
+
+impl PythonDependencies {
+    fn get_dependency(&self, dependency: &str) -> Result<&[String], DependencyError> {
+        match self.general.get(dependency) {
+            None => Err(DependencyError::GeneralDependency {
+                dependency: dependency.to_string(),
+            }),
+            Some(dep) => Ok(&dep.python),
+        }
+    }
+
+    fn get_backend_dependency(
+        &self,
+        backend: Backend,
+        dependency: &str,
+    ) -> Result<&[String], DependencyError> {
+        let backend_deps = match self.backends.get(&backend) {
+            None => {
+                return Err(DependencyError::Backend {
+                    backend: backend.to_string(),
+                })
+            }
+            Some(backend_deps) => backend_deps,
+        };
+        match backend_deps.get(dependency) {
+            None => Err(DependencyError::Dependency {
+                backend: backend.to_string(),
+                dependency: dependency.to_string(),
+            }),
+            Some(dep) => Ok(&dep.python),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct PythonDependency {
+    nix: Vec<String>,
+    python: Vec<String>,
+}
+
+static PYTHON_DEPENDENCIES: LazyLock<PythonDependencies> =
+    LazyLock::new(|| serde_json::from_str(include_str!("../python_dependencies.json")).unwrap());
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -44,13 +104,62 @@ pub struct General {
 
     pub hub: Option<Hub>,
 
-    pub python_depends: Option<Vec<PythonDependency>>,
+    pub python_depends: Option<Vec<String>>,
+
+    pub xpu: Option<XpuGeneral>,
 }
 
 impl General {
     /// Name of the kernel as a Python extension.
     pub fn python_name(&self) -> String {
         self.name.replace("-", "_")
+    }
+
+    pub fn python_depends(&self) -> Box<dyn Iterator<Item = Result<String>> + '_> {
+        let general_python_deps = match self.python_depends.as_ref() {
+            Some(deps) => deps,
+            None => {
+                return Box::new(std::iter::empty());
+            }
+        };
+
+        Box::new(general_python_deps.iter().flat_map(move |dep| {
+            match PYTHON_DEPENDENCIES.get_dependency(dep) {
+                Ok(deps) => deps.iter().map(|s| Ok(s.clone())).collect::<Vec<_>>(),
+                Err(e) => vec![Err(e.into())],
+            }
+        }))
+    }
+
+    pub fn backend_python_depends(
+        &self,
+        backend: Backend,
+    ) -> Box<dyn Iterator<Item = Result<String>> + '_> {
+        let backend_python_deps = match backend {
+            Backend::Cuda => self
+                .cuda
+                .as_ref()
+                .and_then(|cuda| cuda.python_depends.as_ref()),
+            Backend::Xpu => self
+                .xpu
+                .as_ref()
+                .and_then(|xpu| xpu.python_depends.as_ref()),
+            _ => None,
+        };
+
+        let backend_python_deps = match backend_python_deps {
+            Some(deps) => deps,
+            None => {
+                return Box::new(std::iter::empty());
+            }
+        };
+
+        Box::new(backend_python_deps.iter().flat_map(move |dep| {
+            match PYTHON_DEPENDENCIES.get_backend_dependency(backend, dep) {
+                Ok(deps) => deps.iter().map(|s| Ok(s.clone())).collect::<Vec<_>>(),
+                Err(e) => vec![Err(e.into())],
+            }
+        }))
     }
 }
 
@@ -59,6 +168,13 @@ impl General {
 pub struct CudaGeneral {
     pub minver: Option<Version>,
     pub maxver: Option<Version>,
+    pub python_depends: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct XpuGeneral {
+    pub python_depends: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -66,22 +182,6 @@ pub struct CudaGeneral {
 pub struct Hub {
     pub repo_id: Option<String>,
     pub branch: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum PythonDependency {
-    Einops,
-    NvidiaCutlassDsl,
-}
-
-impl Display for PythonDependency {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PythonDependency::Einops => write!(f, "einops"),
-            PythonDependency::NvidiaCutlassDsl => write!(f, "nvidia-cutlass-dsl"),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -215,7 +315,7 @@ impl Kernel {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Backend {
     Cpu,
@@ -290,6 +390,7 @@ impl General {
             Some(CudaGeneral {
                 minver: general.cuda_minver,
                 maxver: general.cuda_maxver,
+                python_depends: None,
             })
         } else {
             None
@@ -300,9 +401,8 @@ impl General {
             backends,
             cuda,
             hub: general.hub.map(Into::into),
-            python_depends: general
-                .python_depends
-                .map(|deps| deps.into_iter().map(Into::into).collect()),
+            python_depends: None,
+            xpu: None,
         }
     }
 }
@@ -312,15 +412,6 @@ impl From<v2::Hub> for Hub {
         Self {
             repo_id: hub.repo_id,
             branch: hub.branch,
-        }
-    }
-}
-
-impl From<v2::PythonDependency> for PythonDependency {
-    fn from(dep: v2::PythonDependency) -> Self {
-        match dep {
-            v2::PythonDependency::Einops => PythonDependency::Einops,
-            v2::PythonDependency::NvidiaCutlassDsl => PythonDependency::NvidiaCutlassDsl,
         }
     }
 }

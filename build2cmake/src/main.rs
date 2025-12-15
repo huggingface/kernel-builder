@@ -172,7 +172,7 @@ fn generate_torch(
     };
 
     let file_set = if build.is_noarch() {
-        write_torch_ext_noarch(&env, &build, target_dir.clone(), ops_id)?
+        write_torch_ext_noarch(&env, backend, &build, target_dir.clone(), ops_id)?
     } else {
         match backend {
             Backend::Cpu => write_torch_ext_cpu(&env, &build, target_dir.clone(), ops_id)?,
@@ -375,13 +375,11 @@ fn get_generated_files(
 ) -> Result<Vec<PathBuf>> {
     let mut all_set = FileSet::new();
 
-    if build.is_noarch() {
-        let set = write_torch_ext_noarch(env, build, target_dir.clone(), ops_id.clone())?;
-
-        all_set.extend(set);
-    } else {
-        for backend in &build.general.backends {
-            let set = match backend {
+    for backend in &build.general.backends {
+        let set = if build.is_noarch() {
+            write_torch_ext_noarch(env, *backend, build, target_dir.clone(), ops_id.clone())?
+        } else {
+            match backend {
                 Backend::Cpu => {
                     write_torch_ext_cpu(env, build, target_dir.clone(), ops_id.clone())?
                 }
@@ -394,10 +392,9 @@ fn get_generated_files(
                 Backend::Xpu => {
                     write_torch_ext_xpu(env, build, target_dir.clone(), ops_id.clone())?
                 }
-            };
-
-            all_set.extend(set);
-        }
+            }
+        };
+        all_set.extend(set);
     }
 
     Ok(all_set.into_names())

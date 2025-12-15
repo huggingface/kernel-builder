@@ -61,7 +61,7 @@ pub fn write_torch_ext_cuda(
 
     write_ops_py(env, &build.general.python_name(), &ops_name, &mut file_set)?;
 
-    write_pyproject_toml(env, &build.general, &mut file_set)?;
+    write_pyproject_toml(env, backend, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
 

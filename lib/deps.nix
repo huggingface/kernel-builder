@@ -32,14 +32,38 @@ let
       pkgs.metal-cpp.dev
     ];
   };
-  pythonDeps = with pkgs.python3.pkgs; {
-    "einops" = [ einops ];
-    "nvidia-cutlass-dsl" = [ nvidia-cutlass-dsl ];
-  };
+
+  pythonDeps =
+    let
+      depsJson = builtins.fromJSON (builtins.readFile ../build2cmake/src/python_dependencies.json);
+      # Map the Nix package names to actual Nix packages.
+      updatePackage = _name: dep: dep // { nix = map (pkg: pkgs.python3.pkgs.${pkg}) dep.nix; };
+      updateBackend = _backend: backendDeps: lib.mapAttrs updatePackage backendDeps;
+    in
+    depsJson
+    // {
+      general = lib.mapAttrs updatePackage depsJson.general;
+      backends = lib.mapAttrs updateBackend depsJson.backends;
+    };
+
   getCppDep = dep: cppDeps.${dep} or (throw "Unknown dependency: ${dep}");
-  getPythonDep = dep: pythonDeps.${dep} or (throw "Unknown Python dependency: ${dep}");
+  getPythonDep =
+    dep: lib.attrByPath [ "general" dep "nix" ] (throw "Unknown Python dependency: ${dep}") pythonDeps;
+  getBackendPythonDep =
+    backend: dep:
+    let
+      backendDeps = lib.attrByPath [
+        "backends"
+        backend
+      ] (throw "Unknown backend: ${backend}") pythonDeps;
+    in
+    lib.attrByPath [
+      dep
+      "nix"
+    ] (throw "Unknown Python dependency for backend `${backend}`: ${dep}") backendDeps;
 in
 {
   resolveCppDeps = deps: lib.flatten (map getCppDep deps);
   resolvePythonDeps = deps: lib.flatten (map getPythonDep deps);
+  resolveBackendPythonDeps = backend: deps: lib.flatten (map (getBackendPythonDep backend) deps);
 }
