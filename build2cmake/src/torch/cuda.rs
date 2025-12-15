@@ -173,7 +173,7 @@ fn write_cmake(
         cmake_writer,
     )?;
 
-    render_deps(env, build, cmake_writer)?;
+    render_deps(env, backend, build, cmake_writer)?;
 
     render_binding(env, torch, name, cmake_writer)?;
 
@@ -213,10 +213,19 @@ pub fn render_binding(
     Ok(())
 }
 
-fn render_deps(env: &Environment, build: &Build, write: &mut impl Write) -> Result<()> {
+fn render_deps(
+    env: &Environment,
+    backend: Backend,
+    build: &Build,
+    write: &mut impl Write,
+) -> Result<()> {
     let mut deps = HashSet::new();
 
-    for kernel in build.kernels.values() {
+    for kernel in build
+        .kernels
+        .values()
+        .filter(|kernel| kernel.backend() == backend)
+    {
         deps.extend(kernel.depends());
     }
 
