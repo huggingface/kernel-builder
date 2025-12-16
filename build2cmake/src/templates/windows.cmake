@@ -161,6 +161,11 @@ function(add_local_install_target TARGET_NAME PACKAGE_NAME BUILD_VARIANT_NAME)
             ${PYTHON_FILES}
             ${LOCAL_INSTALL_DIR}/
 
+            # Copy metadata.json if it exists
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_SOURCE_DIR}/metadata.json
+            ${LOCAL_INSTALL_DIR}/
+
             COMMENT "Copying shared library and Python files to ${LOCAL_INSTALL_DIR}"
             COMMAND_EXPAND_LISTS
     )
