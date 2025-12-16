@@ -80,4 +80,4 @@ jobs:
 #        run: ( cd examples/relu-specific-torch && nix build . )
 
       - name: Build silu-and-mul kernel
-        run: ( scripts\windows\builder.ps1 -SourceFolder examples/silu-and-mul -BuildConfig Release -Build -Force)
+        run: ( scripts\windows\builder.ps1 -SourceFolder examples/silu-and-mul -BuildConfig Release -Backend cuda -Build -Force)
