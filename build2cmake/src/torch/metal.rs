@@ -8,6 +8,7 @@ use super::{common::write_pyproject_toml, kernel_ops_identifier};
 use crate::{
     config::{Backend, Build, Kernel, Torch},
     fileset::FileSet,
+    torch::common::write_metadata,
     version::Version,
 };
 
@@ -53,6 +54,8 @@ pub fn write_torch_ext_metal(
     write_pyproject_toml(env, Backend::Metal, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
+
+    write_metadata(Backend::Metal, &build.general, &mut file_set)?;
 
     Ok(file_set)
 }

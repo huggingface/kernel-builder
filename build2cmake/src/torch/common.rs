@@ -3,6 +3,7 @@ use itertools::Itertools;
 use minijinja::{context, Environment};
 
 use crate::config::{Backend, General};
+use crate::metadata::Metadata;
 use crate::FileSet;
 
 pub fn write_pyproject_toml(
@@ -29,6 +30,21 @@ pub fn write_pyproject_toml(
             writer,
         )
         .wrap_err("Cannot render kernel template")?;
+
+    Ok(())
+}
+
+pub fn write_metadata(backend: Backend, general: &General, file_set: &mut FileSet) -> Result<()> {
+    let writer = file_set.entry("metadata.json");
+
+    let python_depends = general
+        .python_depends()
+        .chain(general.backend_python_depends(backend))
+        .collect::<Result<Vec<_>>>()?;
+
+    let metadata = Metadata::new(python_depends);
+
+    serde_json::to_writer(writer, &metadata)?;
 
     Ok(())
 }

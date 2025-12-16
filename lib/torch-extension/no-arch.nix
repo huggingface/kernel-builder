@@ -51,10 +51,6 @@ let
     ++ resolveBackendPythonDeps buildConfig.backend backendPythonDeps
     ++ [ torch ];
   moduleName = builtins.replaceStrings [ "-" ] [ "_" ] kernelName;
-  metadata = builtins.toJSON {
-    python-depends = pythonDeps;
-  };
-  metadataFile = writeText "metadata.json" metadata;
   metalSupport = buildConfig.metal or false;
 in
 
@@ -94,7 +90,7 @@ stdenv.mkDerivation (prevAttrs: {
     cp -r torch-ext/${moduleName}/* $out/
     mkdir $out/${moduleName}
     cp ${./compat.py} $out/${moduleName}/__init__.py
-    cp ${metadataFile} $out/metadata.json
+    cp metadata.json $out/
   '';
 
   doInstallCheck = true;

@@ -7,7 +7,7 @@ use minijinja::{context, Environment};
 use crate::{
     config::{Backend, Build, General, Torch},
     fileset::FileSet,
-    torch::kernel_ops_identifier,
+    torch::{common::write_metadata, kernel_ops_identifier},
 };
 
 pub fn write_torch_ext_noarch(
@@ -29,6 +29,8 @@ pub fn write_torch_ext_noarch(
         &build.general,
         &mut file_set,
     )?;
+
+    write_metadata(backend, &build.general, &mut file_set)?;
 
     Ok(file_set)
 }

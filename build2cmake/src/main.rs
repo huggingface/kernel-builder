@@ -20,6 +20,8 @@ use config::{Backend, Build, BuildCompat};
 mod fileset;
 use fileset::FileSet;
 
+mod metadata;
+
 mod version;
 
 #[derive(Parser, Debug)]

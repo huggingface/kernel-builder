@@ -9,6 +9,7 @@ use minijinja::{context, Environment};
 use super::common::write_pyproject_toml;
 use super::kernel_ops_identifier;
 use crate::config::{Backend, Build, Dependency, Kernel, Torch};
+use crate::torch::common::write_metadata;
 use crate::version::Version;
 use crate::FileSet;
 
@@ -52,6 +53,8 @@ pub fn write_torch_ext_xpu(
     write_pyproject_toml(env, Backend::Xpu, &build.general, &mut file_set)?;
 
     write_torch_registration_macros(&mut file_set)?;
+
+    write_metadata(Backend::Xpu, &build.general, &mut file_set)?;
 
     Ok(file_set)
 }
