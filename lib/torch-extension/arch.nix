@@ -249,7 +249,7 @@ stdenv.mkDerivation (prevAttrs: {
     mkdir $out/${moduleName}
     cp ${./compat.py} $out/${moduleName}/__init__.py
 
-    cp metadata.json $out/
+    cp ../metadata.json $out/
   ''
   + (lib.optionalString (stripRPath && stdenv.hostPlatform.isLinux)) ''
     find $out/ -name '*.so' \
