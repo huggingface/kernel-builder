@@ -222,6 +222,7 @@ stdenv.mkDerivation (prevAttrs: {
   dontSetupCUDAToolkitCompilers = true;
 
   cmakeFlags = [
+    (lib.cmakeBool "BUILD_ALL_SUPPORTED_ARCHS" true)
     (lib.cmakeFeature "Python_EXECUTABLE" "${python3.withPackages (ps: [ torch ])}/bin/python")
     # Fix: file RPATH_CHANGE could not write new RPATH, we are rewriting
     # rpaths anyway.

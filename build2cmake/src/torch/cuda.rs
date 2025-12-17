@@ -17,13 +17,6 @@ static CMAKE_UTILS: &str = include_str!("../templates/utils.cmake");
 static WINDOWS_UTILS: &str = include_str!("../templates/windows.cmake");
 static REGISTRATION_H: &str = include_str!("../templates/registration.h");
 static HIPIFY: &str = include_str!("../templates/cuda/hipify.py");
-static CUDA_SUPPORTED_ARCHS_JSON: &str = include_str!("../cuda_supported_archs.json");
-
-fn cuda_supported_archs() -> String {
-    let supported_archs: Vec<String> = serde_json::from_str(CUDA_SUPPORTED_ARCHS_JSON)
-        .expect("Error parsing supported CUDA archs");
-    supported_archs.join(";")
-}
 
 pub fn write_torch_ext_cuda(
     env: &Environment,
@@ -414,7 +407,6 @@ pub fn render_preamble(
                 cuda_maxver => cuda_maxver.map(|v| v.to_string()),
                 torch_minver => torch_minver.map(|v| v.to_string()),
                 torch_maxver => torch_maxver.map(|v| v.to_string()),
-                cuda_supported_archs => cuda_supported_archs(),
                 platform => env::consts::OS
             },
             &mut *write,

@@ -350,6 +350,9 @@ function Get-CMakeConfigureArgs {
         $kwargs = @("..", "-G", "Visual Studio 17 2022", "-A", $vsArch)
     }
 
+    # Build for all supported GPU archs, not just the detected arch.
+    $kwargs += "-DBUILD_ALL_SUPPORTED_ARCHS"
+
     # Detect Python from current environment
     $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
     if ($pythonExe) {

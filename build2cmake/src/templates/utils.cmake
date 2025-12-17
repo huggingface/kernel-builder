@@ -42,6 +42,29 @@ function (run_python OUT EXPR ERR_MSG)
   set(${OUT} ${PYTHON_OUT} PARENT_SCOPE)
 endfunction()
 
+#
+# Run `EXPR` in python.  The standard output of python is stored in `OUT` and
+# has trailing whitespace stripped.  If an error is encountered when running
+# python, `SUCCESS` is set to FALSE. If successful, `SUCCESS` is set to TRUE.
+#
+function (try_run_python OUT SUCCESS EXPR)
+  execute_process(
+    COMMAND
+    "${Python3_EXECUTABLE}" "-c" "${EXPR}"
+    OUTPUT_VARIABLE PYTHON_OUT
+    RESULT_VARIABLE PYTHON_ERROR_CODE
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if(NOT PYTHON_ERROR_CODE EQUAL 0)
+    set(${SUCCESS} FALSE PARENT_SCOPE)
+    set(${OUT} "" PARENT_SCOPE)
+  else()
+    set(${SUCCESS} TRUE PARENT_SCOPE)
+    set(${OUT} ${PYTHON_OUT} PARENT_SCOPE)
+  endif()
+endfunction()
+
 # Run `EXPR` in python after importing `PKG`. Use the result of this to extend
 # `CMAKE_PREFIX_PATH` so the torch cmake configuration can be imported.
 macro (append_cmake_prefix_path PKG EXPR)
@@ -173,13 +196,13 @@ macro(clear_cuda_arches CUDA_ARCH_FLAGS)
 endmacro()
 
 #
-# Extract unique CUDA architectures from a list of compute capabilities codes in 
-# the form `<major><minor>[<letter>]`, convert them to the form sort 
-# `<major>.<minor>`, dedupes them and then sorts them in ascending order and 
+# Extract unique CUDA architectures from a list of compute capabilities codes in
+# the form `<major><minor>[<letter>]`, convert them to the form sort
+# `<major>.<minor>`, dedupes them and then sorts them in ascending order and
 # stores them in `OUT_ARCHES`.
 #
 # Example:
-#   CUDA_ARCH_FLAGS="-gencode arch=compute_75,code=sm_75;...;-gencode arch=compute_90a,code=sm_90a" 
+#   CUDA_ARCH_FLAGS="-gencode arch=compute_75,code=sm_75;...;-gencode arch=compute_90a,code=sm_90a"
 #   extract_unique_cuda_archs_ascending(OUT_ARCHES CUDA_ARCH_FLAGS)
 #   OUT_ARCHES="7.5;...;9.0"
 function(extract_unique_cuda_archs_ascending OUT_ARCHES CUDA_ARCH_FLAGS)
@@ -200,15 +223,15 @@ function(extract_unique_cuda_archs_ascending OUT_ARCHES CUDA_ARCH_FLAGS)
 endfunction()
 
 #
-# For a specific file set the `-gencode` flag in compile options conditionally 
-# for the CUDA language. 
+# For a specific file set the `-gencode` flag in compile options conditionally
+# for the CUDA language.
 #
 # Example:
 #   set_gencode_flag_for_srcs(
 #     SRCS "foo.cu"
 #     ARCH "compute_75"
 #     CODE "sm_75")
-#   adds: "-gencode arch=compute_75,code=sm_75" to the compile options for 
+#   adds: "-gencode arch=compute_75,code=sm_75" to the compile options for
 #    `foo.cu` (only for the CUDA language).
 #
 macro(set_gencode_flag_for_srcs)
@@ -228,14 +251,14 @@ macro(set_gencode_flag_for_srcs)
 endmacro(set_gencode_flag_for_srcs)
 
 #
-# For a list of source files set the `-gencode` flags in the files specific 
+# For a list of source files set the `-gencode` flags in the files specific
 #  compile options (specifically for the CUDA language).
 #
 # arguments are:
 #  SRCS: list of source files
 #  CUDA_ARCHS: list of CUDA architectures in the form `<major>.<minor>[letter]`
 #  BUILD_PTX_FOR_ARCH: if set to true, then the PTX code will be built
-#    for architecture `BUILD_PTX_FOR_ARCH` if there is a CUDA_ARCH in CUDA_ARCHS 
+#    for architecture `BUILD_PTX_FOR_ARCH` if there is a CUDA_ARCH in CUDA_ARCHS
 #    that is larger than BUILD_PTX_FOR_ARCH.
 #
 macro(set_gencode_flags_for_srcs)
@@ -383,12 +406,14 @@ function(cuda_archs_loose_intersection OUT_CUDA_ARCHS SRC_CUDA_ARCHS TGT_CUDA_AR
   endforeach()
   set(_CUDA_ARCHS ${_FINAL_ARCHS})
 
+  list(SORT _CUDA_ARCHS COMPARE NATURAL ORDER ASCENDING)
+
   set(${OUT_CUDA_ARCHS} ${_CUDA_ARCHS} PARENT_SCOPE)
 endfunction()
 
 #
-# For the given `SRC_ROCM_ARCHS` list of architecture versions in the form 
-# `<name>` compute the "loose intersection" with the `TGT_ROCM_ARCHS` list. 
+# For the given `SRC_ROCM_ARCHS` list of architecture versions in the form
+# `<name>` compute the "loose intersection" with the `TGT_ROCM_ARCHS` list.
 # The loose intersection is defined as:
 #   { max{ x \in tgt | x <= y } | y \in src, { x \in tgt | x <= y } != {} }
 #  where `<=` is the version comparison operator.
@@ -404,28 +429,48 @@ endfunction()
 #
 function(hip_archs_loose_intersection OUT_ROCM_ARCHS SRC_ROCM_ARCHS TGT_ROCM_ARCHS)
   list(REMOVE_DUPLICATES SRC_ROCM_ARCHS)
-  
+
   # ROCm architectures are typically in format gfxNNN or gfxNNNx where N is a digit
   # and x is a letter. We can sort them by string comparison which works for this format.
   list(SORT SRC_ROCM_ARCHS COMPARE STRING ORDER ASCENDING)
-  
+
   set(_ROCM_ARCHS)
-  
+
   # Find the intersection of supported architectures
   foreach(_SRC_ARCH ${SRC_ROCM_ARCHS})
     if(_SRC_ARCH IN_LIST TGT_ROCM_ARCHS)
       list(APPEND _ROCM_ARCHS ${_SRC_ARCH})
     endif()
   endforeach()
-  
+
   list(REMOVE_DUPLICATES _ROCM_ARCHS)
   set(${OUT_ROCM_ARCHS} ${_ROCM_ARCHS} PARENT_SCOPE)
 endfunction()
 
+function(cuda_remove_ptx_suffixes OUT_CUDA_ARCHS CUDA_ARCHS)
+  set(_CUDA_ARCHS "${CUDA_ARCHS}")
+
+  # handle +PTX suffix: separate base arch for matching, record PTX requests
+  foreach(_arch ${CUDA_ARCHS})
+    if(_arch MATCHES "\\+PTX$")
+      string(REPLACE "+PTX" "" _base "${_arch}")
+      list(REMOVE_ITEM _CUDA_ARCHS "${_arch}")
+      list(APPEND _CUDA_ARCHS "${_base}")
+    endif()
+  endforeach()
+
+  list(REMOVE_DUPLICATES _CUDA_ARCHS)
+  list(SORT _CUDA_ARCHS COMPARE NATURAL ORDER ASCENDING)
+
+  set(${OUT_CUDA_ARCHS} ${_CUDA_ARCHS} PARENT_SCOPE)
+endfunction()
+
+
+
 #
 # Override the GPU architectures detected by cmake/torch and filter them by
 # `GPU_SUPPORTED_ARCHES`. Sets the final set of architectures in
-# `GPU_ARCHES`. This only applies to the HIP language since for CUDA we set 
+# `GPU_ARCHES`. This only applies to the HIP language since for CUDA we set
 # the architectures on a per file basis.
 #
 # Note: this is defined as a macro since it updates `CMAKE_CUDA_FLAGS`.

@@ -9,8 +9,6 @@ include(FetchContent)
 file(MAKE_DIRECTORY ${FETCHCONTENT_BASE_DIR}) # Ensure the directory exists
 message(STATUS "FetchContent base directory: ${FETCHCONTENT_BASE_DIR}")
 
-set(CUDA_SUPPORTED_ARCHS "{{ cuda_supported_archs }}")
-
 set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1030;gfx1100;gfx1101;gfx1200;gfx1201")
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils.cmake)
@@ -49,6 +47,8 @@ if (NOT TARGET_DEVICE STREQUAL "cuda" AND
     NOT TARGET_DEVICE STREQUAL "rocm")
     return()
 endif()
+
+option(BUILD_ALL_SUPPORTED_ARCHS "Build all supported architectures" off)
 
 if(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
    CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
@@ -91,12 +91,20 @@ endif()
 
 if(GPU_LANG STREQUAL "CUDA")
   clear_cuda_arches(CUDA_ARCH_FLAGS)
-  extract_unique_cuda_archs_ascending(CUDA_ARCHS "${CUDA_ARCH_FLAGS}")
-  message(STATUS "CUDA target architectures: ${CUDA_ARCHS}")
-  # Filter the target architectures by the supported supported archs
-  # since for some files we will build for all CUDA_ARCHS.
-  cuda_archs_loose_intersection(CUDA_ARCHS "${CUDA_SUPPORTED_ARCHS}" "${CUDA_ARCHS}")
-  message(STATUS "CUDA supported target architectures: ${CUDA_ARCHS}")
+  cuda_remove_ptx_suffixes(CUDA_ARCHS "${CUDA_DEFAULT_KERNEL_ARCHS}")
+  message(STATUS "CUDA supported base architectures: ${CUDA_ARCHS}")
+
+  if(BUILD_ALL_SUPPORTED_ARCHS)
+    set(CUDA_KERNEL_ARCHS "${CUDA_DEFAULT_KERNEL_ARCHS}")
+  else()
+    try_run_python(CUDA_KERNEL_ARCHS SUCCESS "import torch; cc=torch.cuda.get_device_capability(); print(f\"{cc[0]}.{cc[1]}\")" "Failed to get CUDA capability")
+    if(NOT SUCCESS)
+      message(WARNING "Failed to detect CUDA capability, using default capabilities.")
+      set(CUDA_KERNEL_ARCHS "${CUDA_DEFAULT_KERNEL_ARCHS}")
+    endif()
+  endif()
+
+  message(STATUS "CUDA supported kernel architectures: ${CUDA_KERNEL_ARCHS}")
 
   if(NVCC_THREADS AND GPU_LANG STREQUAL "CUDA")
     list(APPEND GPU_FLAGS "--threads=${NVCC_THREADS}")
