@@ -175,20 +175,14 @@ macro(string_to_ver OUT_VER IN_STR)
 endmacro()
 
 #
-# Clear all `-gencode` flags from `CMAKE_CUDA_FLAGS` and store them in
-# `CUDA_ARCH_FLAGS`.
+# Clear all `-gencode` flags from `CMAKE_CUDA_FLAGS`.
 #
 # Example:
 #   CMAKE_CUDA_FLAGS="-Wall -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75"
-#   clear_cuda_arches(CUDA_ARCH_FLAGS)
-#   CUDA_ARCH_FLAGS="-gencode arch=compute_70,code=sm_70;-gencode arch=compute_75,code=sm_75"
+#   clear_gencode_flags()
 #   CMAKE_CUDA_FLAGS="-Wall"
 #
-macro(clear_cuda_arches CUDA_ARCH_FLAGS)
-    # Extract all `-gencode` flags from `CMAKE_CUDA_FLAGS`
-    string(REGEX MATCHALL "-gencode arch=[^ ]+" CUDA_ARCH_FLAGS
-      ${CMAKE_CUDA_FLAGS})
-
+macro(clear_gencode_flags)
     # Remove all `-gencode` flags from `CMAKE_CUDA_FLAGS` since they will be modified
     # and passed back via the `CUDA_ARCHITECTURES` property.
     string(REGEX REPLACE "-gencode arch=[^ ]+ *" "" CMAKE_CUDA_FLAGS
