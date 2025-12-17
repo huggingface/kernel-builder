@@ -90,7 +90,12 @@ endif()
 
 
 if(GPU_LANG STREQUAL "CUDA")
+  # This clears out -gencode arguments from `CMAKE_CUDA_FLAGS`, which we need
+  # to set our own set of capabilities.
   clear_cuda_arches(CUDA_ARCH_FLAGS)
+
+  # Get the capabilities without +PTX suffixes, so that we can use them as
+  # the target archs in the loose intersection with a kernel's capabilities.
   cuda_remove_ptx_suffixes(CUDA_ARCHS "${CUDA_DEFAULT_KERNEL_ARCHS}")
   message(STATUS "CUDA supported base architectures: ${CUDA_ARCHS}")
 
