@@ -15,7 +15,7 @@ use torch::{
 };
 
 mod config;
-use config::{Backend, Build, BuildCompat};
+use config::{v3, Backend, Build, BuildCompat};
 
 mod fileset;
 use fileset::FileSet;
@@ -200,7 +200,8 @@ fn update_build(build_toml: PathBuf) -> Result<()> {
     let build: Build = build_compat
         .try_into()
         .context("Cannot update build configuration")?;
-    let pretty_toml = toml::to_string_pretty(&build)?;
+    let v3_build: v3::Build = build.into();
+    let pretty_toml = toml::to_string_pretty(&v3_build)?;
 
     let mut writer =
         BufWriter::new(File::create(&build_toml).wrap_err_with(|| {

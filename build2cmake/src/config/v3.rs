@@ -1,77 +1,10 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    fmt::Display,
-    path::PathBuf,
-    str::FromStr,
-    sync::LazyLock,
-};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
-use eyre::Result;
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
-use super::{common::Dependency, v2};
+use super::Dependency;
 use crate::version::Version;
-
-#[derive(Debug, Error)]
-enum DependencyError {
-    #[error("No dependencies are defined for backend: {backend:?}")]
-    Backend { backend: String },
-    #[error("Unknown dependency `{dependency:?}` for backend `{backend:?}`")]
-    Dependency { backend: String, dependency: String },
-    #[error("Unknown dependency: `{dependency:?}`")]
-    GeneralDependency { dependency: String },
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct PythonDependencies {
-    general: HashMap<String, PythonDependency>,
-    backends: HashMap<Backend, HashMap<String, PythonDependency>>,
-}
-
-impl PythonDependencies {
-    fn get_dependency(&self, dependency: &str) -> Result<&[String], DependencyError> {
-        match self.general.get(dependency) {
-            None => Err(DependencyError::GeneralDependency {
-                dependency: dependency.to_string(),
-            }),
-            Some(dep) => Ok(&dep.python),
-        }
-    }
-
-    fn get_backend_dependency(
-        &self,
-        backend: Backend,
-        dependency: &str,
-    ) -> Result<&[String], DependencyError> {
-        let backend_deps = match self.backends.get(&backend) {
-            None => {
-                return Err(DependencyError::Backend {
-                    backend: backend.to_string(),
-                })
-            }
-            Some(backend_deps) => backend_deps,
-        };
-        match backend_deps.get(dependency) {
-            None => Err(DependencyError::Dependency {
-                backend: backend.to_string(),
-                dependency: dependency.to_string(),
-            }),
-            Some(dep) => Ok(&dep.python),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct PythonDependency {
-    nix: Vec<String>,
-    python: Vec<String>,
-}
-
-static PYTHON_DEPENDENCIES: LazyLock<PythonDependencies> =
-    LazyLock::new(|| serde_json::from_str(include_str!("../python_dependencies.json")).unwrap());
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -81,16 +14,6 @@ pub struct Build {
 
     #[serde(rename = "kernel", default)]
     pub kernels: HashMap<String, Kernel>,
-}
-
-impl Build {
-    pub fn is_noarch(&self) -> bool {
-        self.kernels.is_empty()
-    }
-
-    pub fn supports_backend(&self, backend: &Backend) -> bool {
-        self.general.backends.contains(backend)
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -107,60 +30,6 @@ pub struct General {
     pub python_depends: Option<Vec<String>>,
 
     pub xpu: Option<XpuGeneral>,
-}
-
-impl General {
-    /// Name of the kernel as a Python extension.
-    pub fn python_name(&self) -> String {
-        self.name.replace("-", "_")
-    }
-
-    pub fn python_depends(&self) -> Box<dyn Iterator<Item = Result<String>> + '_> {
-        let general_python_deps = match self.python_depends.as_ref() {
-            Some(deps) => deps,
-            None => {
-                return Box::new(std::iter::empty());
-            }
-        };
-
-        Box::new(general_python_deps.iter().flat_map(move |dep| {
-            match PYTHON_DEPENDENCIES.get_dependency(dep) {
-                Ok(deps) => deps.iter().map(|s| Ok(s.clone())).collect::<Vec<_>>(),
-                Err(e) => vec![Err(e.into())],
-            }
-        }))
-    }
-
-    pub fn backend_python_depends(
-        &self,
-        backend: Backend,
-    ) -> Box<dyn Iterator<Item = Result<String>> + '_> {
-        let backend_python_deps = match backend {
-            Backend::Cuda => self
-                .cuda
-                .as_ref()
-                .and_then(|cuda| cuda.python_depends.as_ref()),
-            Backend::Xpu => self
-                .xpu
-                .as_ref()
-                .and_then(|xpu| xpu.python_depends.as_ref()),
-            _ => None,
-        };
-
-        let backend_python_deps = match backend_python_deps {
-            Some(deps) => deps,
-            None => {
-                return Box::new(std::iter::empty());
-            }
-        };
-
-        Box::new(backend_python_deps.iter().flat_map(move |dep| {
-            match PYTHON_DEPENDENCIES.get_backend_dependency(backend, dep) {
-                Ok(deps) => deps.iter().map(|s| Ok(s.clone())).collect::<Vec<_>>(),
-                Err(e) => vec![Err(e.into())],
-            }
-        }))
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -194,27 +63,6 @@ pub struct Torch {
 
     #[serde(default)]
     pub src: Vec<PathBuf>,
-}
-
-impl Torch {
-    pub fn data_globs(&self) -> Option<Vec<String>> {
-        match self.pyext.as_ref() {
-            Some(exts) => {
-                let globs = exts
-                    .iter()
-                    .filter(|&ext| ext != "py" && ext != "pyi")
-                    .map(|ext| format!("\"**/*.{ext}\""))
-                    .collect_vec();
-                if globs.is_empty() {
-                    None
-                } else {
-                    Some(globs)
-                }
-            }
-
-            None => None,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -263,58 +111,6 @@ pub enum Kernel {
     },
 }
 
-impl Kernel {
-    pub fn cxx_flags(&self) -> Option<&[String]> {
-        match self {
-            Kernel::Cpu { cxx_flags, .. }
-            | Kernel::Cuda { cxx_flags, .. }
-            | Kernel::Metal { cxx_flags, .. }
-            | Kernel::Rocm { cxx_flags, .. }
-            | Kernel::Xpu { cxx_flags, .. } => cxx_flags.as_deref(),
-        }
-    }
-
-    pub fn include(&self) -> Option<&[String]> {
-        match self {
-            Kernel::Cpu { include, .. }
-            | Kernel::Cuda { include, .. }
-            | Kernel::Metal { include, .. }
-            | Kernel::Rocm { include, .. }
-            | Kernel::Xpu { include, .. } => include.as_deref(),
-        }
-    }
-
-    pub fn backend(&self) -> Backend {
-        match self {
-            Kernel::Cpu { .. } => Backend::Cpu,
-            Kernel::Cuda { .. } => Backend::Cuda,
-            Kernel::Metal { .. } => Backend::Metal,
-            Kernel::Rocm { .. } => Backend::Rocm,
-            Kernel::Xpu { .. } => Backend::Xpu,
-        }
-    }
-
-    pub fn depends(&self) -> &[Dependency] {
-        match self {
-            Kernel::Cpu { depends, .. }
-            | Kernel::Cuda { depends, .. }
-            | Kernel::Metal { depends, .. }
-            | Kernel::Rocm { depends, .. }
-            | Kernel::Xpu { depends, .. } => depends,
-        }
-    }
-
-    pub fn src(&self) -> &[String] {
-        match self {
-            Kernel::Cpu { src, .. }
-            | Kernel::Cuda { src, .. }
-            | Kernel::Metal { src, .. }
-            | Kernel::Rocm { src, .. }
-            | Kernel::Xpu { src, .. } => src,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Backend {
@@ -325,90 +121,55 @@ pub enum Backend {
     Xpu,
 }
 
-impl Display for Backend {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Backend::Cpu => write!(f, "cpu"),
-            Backend::Cuda => write!(f, "cuda"),
-            Backend::Metal => write!(f, "metal"),
-            Backend::Rocm => write!(f, "rocm"),
-            Backend::Xpu => write!(f, "xpu"),
-        }
-    }
-}
-
-impl FromStr for Backend {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "cpu" => Ok(Backend::Cpu),
-            "cuda" => Ok(Backend::Cuda),
-            "metal" => Ok(Backend::Metal),
-            "rocm" => Ok(Backend::Rocm),
-            "xpu" => Ok(Backend::Xpu),
-            _ => Err(format!("Unknown backend: {s}")),
-        }
-    }
-}
-
-impl TryFrom<v2::Build> for Build {
-    type Error = eyre::Error;
-
-    fn try_from(build: v2::Build) -> Result<Self> {
-        let kernels: HashMap<String, Kernel> = build
+impl From<Build> for super::Build {
+    fn from(build: Build) -> Self {
+        let kernels: HashMap<String, super::Kernel> = build
             .kernels
             .into_iter()
             .map(|(k, v)| (k, v.into()))
             .collect();
 
-        let backends = if build.general.universal {
-            vec![
-                Backend::Cpu,
-                Backend::Cuda,
-                Backend::Metal,
-                Backend::Rocm,
-                Backend::Xpu,
-            ]
-        } else {
-            let backend_set: BTreeSet<Backend> =
-                kernels.values().map(|kernel| kernel.backend()).collect();
-            backend_set.into_iter().collect()
-        };
-
-        Ok(Self {
-            general: General::from_v2(build.general, backends),
+        Self {
+            general: build.general.into(),
             torch: build.torch.map(Into::into),
             kernels,
-        })
-    }
-}
-
-impl General {
-    fn from_v2(general: v2::General, backends: Vec<Backend>) -> Self {
-        let cuda = if general.cuda_minver.is_some() || general.cuda_maxver.is_some() {
-            Some(CudaGeneral {
-                minver: general.cuda_minver,
-                maxver: general.cuda_maxver,
-                python_depends: None,
-            })
-        } else {
-            None
-        };
-
-        Self {
-            name: general.name,
-            backends,
-            cuda,
-            hub: general.hub.map(Into::into),
-            python_depends: None,
-            xpu: None,
         }
     }
 }
 
-impl From<v2::Hub> for Hub {
-    fn from(hub: v2::Hub) -> Self {
+impl From<General> for super::General {
+    fn from(general: General) -> Self {
+        Self {
+            name: general.name,
+            backends: general.backends.into_iter().map(Into::into).collect(),
+            cuda: general.cuda.map(Into::into),
+            hub: general.hub.map(Into::into),
+            python_depends: general.python_depends,
+            xpu: general.xpu.map(Into::into),
+        }
+    }
+}
+
+impl From<CudaGeneral> for super::CudaGeneral {
+    fn from(cuda: CudaGeneral) -> Self {
+        Self {
+            minver: cuda.minver,
+            maxver: cuda.maxver,
+            python_depends: cuda.python_depends,
+        }
+    }
+}
+
+impl From<XpuGeneral> for super::XpuGeneral {
+    fn from(xpu: XpuGeneral) -> Self {
+        Self {
+            python_depends: xpu.python_depends,
+        }
+    }
+}
+
+impl From<Hub> for super::Hub {
+    fn from(hub: Hub) -> Self {
         Self {
             repo_id: hub.repo_id,
             branch: hub.branch,
@@ -416,8 +177,8 @@ impl From<v2::Hub> for Hub {
     }
 }
 
-impl From<v2::Torch> for Torch {
-    fn from(torch: v2::Torch) -> Self {
+impl From<Torch> for super::Torch {
+    fn from(torch: Torch) -> Self {
         Self {
             include: torch.include,
             minver: torch.minver,
@@ -428,10 +189,174 @@ impl From<v2::Torch> for Torch {
     }
 }
 
-impl From<v2::Kernel> for Kernel {
-    fn from(kernel: v2::Kernel) -> Self {
+impl From<Backend> for super::Backend {
+    fn from(backend: Backend) -> Self {
+        match backend {
+            Backend::Cpu => super::Backend::Cpu,
+            Backend::Cuda => super::Backend::Cuda,
+            Backend::Metal => super::Backend::Metal,
+            Backend::Rocm => super::Backend::Rocm,
+            Backend::Xpu => super::Backend::Xpu,
+        }
+    }
+}
+
+impl From<Kernel> for super::Kernel {
+    fn from(kernel: Kernel) -> Self {
         match kernel {
-            v2::Kernel::Cpu {
+            Kernel::Cpu {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Cpu {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Cuda {
+                cuda_capabilities,
+                cuda_flags,
+                cuda_minver,
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Cuda {
+                cuda_capabilities,
+                cuda_flags,
+                cuda_minver,
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Metal {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Metal {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Rocm {
+                cxx_flags,
+                depends,
+                rocm_archs,
+                hip_flags,
+                include,
+                src,
+            } => super::Kernel::Rocm {
+                cxx_flags,
+                depends,
+                rocm_archs,
+                hip_flags,
+                include,
+                src,
+            },
+            Kernel::Xpu {
+                cxx_flags,
+                depends,
+                sycl_flags,
+                include,
+                src,
+            } => super::Kernel::Xpu {
+                cxx_flags,
+                depends,
+                sycl_flags,
+                include,
+                src,
+            },
+        }
+    }
+}
+
+impl From<super::Build> for Build {
+    fn from(build: super::Build) -> Self {
+        Self {
+            general: build.general.into(),
+            torch: build.torch.map(Into::into),
+            kernels: build
+                .kernels
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        }
+    }
+}
+
+impl From<super::General> for General {
+    fn from(general: super::General) -> Self {
+        Self {
+            name: general.name,
+            backends: general.backends.into_iter().map(Into::into).collect(),
+            cuda: general.cuda.map(Into::into),
+            hub: general.hub.map(Into::into),
+            python_depends: general.python_depends,
+            xpu: general.xpu.map(Into::into),
+        }
+    }
+}
+
+impl From<super::CudaGeneral> for CudaGeneral {
+    fn from(cuda: super::CudaGeneral) -> Self {
+        Self {
+            minver: cuda.minver,
+            maxver: cuda.maxver,
+            python_depends: cuda.python_depends,
+        }
+    }
+}
+
+impl From<super::XpuGeneral> for XpuGeneral {
+    fn from(xpu: super::XpuGeneral) -> Self {
+        Self {
+            python_depends: xpu.python_depends,
+        }
+    }
+}
+
+impl From<super::Hub> for Hub {
+    fn from(hub: super::Hub) -> Self {
+        Self {
+            repo_id: hub.repo_id,
+            branch: hub.branch,
+        }
+    }
+}
+
+impl From<super::Torch> for Torch {
+    fn from(torch: super::Torch) -> Self {
+        Self {
+            include: torch.include,
+            minver: torch.minver,
+            maxver: torch.maxver,
+            pyext: torch.pyext,
+            src: torch.src,
+        }
+    }
+}
+
+impl From<super::Backend> for Backend {
+    fn from(backend: super::Backend) -> Self {
+        match backend {
+            super::Backend::Cpu => Backend::Cpu,
+            super::Backend::Cuda => Backend::Cuda,
+            super::Backend::Metal => Backend::Metal,
+            super::Backend::Rocm => Backend::Rocm,
+            super::Backend::Xpu => Backend::Xpu,
+        }
+    }
+}
+
+impl From<super::Kernel> for Kernel {
+    fn from(kernel: super::Kernel) -> Self {
+        match kernel {
+            super::Kernel::Cpu {
                 cxx_flags,
                 depends,
                 include,
@@ -442,7 +367,7 @@ impl From<v2::Kernel> for Kernel {
                 include,
                 src,
             },
-            v2::Kernel::Cuda {
+            super::Kernel::Cuda {
                 cuda_capabilities,
                 cuda_flags,
                 cuda_minver,
@@ -459,7 +384,7 @@ impl From<v2::Kernel> for Kernel {
                 include,
                 src,
             },
-            v2::Kernel::Metal {
+            super::Kernel::Metal {
                 cxx_flags,
                 depends,
                 include,
@@ -470,7 +395,7 @@ impl From<v2::Kernel> for Kernel {
                 include,
                 src,
             },
-            v2::Kernel::Rocm {
+            super::Kernel::Rocm {
                 cxx_flags,
                 depends,
                 rocm_archs,
@@ -485,7 +410,7 @@ impl From<v2::Kernel> for Kernel {
                 include,
                 src,
             },
-            v2::Kernel::Xpu {
+            super::Kernel::Xpu {
                 cxx_flags,
                 depends,
                 sycl_flags,

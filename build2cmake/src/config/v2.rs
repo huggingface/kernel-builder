@@ -1,14 +1,14 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{
+    collections::{BTreeSet, HashMap},
+    fmt::Display,
+    path::PathBuf,
+};
 
-use eyre::{bail, Result};
+use eyre::Result;
 use serde::{Deserialize, Serialize};
 
+use super::{Backend, Dependency};
 use crate::version::Version;
-
-use super::{
-    common::Dependency,
-    v1::{self, Language},
-};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -117,85 +117,152 @@ pub enum Kernel {
     },
 }
 
-impl TryFrom<v1::Build> for Build {
+impl TryFrom<Build> for super::Build {
     type Error = eyre::Error;
 
-    fn try_from(build: v1::Build) -> Result<Self> {
-        let universal = build
-            .torch
-            .as_ref()
-            .map(|torch| torch.universal)
-            .unwrap_or(false);
+    fn try_from(build: Build) -> Result<Self> {
+        let kernels: HashMap<String, super::Kernel> = build
+            .kernels
+            .into_iter()
+            .map(|(k, v)| (k, v.into()))
+            .collect();
+
+        let backends = if build.general.universal {
+            vec![
+                Backend::Cpu,
+                Backend::Cuda,
+                Backend::Metal,
+                Backend::Rocm,
+                Backend::Xpu,
+            ]
+        } else {
+            let backend_set: BTreeSet<Backend> =
+                kernels.values().map(|kernel| kernel.backend()).collect();
+            backend_set.into_iter().collect()
+        };
+
         Ok(Self {
-            general: General::from(build.general, universal),
+            general: General::from_v2(build.general, backends),
             torch: build.torch.map(Into::into),
-            kernels: convert_kernels(build.kernels)?,
+            kernels,
         })
     }
 }
 
 impl General {
-    fn from(general: v1::General, universal: bool) -> Self {
-        Self {
+    fn from_v2(general: General, backends: Vec<Backend>) -> super::General {
+        let cuda = if general.cuda_minver.is_some() || general.cuda_maxver.is_some() {
+            Some(super::CudaGeneral {
+                minver: general.cuda_minver,
+                maxver: general.cuda_maxver,
+                python_depends: None,
+            })
+        } else {
+            None
+        };
+
+        super::General {
             name: general.name,
-            universal,
-            cuda_maxver: None,
-            cuda_minver: None,
-            hub: None,
+            backends,
+            cuda,
+            hub: general.hub.map(Into::into),
             python_depends: None,
+            xpu: None,
         }
     }
 }
 
-fn convert_kernels(v1_kernels: HashMap<String, v1::Kernel>) -> Result<HashMap<String, Kernel>> {
-    let mut kernels = HashMap::new();
-
-    for (name, kernel) in v1_kernels {
-        if kernel.language == Language::CudaHipify {
-            // We need to add an affix to avoid conflict with the CUDA kernel.
-            let rocm_name = format!("{name}_rocm");
-            if kernels.contains_key(&rocm_name) {
-                bail!("Found an existing kernel with name `{rocm_name}` while expanding `{name}`")
-            }
-
-            kernels.insert(
-                format!("{name}_rocm"),
-                Kernel::Rocm {
-                    cxx_flags: None,
-                    rocm_archs: kernel.rocm_archs,
-                    hip_flags: None,
-                    depends: kernel.depends.clone(),
-                    include: kernel.include.clone(),
-                    src: kernel.src.clone(),
-                },
-            );
+impl From<Hub> for super::Hub {
+    fn from(hub: Hub) -> Self {
+        Self {
+            repo_id: hub.repo_id,
+            branch: hub.branch,
         }
-
-        kernels.insert(
-            name,
-            Kernel::Cuda {
-                cuda_capabilities: kernel.cuda_capabilities,
-                cuda_flags: None,
-                cuda_minver: None,
-                cxx_flags: None,
-                depends: kernel.depends,
-                include: kernel.include,
-                src: kernel.src,
-            },
-        );
     }
-
-    Ok(kernels)
 }
 
-impl From<v1::Torch> for Torch {
-    fn from(torch: v1::Torch) -> Self {
+impl From<Torch> for super::Torch {
+    fn from(torch: Torch) -> Self {
         Self {
             include: torch.include,
-            minver: None,
-            maxver: None,
+            minver: torch.minver,
+            maxver: torch.maxver,
             pyext: torch.pyext,
             src: torch.src,
+        }
+    }
+}
+
+impl From<Kernel> for super::Kernel {
+    fn from(kernel: Kernel) -> Self {
+        match kernel {
+            Kernel::Cpu {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Cpu {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Cuda {
+                cuda_capabilities,
+                cuda_flags,
+                cuda_minver,
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Cuda {
+                cuda_capabilities,
+                cuda_flags,
+                cuda_minver,
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Metal {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            } => super::Kernel::Metal {
+                cxx_flags,
+                depends,
+                include,
+                src,
+            },
+            Kernel::Rocm {
+                cxx_flags,
+                depends,
+                rocm_archs,
+                hip_flags,
+                include,
+                src,
+            } => super::Kernel::Rocm {
+                cxx_flags,
+                depends,
+                rocm_archs,
+                hip_flags,
+                include,
+                src,
+            },
+            Kernel::Xpu {
+                cxx_flags,
+                depends,
+                sycl_flags,
+                include,
+                src,
+            } => super::Kernel::Xpu {
+                cxx_flags,
+                depends,
+                sycl_flags,
+                include,
+                src,
+            },
         }
     }
 }
