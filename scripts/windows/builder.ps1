@@ -351,7 +351,7 @@ function Get-CMakeConfigureArgs {
     }
 
     # Build for all supported GPU archs, not just the detected arch.
-    $kwargs += "-DBUILD_ALL_SUPPORTED_ARCHS"
+    $kwargs += "-DBUILD_ALL_SUPPORTED_ARCHS=ON"
 
     # Detect Python from current environment
     $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
