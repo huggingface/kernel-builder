@@ -8,16 +8,24 @@ their Nix store hashes. Variants for which the hash was already computed
 will not be processed again to avoid redownloading/hashing.
 """
 
+import argparse
 import json
+import os
 import subprocess
 import sys
 import urllib.parse
 from typing import Dict
-import os
+
+from torch_versions import (
+    PYTHON_VERSION,
+    cuda_version_to_framework,
+    generate_pytorch_rc_hf_url,
+    generate_pytorch_url,
+    rocm_version_to_framework,
+    version_to_major_minor,
+)
 
 OUTPUT_FILE = "torch-versions-hash.json"
-
-PYTHON_VERSION = "cp313"
 
 
 def load_existing_hashes() -> Dict[str, str]:
@@ -46,84 +54,6 @@ def load_existing_hashes() -> Dict[str, str]:
                 f"Warning: Could not load existing {OUTPUT_FILE}: {e}", file=sys.stderr
             )
     return {}
-
-
-def cuda_version_to_framework(cuda_version: str) -> str:
-    """Convert CUDA version like '11.8' to framework identifier like 'cu118'"""
-    return f"cu{cuda_version.replace('.', '')}"
-
-
-def rocm_version_to_framework(rocm_version: str) -> str:
-    """Convert ROCm version like '6.3' to framework identifier like 'rocm6.3'"""
-    return f"rocm{rocm_version}"
-
-
-def version_to_major_minor(version: str) -> str:
-    """Convert version like '2.8.0' to '2.8'"""
-    parts = version.split(".")
-    if len(parts) >= 2:
-        return f"{parts[0]}.{parts[1]}"
-    return version
-
-
-def system_to_platform(system: str, framework_type: str = None) -> str:
-    """Convert system identifier to platform string for wheel naming"""
-    # XPU uses a different platform format
-    if framework_type == "xpu":
-        xpu_platform_map = {
-            "x86_64-linux": "linux_x86_64",
-        }
-        return xpu_platform_map.get(system, system)
-
-    platform_map = {
-        "x86_64-linux": "manylinux_2_28_x86_64",
-        "aarch64-linux": "manylinux_2_28_aarch64",
-        "aarch64-darwin": "macosx_11_0_arm64",
-    }
-    return platform_map.get(system, system)
-
-
-def generate_pytorch_url(
-    torch_version: str,
-    framework_version: str,
-    framework_type: str,
-    python_version: str,
-    system: str,
-) -> str:
-    """Generate PyTorch wheel download URL."""
-    platform = system_to_platform(system, framework_type)
-
-    # macOS uses CPU wheels (no CUDA/ROCm/XPU support)
-    if "darwin" in system:
-        framework_dir = "cpu"
-        version_part = torch_version
-        abi_tag = "none" if "darwin" in system else python_version
-        wheel_name = f"torch-{version_part}-{python_version}-{abi_tag}-{platform}.whl"
-    elif framework_type == "cpu":
-        framework_dir = "cpu"
-        version_part = f"{torch_version}%2Bcpu"
-        abi_tag = python_version
-        wheel_name = f"torch-{version_part}-{python_version}-{abi_tag}-{platform}.whl"
-    elif framework_type == "xpu":
-        framework = "xpu"
-        framework_dir = framework
-        version_part = f"{torch_version}%2B{framework}"
-        abi_tag = python_version
-        wheel_name = f"torch-{version_part}-{python_version}-{abi_tag}-{platform}.whl"
-    else:
-        if framework_type == "cuda":
-            framework = cuda_version_to_framework(framework_version)
-        elif framework_type == "rocm":
-            framework = rocm_version_to_framework(framework_version)
-        else:
-            raise ValueError(f"Unsupported framework type: {framework_type}")
-
-        framework_dir = framework
-        version_part = f"{torch_version}%2B{framework}"
-        abi_tag = python_version
-        wheel_name = f"torch-{version_part}-{python_version}-{abi_tag}-{platform}.whl"
-
-    return f"https://download.pytorch.org/whl/{framework_dir}/{wheel_name}"
 
 
 def compute_nix_hash(url: str) -> str:
@@ -178,27 +108,38 @@ def compute_nix_hash(url: str) -> str:
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate torch-versions-hash.json from torch-versions.json"
+    )
+    parser.add_argument(
+        "torch_versions_file",
+        help="Path to torch-versions.json file",
+    )
+
+    args = parser.parse_args()
+
     existing_hashes = load_existing_hashes()
     cache_hits = 0
     cache_misses = 0
 
     try:
-        with open("torch-versions.json", "r") as f:
+        with open(args.torch_versions_file, "r") as f:
             torch_versions = json.load(f)
     except FileNotFoundError:
-        print("Error: torch-versions.json not found", file=sys.stderr)
+        print(f"Error: {args.torch_versions_file} not found", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as e:
-        print(f"Error parsing torch-versions.json: {e}", file=sys.stderr)
+        print(f"Error parsing {args.torch_versions_file}: {e}", file=sys.stderr)
         sys.exit(1)
 
     urls_hashes = {}
 
-    print(f"Processing {len(torch_versions)} entries from torch-versions.json")
+    print(f"Processing {len(torch_versions)} entries from {args.torch_versions_file}")
     print(f"Found {len(existing_hashes)} existing hashes")
 
     for entry in torch_versions:
         torch_version = entry.get("torchVersion")
+        torch_testing = entry.get("torchTesting")
         cuda_version = entry.get("cudaVersion")
         rocm_version = entry.get("rocmVersion")
         xpu_version = entry.get("xpuVersion")
@@ -212,15 +153,15 @@ def main():
 
         version_key = version_to_major_minor(torch_version)
 
-        if cuda_version:
+        if cuda_version is not None:
             framework_type = "cuda"
             framework_version = cuda_version
             print(f"Processing torch {torch_version} with CUDA {cuda_version}")
-        elif rocm_version:
+        elif rocm_version is not None:
             framework_type = "rocm"
             framework_version = rocm_version
             print(f"Processing torch {torch_version} with ROCm {rocm_version}")
-        elif xpu_version:
+        elif xpu_version is not None:
             framework_type = "xpu"
             framework_version = xpu_version
             print(f"Processing torch {torch_version} with XPU {xpu_version}")
@@ -268,9 +209,24 @@ def main():
                     )
                     continue
 
-            url = generate_pytorch_url(
-                torch_version, framework_version, framework_type, PYTHON_VERSION, system
-            )
+            if torch_testing is not None:
+                url = generate_pytorch_rc_hf_url(
+                    torch_version,
+                    framework_version,
+                    framework_type,
+                    PYTHON_VERSION,
+                    system,
+                    torch_testing,
+                )
+            else:
+                url = generate_pytorch_url(
+                    torch_version,
+                    framework_version,
+                    framework_type,
+                    PYTHON_VERSION,
+                    system,
+                    testing=False,
+                )
             print(f"    URL: {url}")
 
             was_cached = url in existing_hashes
@@ -303,7 +259,7 @@ def main():
     total_urls = cache_hits + cache_misses
     if total_urls > 0:
         print(
-            f"Cache statistics: {cache_hits}/{total_urls} hits ({cache_hits/total_urls*100:.1f}% hit rate)"
+            f"Cache statistics: {cache_hits}/{total_urls} hits ({cache_hits / total_urls * 100:.1f}% hit rate)"
         )
 
 
