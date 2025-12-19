@@ -120,6 +120,34 @@
     bundleBuild = true;
   }
 
+  {
+    torchVersion = "2.10";
+    cudaVersion = "12.6";
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.10";
+    cudaVersion = "12.8";
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.10";
+    cudaVersion = "13.0";
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
+  }
+
   # Non-standard versions; not included in bundle builds.
   #{
   #  torchVersion = "2.8";

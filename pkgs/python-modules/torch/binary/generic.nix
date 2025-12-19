@@ -27,6 +27,7 @@
   zlib,
 
   # Python dependencies
+  cuda-bindings,
   filelock,
   fsspec,
   jinja2,
@@ -212,6 +213,9 @@ buildPythonPackage {
   ]
   ++ lib.optionals tritonSupport [
     effectiveTriton
+  ]
+  ++ lib.optionals (cudaSupport && lib.versionAtLeast version "2.10") [
+    cuda-bindings
   ];
 
   pythonRelaxWheelDeps = [
