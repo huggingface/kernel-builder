@@ -13,7 +13,7 @@ jobs:
     runs-on:
       group: aws-highmemory-32-plus-nix
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           extra-conf: |
@@ -64,7 +64,7 @@ jobs:
         run: cp -rL examples/silu-and-mul/result silu-and-mul-kernel
 
       - name: Upload kernel artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: built-kernels
           path: |
@@ -81,10 +81,10 @@ jobs:
     runs-on:
       group: aws-g6-12xlarge-plus
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download kernel artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: built-kernels
           path: .
