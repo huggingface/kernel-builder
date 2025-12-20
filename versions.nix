@@ -147,6 +147,18 @@
     ];
     bundleBuild = true;
   }
+  {
+    torchVersion = "2.10";
+    rocmVersion = "7.0";
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.10";
+    rocmVersion = "7.1";
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
 
   # Non-standard versions; not included in bundle builds.
   #{
