@@ -16,7 +16,7 @@ jobs:
         run: sudo xcrun xcode-select -s /Applications/Xcode_26.0.app
       - name: "Install Metal Toolchain"
         run: xcodebuild -downloadComponent metalToolchain
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v15
         with:
