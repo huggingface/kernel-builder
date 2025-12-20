@@ -146,6 +146,7 @@ in
       "6.3.4"
       "6.4.2"
       "7.0.2"
+      "7.1.1"
     ];
     newRocmPackages = final.callPackage ./pkgs/rocm-packages { };
   in

@@ -122,6 +122,7 @@ applyOverrides {
 
   rocm-llvm =
     {
+      hsa-rocr,
       libxml2,
       ncurses,
       zlib,
@@ -129,6 +130,7 @@ applyOverrides {
     }:
     prevAttrs: {
       buildInputs = prevAttrs.buildInputs ++ [
+        hsa-rocr
         libxml2
         ncurses
         zlib
