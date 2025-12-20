@@ -1,7 +1,7 @@
 find_package(CutlassSycl)
 
 if(DPCPP_VERSION STREQUAL "2025.2")
-  set(CUTLASS_SYCL_REVISION "v0.5" CACHE STRING "CUTLASS revision to use")
+  set(CUTLASS_SYCL_REVISION "14055e78510b8776ba739755eb57e592fdceefdb" CACHE STRING "CUTLASS revision to use")
 elseif(DPCPP_VERSION STREQUAL "2025.1")
   set(CUTLASS_SYCL_REVISION "v3.9-0.3" CACHE STRING "CUTLASS revision to use")
 elseif(DPCPP_VERSION STREQUAL "2025.0")
@@ -27,14 +27,14 @@ if (NOT CutlassSycl_FOUND)
   else()
     FetchContent_Declare(
         cutlass
-        GIT_REPOSITORY https://github.com/intel/cutlass-sycl.git
+        GIT_REPOSITORY https://github.com/intel/sycl-tla.git
         GIT_TAG ${CUTLASS_SYCL_REVISION}
         GIT_PROGRESS TRUE
 
         # Speed up CUTLASS download by retrieving only the specified GIT_TAG instead of the history.
         # Important: If GIT_SHALLOW is enabled then GIT_TAG works only with branch names and tags.
         # So if the GIT_TAG above is updated to a commit hash, GIT_SHALLOW must be set to FALSE
-        GIT_SHALLOW TRUE
+        GIT_SHALLOW $<IF:$<MATCHES:${CUTLASS_SYCL_REVISION},^v>,TRUE,FALSE>
     )
   endif()
 
@@ -67,7 +67,7 @@ endif()
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=spir64" sycl_link_flags "${sycl_link_flags}")
 string(REPLACE "-device pvc,xe-lpg,ats-m150" "-device bmg_g21,pvc" sycl_link_flags "${sycl_link_flags}")
 string(APPEND sycl_link_flags "-Xspirv-translator;-spirv-ext=+SPV_INTEL_split_barrier")
-if(CUTLASS_SYCL_REVISION STREQUAL "v0.5")
+if(DPCPP_VERSION STREQUAL "2025.2" OR CUTLASS_SYCL_REVISION STREQUAL "v0.5")
   string(APPEND sycl_link_flags ",+SPV_INTEL_2d_block_io,+SPV_INTEL_subgroup_matrix_multiply_accumulate")
 endif()
 string(REPLACE "-fsycl-targets=spir64_gen,spir64" "-fsycl-targets=spir64" sycl_flags "${sycl_flags}")
