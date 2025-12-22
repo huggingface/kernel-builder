@@ -159,6 +159,12 @@
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
   }
+  {
+    torchVersion = "2.10";
+    xpuVersion = "2025.3.1";
+    systems = [ "x86_64-linux" ];
+    bundleBuild = true;
+  }
 
   # Non-standard versions; not included in bundle builds.
   #{

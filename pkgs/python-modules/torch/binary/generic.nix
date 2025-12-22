@@ -256,6 +256,7 @@ buildPythonPackage {
       "oneccl-devel"
       "oneccl"
       "impi-rt"
+      "onemkl-license"
       "onemkl-sycl-blas"
       "onemkl-sycl-dft"
       "onemkl-sycl-lapack"
