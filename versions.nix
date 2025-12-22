@@ -161,6 +161,16 @@
   }
   {
     torchVersion = "2.10";
+    cpu = true;
+    systems = [
+      "aarch64-darwin"
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.10";
     xpuVersion = "2025.3.1";
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
