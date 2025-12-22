@@ -109,8 +109,7 @@ in
 
         torch-bin_2_10 = mkTorch {
           version = "2.10";
-          # TODO: update to 2025_3.
-          xpuPackages = final.xpuPackages_2025_2;
+          xpuPackages = final.xpuPackages_2025_3;
         };
 
         torch_2_8 = callPackage ./pkgs/python-modules/torch/source/2_8 {
@@ -166,6 +165,7 @@ in
     xpuVersions = [
       "2025.1.3"
       "2025.2.1"
+      "2025.3.1"
     ];
     newXpuPackages = final.callPackage ./pkgs/xpu-packages { };
   in
