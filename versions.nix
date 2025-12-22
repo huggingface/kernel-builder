@@ -171,6 +171,12 @@
   }
   {
     torchVersion = "2.10";
+    metal = true;
+    systems = [ "aarch64-darwin" ];
+    bundleBuild = true;
+  }
+  {
+    torchVersion = "2.10";
     xpuVersion = "2025.3.1";
     systems = [ "x86_64-linux" ];
     bundleBuild = true;
