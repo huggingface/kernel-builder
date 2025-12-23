@@ -128,62 +128,62 @@
   "2.10": {
     "x86_64-linux": {
       "cu126": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcu126-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-XxThL+RveNJASfjBptFflnjQReKGEIXVwdzoqwAznvM=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcu126-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-1wLBRz7Ti86yE3Ozd6jtAx5akDIXiNyaag12pUgxcH0=",
         "version": "2.10.0"
       },
       "cu128": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-j3Kyv4yfv7Fe8RwdSIVvtikgp7Fdzam51gYytPCAoRw=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-+S7p0m4/Txu+tH75r97Jc5k3UJjqdoFrNNY4kcxHYA4=",
         "version": "2.10.0"
       },
       "cu130": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-ILs6NnG99mlkL05D6DUBaGVM/XrwT4ZushIQEMelrX0=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-IGZoVwq6ur7HSM6TUz36UKb7Vspm4Q2+x4fL8SsM7rA=",
         "version": "2.10.0"
       },
       "rocm70": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Brocm7.0-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-J1jKpLgoBzTGfwZRvYwXLAf7J3hZrZSQQ6japsUxDZs=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Brocm7.0-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-xhTv9m3Ef4CGtXfGdflljgN2KaTMc2DLEhjoN6oOnIo=",
         "version": "2.10.0"
       },
       "rocm71": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Brocm7.1-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-B2v5RdvcYuly9l7cGxVSekam2iAIVYUdb3EcQ0lW+uY=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Brocm7.1-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-lyeXA3OJPWEgQG2E1naedSSSFDbUN5ERA4nQBlmCF7E=",
         "version": "2.10.0"
       },
       "cpu": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl",
-        "hash": "sha256-4w+2oSmmFvwUU3AXd5aq7zP+Wso9pX8KDp4shRgTgqs=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl",
+        "hash": "sha256-sKKsfp3X1MCzn0jJAOVv4vDbZ2DAEM4RhOzg/1Rxqn0=",
         "version": "2.10.0"
       },
       "xpu": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bxpu-cp313-cp313-linux_x86_64.whl",
-        "hash": "sha256-lxuA7eTlX87BaW4wn9p7hU0+yr6WuvdCI1PKvDTYnSY=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bxpu-cp313-cp313-linux_x86_64.whl",
+        "hash": "sha256-vfJ5n/W5y0eanB5Pry1UHRAuYE/MwB0NRnHHPgPxs+E=",
         "version": "2.10.0"
       }
     },
     "aarch64-linux": {
       "cu126": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcu126-cp313-cp313-manylinux_2_28_aarch64.whl",
-        "hash": "sha256-mDpB045Sy6zkmvdWlr+rMCLeaHLHtrddeNuEugrotcI=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcu126-cp313-cp313-manylinux_2_28_aarch64.whl",
+        "hash": "sha256-2UiwJsUvzQKZOVnaD7gPY+eTbLf3lbnvqWugLlZ+YcM=",
         "version": "2.10.0"
       },
       "cu128": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl",
-        "hash": "sha256-2pHHAV4AojPtSTohIkRIS7QIhUbaKz8r7/ZrAUZYB00=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl",
+        "hash": "sha256-y+GEuo2I5KRr1YELn4Xf28u11wr+OWiZYKwyuXAcoyE=",
         "version": "2.10.0"
       },
       "cpu": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl",
-        "hash": "sha256-yAyLnxhBfwqamuvCSuE9z5QwWXZn6pKpXKw9UbJOgh0=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl",
+        "hash": "sha256-QnBACJwjfwxuvWBL1i98tBhnRdum61ec/o7OlN9VIIo=",
         "version": "2.10.0"
       }
     },
     "aarch64-darwin": {
       "cpu": {
-        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc2/torch-2.10.0-cp313-none-macosx_11_0_arm64.whl",
-        "hash": "sha256-0BPAgp+7AbNWir9RgrLFrM5xOUyBlcyC/rCGoHAI3tE=",
+        "url": "https://huggingface.co/danieldk/pytorch-rc/resolve/main/rc3/torch-2.10.0-cp313-none-macosx_11_0_arm64.whl",
+        "hash": "sha256-++MhX1RYrmggUo6Uida4UADzuKY1SQ61AtWpjbU2GTM=",
         "version": "2.10.0"
       }
     }
