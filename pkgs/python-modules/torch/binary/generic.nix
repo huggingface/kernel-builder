@@ -27,6 +27,7 @@
   zlib,
 
   # Python dependencies
+  cuda-bindings,
   filelock,
   fsspec,
   jinja2,
@@ -70,6 +71,7 @@ let
   aotritonVersions = with rocmPackages; {
     "2.8" = aotriton_0_10;
     "2.9" = aotriton_0_11;
+    "2.10" = aotriton_0_11_1;
   };
 
   aotriton =
@@ -212,6 +214,9 @@ buildPythonPackage {
   ]
   ++ lib.optionals tritonSupport [
     effectiveTriton
+  ]
+  ++ lib.optionals (cudaSupport && lib.versionAtLeast version "2.10") [
+    cuda-bindings
   ];
 
   pythonRelaxWheelDeps = [
@@ -251,6 +256,7 @@ buildPythonPackage {
       "oneccl-devel"
       "oneccl"
       "impi-rt"
+      "onemkl-license"
       "onemkl-sycl-blas"
       "onemkl-sycl-dft"
       "onemkl-sycl-lapack"

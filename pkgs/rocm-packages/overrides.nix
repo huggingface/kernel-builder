@@ -77,6 +77,9 @@ applyOverrides {
       # Can we change rocm-llvm to pick these up?
       installPhase = (prevAttrs.installPhase or "") + ''
         addAutoPatchelfSearchPath ${rocm-llvm}/lib/llvm/lib
+
+        # Requires Python 3.12.
+        rm -f $out/lib/llvm/share/gdb/python/ompd/ompdModule.so
       '';
     };
 
@@ -105,6 +108,12 @@ applyOverrides {
       ];
     };
 
+  rccl =
+    { roctracer }:
+    prevAttrs: {
+      buildInputs = prevAttrs.buildInputs ++ [ roctracer ];
+    };
+
   rocfft =
     { hip-runtime-amd }:
     prevAttrs: {
@@ -113,6 +122,7 @@ applyOverrides {
 
   rocm-llvm =
     {
+      hsa-rocr,
       libxml2,
       ncurses,
       zlib,
@@ -120,6 +130,7 @@ applyOverrides {
     }:
     prevAttrs: {
       buildInputs = prevAttrs.buildInputs ++ [
+        hsa-rocr
         libxml2
         ncurses
         zlib

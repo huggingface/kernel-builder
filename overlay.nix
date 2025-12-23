@@ -107,6 +107,11 @@ in
           xpuPackages = final.xpuPackages_2025_2;
         };
 
+        torch-bin_2_10 = mkTorch {
+          version = "2.10";
+          xpuPackages = final.xpuPackages_2025_3;
+        };
+
         torch_2_8 = callPackage ./pkgs/python-modules/torch/source/2_8 {
           xpuPackages = final.xpuPackages_2025_1;
         };
@@ -139,7 +144,8 @@ in
     versions = [
       "6.3.4"
       "6.4.2"
-      "7.0.1"
+      "7.0.2"
+      "7.1.1"
     ];
     newRocmPackages = final.callPackage ./pkgs/rocm-packages { };
   in
@@ -159,6 +165,7 @@ in
     xpuVersions = [
       "2025.1.3"
       "2025.2.1"
+      "2025.3.1"
     ];
     newXpuPackages = final.callPackage ./pkgs/xpu-packages { };
   in

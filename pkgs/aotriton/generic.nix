@@ -3,6 +3,7 @@
   lib,
   stdenv,
   cmake,
+  jq,
   python3,
   ninja,
   pkg-config,
@@ -44,6 +45,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     cmake
+    jq
     rocmPackages.rocm-cmake
     pkg-config
     python3
@@ -72,6 +74,24 @@ stdenv.mkDerivation (finalAttrs: {
     triton
   ]);
 
+  preConfigure = lib.optionalString (lib.versionAtLeast version "0.11.1") ''
+    # Since we use pre-built images, we can grab the image SHA from there.
+    # As of 0.11.1b this doesn't seem to be used for image loading yet, but
+    # just in case this happens in the future, we set this to the actual
+    # value and not a stub.
+    export AOTRITON_CI_SUPPLIED_SHA1=$(jq -r '.["AOTRITON_GIT_SHA1"]' ${images}/lib/aotriton.images/amd-gfx90a/__signature__)
+
+    # Need to set absolute paths to VENV and its PYTHON or
+    # build fails with "AOTRITON_INHERIT_SYSTEM_SITE_TRITON is enabled
+    # but triton is not available … no such file or directory"
+    # Set via a preConfigure hook so a valid absolute path can be
+    # picked if nix-shell is used against this package
+    cmakeFlagsArray+=(                                                                                                                                                                                                               
+      "-DVENV_DIR=$(pwd)/aotriton-venv/"                                                                                                                                                                                             
+      "-DVENV_BIN_PYTHON=$(pwd)/aotriton-venv/bin/python"                                                                                                                                                                            
+    )                                                                                                                                                                                                                                
+  '';
+
   # From README:
   # Note: do not run ninja separately, due to the limit of the current build system,
   # ninja install will run the whole build process unconditionally.
@@ -86,18 +106,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   doCheck = false;
   doInstallCheck = false;
-
-  # Need to set absolute paths to VENV and its PYTHON or
-  # build fails with "AOTRITON_INHERIT_SYSTEM_SITE_TRITON is enabled
-  # but triton is not available … no such file or directory"
-  # Set via a preConfigure hook so a valid absolute path can be
-  # picked if nix-shell is used against this package
-  preConfigure = ''
-    cmakeFlagsArray+=(                                                                                                                                                                                                               
-      "-DVENV_DIR=$(pwd)/aotriton-venv/"                                                                                                                                                                                             
-      "-DVENV_BIN_PYTHON=$(pwd)/aotriton-venv/bin/python"                                                                                                                                                                            
-    )                                                                                                                                                                                                                                
-  '';
 
   cmakeFlags = [
     # Disable building kernels if no supported targets are enabled

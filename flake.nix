@@ -3,9 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    # Put back to nixos-unstable-small the next bump. Exact revision is
-    # to avoid a rebuild during the hf-nix -> kernel-builder transition.
-    nixpkgs.url = "github:NixOS/nixpkgs/c543a59edf25ada193719764f3bc0c6ba835f94d";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     flake-compat.url = "github:edolstra/flake-compat";
   };
 
