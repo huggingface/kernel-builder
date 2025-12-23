@@ -39,8 +39,10 @@ stdenv.mkDerivation rec {
       inherit (cutlassVersion) hash;
     }
     // (
-      if cutlassVersion ? rev then { inherit (cutlassVersion) rev; }
-      else { tag = "v${cutlassVersion.version}"; }
+      if cutlassVersion ? rev then
+        { inherit (cutlassVersion) rev; }
+      else
+        { tag = "v${cutlassVersion.version}"; }
     )
   );
 
