@@ -2,6 +2,7 @@
   rocmSupport ? torch.rocmSupport,
   xpuSupport ? torch.xpuSupport,
 
+  pkgs,
   lib,
   callPackage,
   stdenv,
@@ -30,7 +31,15 @@ let
   );
 
   cuda_nvcc = cudaPackages.cuda_nvcc.override {
-    backendStdenv = cudaPackages.backendStdenv.override {
+    backendStdenv = import ../../pkgs/cuda/backendStdenv {
+      inherit (pkgs)
+        _cuda
+        config
+        lib
+        pkgs
+        stdenvAdapters
+        ;
+      inherit (cudaPackages) cudaMajorMinorVersion;
       stdenv = effectiveStdenv;
     };
   };

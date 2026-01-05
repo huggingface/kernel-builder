@@ -45,7 +45,22 @@ in
 
   remove-bytecode-hook = prev.callPackage ./pkgs/remove-bytecode-hook { };
 
-  stdenvGlibc_2_27 = prev.callPackage ./pkgs/stdenv-glibc-2_27 { };
+  stdenvGlibc_2_27 = import ./pkgs/stdenv-glibc-2_27 {
+    # Do not use callPackage, because we want overrides to apply to
+    # the stdenv itself and not this file.
+    inherit (final)
+      config
+      fetchFromGitHub
+      overrideCC
+      wrapBintoolsWith
+      wrapCCWith
+      gcc13Stdenv
+      stdenv
+      bintools-unwrapped
+      cudaPackages
+      libgcc
+      ;
+  };
 
   ucx = prev.ucx.overrideAttrs (
     _: prevAttrs: {
