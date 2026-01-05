@@ -18,8 +18,9 @@ let
       hash = "sha256-FLmTseMw31txptQkvWaN03xoaLzIbQz2Ip1xtCKH3ZE=";
     };
     "2025.2" = {
-      version = "0.5";
-      hash = "sha256-IgsPsREGPqtko6qVyVmDyI1CAGn46fqu1clL8UHltno=";
+      version = "0.6-dev";
+      rev = "14055e78510b8776ba739755eb57e592fdceefdb";
+      hash = "sha256-5KVvFdEYFQhvIjeauoEUSyhBdbSh6UYEwgsd+X7jcHA=";
     };
   };
   cutlassVersion =
@@ -31,12 +32,19 @@ stdenv.mkDerivation rec {
   pname = "cutlass-sycl";
   inherit (cutlassVersion) version;
 
-  src = fetchFromGitHub {
-    owner = "intel";
-    repo = "cutlass-sycl";
-    tag = "v${cutlassVersion.version}";
-    inherit (cutlassVersion) hash;
-  };
+  src = fetchFromGitHub (
+    {
+      owner = "intel";
+      repo = "sycl-tla";
+      inherit (cutlassVersion) hash;
+    }
+    // (
+      if cutlassVersion ? rev then
+        { inherit (cutlassVersion) rev; }
+      else
+        { tag = "v${cutlassVersion.version}"; }
+    )
+  );
 
   nativeBuildInputs = [
     cmake
