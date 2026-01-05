@@ -22,6 +22,11 @@ let
       rev = "14055e78510b8776ba739755eb57e592fdceefdb";
       hash = "sha256-5KVvFdEYFQhvIjeauoEUSyhBdbSh6UYEwgsd+X7jcHA=";
     };
+    "2025.3" = {
+      version = "0.6-dev";
+      rev = "14055e78510b8776ba739755eb57e592fdceefdb";
+      hash = "sha256-5KVvFdEYFQhvIjeauoEUSyhBdbSh6UYEwgsd+X7jcHA=";
+    };
   };
   cutlassVersion =
     cutlassVersions.${lib.versions.majorMinor dpcppVersion}
