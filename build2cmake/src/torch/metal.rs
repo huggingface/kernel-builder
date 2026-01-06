@@ -30,7 +30,7 @@ pub fn write_torch_ext_metal(
 
     let mut file_set = FileSet::default();
 
-    let ops_name = kernel_ops_identifier(&target_dir, &build.general.name, ops_id);
+    let ops_name = kernel_ops_identifier(&target_dir, &build.general.python_name(), ops_id);
 
     write_cmake(
         env,
