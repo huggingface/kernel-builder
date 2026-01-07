@@ -35,6 +35,7 @@ impl Build {
 
 pub struct General {
     pub name: String,
+    pub channel: Option<String>,
     pub backends: Vec<Backend>,
     pub hub: Option<Hub>,
     pub python_depends: Option<Vec<String>>,
