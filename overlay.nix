@@ -90,13 +90,13 @@ in
         kernel-abi-check = callPackage ./pkgs/python-modules/kernel-abi-check { };
 
         kernels = python-super.kernels.overrideAttrs (oldAttrs: rec {
-          version = "0.11.5";
+          version = "0.11.6";
 
           src = final.fetchFromGitHub {
             owner = "huggingface";
             repo = "kernels";
             tag = "v${version}";
-            sha256 = "sha256-nPb0MvH3bvxNo64JkhhmrfI8YpSTxQif1+Pk35ywKDI=";
+            hash = "sha256-kTBGje4oMiRqN/m98rvg3r3gqoV1Tg5APleRZbPlziY=";
           };
         });
 
