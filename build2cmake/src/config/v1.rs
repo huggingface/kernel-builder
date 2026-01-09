@@ -98,7 +98,7 @@ impl TryFrom<Build> for super::Build {
         Ok(Self {
             general: super::General {
                 name: build.general.name,
-                channel: None,
+                version: None,
                 backends,
                 hub: None,
                 python_depends: None,

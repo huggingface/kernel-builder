@@ -4,6 +4,6 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Metadata {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel: Option<String>,
+    pub version: Option<usize>,
     pub python_depends: Vec<String>,
 }

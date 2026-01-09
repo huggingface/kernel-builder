@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 use super::Dependency;
 use crate::version::Version;
@@ -21,7 +21,7 @@ pub struct Build {
 pub struct General {
     pub name: String,
 
-    pub channel: Option<Channel>,
+    pub version: Option<usize>,
 
     pub backends: Vec<Backend>,
 
@@ -32,26 +32,6 @@ pub struct General {
     pub python_depends: Option<Vec<String>>,
 
     pub xpu: Option<XpuGeneral>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Channel(String);
-
-// Validate that the channel is a version number >= 0 for now.
-// We might loosen this later for experimental channels, etc.
-impl<'de> Deserialize<'de> for Channel {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.parse::<usize>() {
-            Ok(_) => Ok(Channel(s)),
-            Err(_) => Err(serde::de::Error::custom(
-                "Channel must be a version number >= 0",
-            )),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -163,7 +143,7 @@ impl From<General> for super::General {
     fn from(general: General) -> Self {
         Self {
             name: general.name,
-            channel: general.channel.map(|c| c.0),
+            version: general.version,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
             hub: general.hub.map(Into::into),
@@ -316,7 +296,7 @@ impl From<super::General> for General {
     fn from(general: super::General) -> Self {
         Self {
             name: general.name,
-            channel: general.channel.map(Channel),
+            version: general.version,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
             hub: general.hub.map(Into::into),

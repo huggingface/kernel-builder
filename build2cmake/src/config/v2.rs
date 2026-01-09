@@ -163,7 +163,7 @@ impl General {
 
         super::General {
             name: general.name,
-            channel: None,
+            version: None,
             backends,
             cuda,
             hub: general.hub.map(Into::into),

@@ -43,7 +43,7 @@ pub fn write_metadata(backend: Backend, general: &General, file_set: &mut FileSe
         .collect::<Result<Vec<_>>>()?;
 
     let metadata = Metadata {
-        channel: general.channel.clone(),
+        version: general.version,
         python_depends,
     };
 
