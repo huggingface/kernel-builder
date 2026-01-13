@@ -197,12 +197,13 @@ in
             "hub"
             "repo-id"
           ] "kernels-community/${buildToml.general.name}" buildToml;
-          branch = lib.attrByPath [ "general" "hub" "branch" ] "main" buildToml;
+          branch = lib.attrByPath [ "general" "hub" "branch" ] null buildToml;
+          branchOpt = lib.optionalString (branch != null) "--branch ${branch}";
           # `kernels upload` fails when there are no build variants to upload.
           # However, we do not want this command to error out in that case, so
           # only insert the upload command when there is something to upload.
           uploadStr = lib.optionalString (applicableBuildSets != [ ]) ''
-            ${pkgs.python3.pkgs.kernels}/bin/kernels upload --repo-id ${repo_id} --branch ${branch} ${bundle}
+            ${pkgs.python3.pkgs.kernels}/bin/kernels upload --repo-id ${repo_id} ${branchOpt} ${bundle}
           '';
         in
         writeScriptBin "build-and-upload" ''
