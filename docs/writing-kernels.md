@@ -93,6 +93,10 @@ depends = [ "torch" ]
 
 - `name` (required): the name of the kernel. The Python code for a Torch
   extension must be stored in `torch-ext/<name>`.
+- `version` (int, **experimental**): the major version of the kernel.
+  The version is written to the kernel's `metadata.json` and is used
+  by the `kernels upload` command to upload the kernel to a version
+  branch named `v<version>`.
 - `backends` (required): a list of supported backends. Must be one or
   more of `cpu`, `cuda`, `metal`, `rocm`, or `xpu`.
 - `python-depends` (**experimental**): a list of additional Python dependencies
@@ -124,9 +128,9 @@ options:
 - `include` (optional): include directories relative to the project root.
   Default: `[]`.
 - `maxver` (optional): only build for this Torch version and earlier. Use cautiously, since this option produces
-   non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
+  non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
 - `minver` (optional): only build for this Torch version and later. Use cautiously, since this option produces
-   non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
+  non-compliant kernels if the version range does not correspond to the [required variants](build-variants.md).
 
 ### `kernel.<name>`
 

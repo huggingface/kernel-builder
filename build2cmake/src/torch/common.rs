@@ -43,11 +43,12 @@ pub fn write_metadata(backend: Backend, general: &General, file_set: &mut FileSe
         .collect::<Result<Vec<_>>>()?;
 
     let metadata = Metadata {
+        version: general.version,
         license: general.license.clone(),
         python_depends,
     };
 
-    serde_json::to_writer(writer, &metadata)?;
+    serde_json::to_writer_pretty(writer, &metadata)?;
 
     Ok(())
 }

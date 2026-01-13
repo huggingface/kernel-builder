@@ -98,6 +98,7 @@ impl TryFrom<Build> for super::Build {
         Ok(Self {
             general: super::General {
                 name: build.general.name,
+                version: None,
                 license: None,
                 backends,
                 hub: None,

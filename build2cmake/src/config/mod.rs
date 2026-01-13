@@ -35,6 +35,7 @@ impl Build {
 
 pub struct General {
     pub name: String,
+    pub version: Option<usize>,
 
     /// Hugging Face Hub license identifier.
     pub license: Option<String>,

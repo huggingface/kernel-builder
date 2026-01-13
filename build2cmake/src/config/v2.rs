@@ -163,6 +163,7 @@ impl General {
 
         super::General {
             name: general.name,
+            version: None,
             license: None,
             backends,
             cuda,
