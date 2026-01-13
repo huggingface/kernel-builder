@@ -95,8 +95,8 @@ in
           src = final.fetchFromGitHub {
             owner = "huggingface";
             repo = "kernels";
-            tag = "v${version}";
-            hash = "sha256-kTBGje4oMiRqN/m98rvg3r3gqoV1Tg5APleRZbPlziY=";
+            rev = "ff4de4eafdfe5c2346b252cf09c6c412e13f3135";
+            hash = "sha256-hn9PZsGnd2BsBejjDQXVKye8abnS5K9jWga7YVkvXOg=";
           };
         });
 
