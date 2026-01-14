@@ -101,6 +101,16 @@ let
     else
       builtins.head buildSetsSorted;
   shellTorch = bestBuildSet.torch.variant;
+  # We need a package set for some outputs (e.g. kernels and build-and-upload),
+  # even when there is no applicable build set.
+  pkgs =
+    let
+      sorted = lib.sort configCompare (addSortOrder buildSets);
+    in
+    if sorted == [ ] then
+      throw "No build set is available for this system"
+    else
+      (builtins.head sorted).pkgs;
   headOrEmpty = l: if l == [ ] then [ ] else [ (builtins.head l) ];
 in
 {
@@ -188,11 +198,17 @@ in
             "repo-id"
           ] "kernels-community/${buildToml.general.name}" buildToml;
           branch = lib.attrByPath [ "general" "hub" "branch" ] "main" buildToml;
+          # `kernels upload` fails when there are no build variants to upload.
+          # However, we do not want this command to error out in that case, so
+          # only insert the upload command when there is something to upload.
+          uploadStr = lib.optionalString (applicableBuildSets != [ ]) ''
+            ${pkgs.python3.pkgs.kernels}/bin/kernels upload --repo-id ${repo_id} --branch ${branch} ${bundle}
+          '';
         in
         writeScriptBin "build-and-upload" ''
           #!/usr/bin/env bash
           set -euo pipefail
-          ${bestBuildSet.pkgs.python3.pkgs.kernels}/bin/kernels upload --repo-id ${repo_id} --branch ${branch} ${bundle}
+          ${uploadStr}
         '';
 
       ci =
@@ -214,7 +230,7 @@ in
         };
 
       kernels =
-        bestBuildSet.pkgs.python3.withPackages (
+        pkgs.python3.withPackages (
           ps: with ps; [
             kernel-abi-check
             kernels
