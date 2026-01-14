@@ -42,7 +42,10 @@ pub fn write_metadata(backend: Backend, general: &General, file_set: &mut FileSe
         .chain(general.backend_python_depends(backend))
         .collect::<Result<Vec<_>>>()?;
 
-    let metadata = Metadata::new(python_depends);
+    let metadata = Metadata {
+        license: general.license.clone(),
+        python_depends,
+    };
 
     serde_json::to_writer(writer, &metadata)?;
 

@@ -163,6 +163,7 @@ impl General {
 
         super::General {
             name: general.name,
+            license: None,
             backends,
             cuda,
             hub: general.hub.map(Into::into),

@@ -21,6 +21,8 @@ pub struct Build {
 pub struct General {
     pub name: String,
 
+    pub license: Option<String>,
+
     pub backends: Vec<Backend>,
 
     pub cuda: Option<CudaGeneral>,
@@ -141,6 +143,7 @@ impl From<General> for super::General {
     fn from(general: General) -> Self {
         Self {
             name: general.name,
+            license: general.license,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
             hub: general.hub.map(Into::into),
@@ -293,6 +296,7 @@ impl From<super::General> for General {
     fn from(general: super::General) -> Self {
         Self {
             name: general.name,
+            license: general.license,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
             hub: general.hub.map(Into::into),

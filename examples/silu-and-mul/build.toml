@@ -1,5 +1,6 @@
 [general]
 name = "silu-and-mul"
+license = "apache-2.0"
 backends = [
     "cpu",
     "cuda",

@@ -35,6 +35,10 @@ impl Build {
 
 pub struct General {
     pub name: String,
+
+    /// Hugging Face Hub license identifier.
+    pub license: Option<String>,
+
     pub backends: Vec<Backend>,
     pub hub: Option<Hub>,
     pub python_depends: Option<Vec<String>>,
