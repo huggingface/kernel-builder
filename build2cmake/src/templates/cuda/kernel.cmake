@@ -25,12 +25,19 @@ if(GPU_LANG STREQUAL "CUDA")
 
   {% if cuda_flags %}
 
+  set(_CUDA_FLAGS "{{ cuda_flags }}")
+  # -static-global-template-stub is not supported on CUDA < 12.8. Remove this
+  # once we don't support CUDA 12.6 anymore.
+  if(CUDA_VERSION VERSION_LESS 12.8)
+    string(REGEX REPLACE "-static-global-template-stub=(true|false)" "" _CUDA_FLAGS "${_CUDA_FLAGS}")
+  endif()
+
   foreach(_KERNEL_SRC {{'${' + kernel_name + '_SRC}'}})
     if(_KERNEL_SRC MATCHES ".*\\.cu$")
       set_property(
         SOURCE ${_KERNEL_SRC}
         APPEND PROPERTY
-        COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CUDA>:{{ cuda_flags }}>"
+        COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CUDA>:${_CUDA_FLAGS}>"
       )
     endif()
   endforeach()
