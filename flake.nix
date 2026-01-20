@@ -187,5 +187,6 @@
     )
     // {
       inherit lib;
+      overlays.default = import ./overlay.nix;
     };
 }
