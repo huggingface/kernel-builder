@@ -56,6 +56,28 @@ let
         hash = "sha256-N8NBAkkpOcbgap4loPJJW6E5bjG+TixCh/HN259RyjI=";
       };
     };
+    "2.10" = {
+      # https://github.com/intel/intel-xpu-backend-for-triton/blob/225cdbde3ea155d5ed4c0aad1f2aa4bd2b3c4a3d/cmake/llvm-hash.txt
+      llvm = {
+        rev = "f6ded0be897e2878612dd903f7e8bb85448269e5";
+        hash = "sha256-T76zHZZ2bp3Ye9GTV+MgbKqMbtmMGElMFsWuCkiWqrM=";
+      };
+      # https://github.com/pytorch/pytorch/tree/v2.10.0-rc7/.ci/docker/ci_commit_pins
+      triton = {
+        rev = "225cdbde3ea155d5ed4c0aad1f2aa4bd2b3c4a3d";
+        hash = "sha256-AuNk4FMBwi7y1zWGhN/P0JsYwPuKV79JBLDDw6IVouA=";
+      };
+      # https://github.com/intel/intel-xpu-backend-for-triton/blob/225cdbde3ea155d5ed4c0aad1f2aa4bd2b3c4a3d/third_party/intel/lib/Target/SPIRV/spirv-llvm-translator.conf
+      spirv_llm = {
+        rev = "daba8b217bc266806ac00095262d1af0ba2ee610";
+        hash = "sha256-X/Pk1GpA1Se6UFp1UIbNAW1JLTj3vgFtg9b7Niv3/ro=";
+      };
+      # https://github.com/KhronosGroup/SPIRV-LLVM-Translator/blob/daba8b217bc266806ac00095262d1af0ba2ee610/spirv-headers-tag.conf
+      spirv_headers = {
+        rev = "9e3836d7d6023843a72ecd3fbf3f09b1b6747a9e";
+        hash = "sha256-N8NBAkkpOcbgap4loPJJW6E5bjG+TixCh/HN259RyjI=";
+      };
+    };
   };
   tritonVersions =
     torchTritonVersions.${torchVersion} or (throw "Unsupported Torch version: ${torchVersion}");
@@ -67,7 +89,7 @@ let
         "SPIRV"
       ];
     }
-    // lib.optionalAttrs (torchVersion == "2.9") {
+    // lib.optionalAttrs (lib.versionAtLeast torchVersion "2.9") {
       llvmProjectsToBuild = [
         "mlir"
         "llvm"
@@ -118,6 +140,10 @@ buildPythonPackage rec {
     ${lib.optionalString (torchVersion == "2.9") ''
       sed -i 's/-Werror//g' $NIX_BUILD_TOP/source/CMakeLists.txt
       sed -i 's/ninja==1.11.1.4/ninja>=1.11.1/' $NIX_BUILD_TOP/source/pyproject.toml
+    ''}
+    ${lib.optionalString (torchVersion == "2.10") ''
+      sed -i 's/-Werror//g' $NIX_BUILD_TOP/source/CMakeLists.txt
+      sed -i 's/ninja<1.13.0/ninja/' $NIX_BUILD_TOP/source/pyproject.toml
     ''}
     sed -i '/if (NOT SPIRVToLLVMTranslator_FOUND)/,/endif (NOT SPIRVToLLVMTranslator_FOUND)/c\
       set(SPIRVToLLVMTranslator_SOURCE_DIR "${spirvLlvmTranslatorSrc}")\n\

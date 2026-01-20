@@ -48,15 +48,8 @@
   effectiveStdenv ? if cudaSupport then cudaPackages.backendStdenv else stdenv,
 }:
 let
-  effectiveTriton =
-    if cudaSupport then
-      triton-cuda
-    else if xpuSupport then
-      python.pkgs.triton-xpu_2_8
-    else
-      triton;
-
   archs = (import ../archs.nix).${lib.versions.majorMinor version};
+  torchMajorMinor = lib.versions.majorMinor version;
 
   supportedTorchCudaCapabilities =
     let
@@ -68,6 +61,20 @@ let
   supportedCudaCapabilities = lib.intersectLists cudaPackages.flags.cudaCapabilities supportedTorchCudaCapabilities;
   inherit (archs) supportedTorchRocmArchs;
 
+  xpuTritonVersions = {
+    "2.8" = python.pkgs.triton-xpu_2_8;
+    "2.9" = python.pkgs.triton-xpu_2_9;
+    "2.10" = python.pkgs.triton-xpu_2_10;
+  };
+
+  effectiveTriton =
+    if cudaSupport then
+      triton-cuda
+    else if xpuSupport then
+      xpuTritonVersions.${torchMajorMinor}
+    else
+      triton;
+
   aotritonVersions = with rocmPackages; {
     "2.8" = aotriton_0_10;
     "2.9" = aotriton_0_11;
@@ -75,9 +82,6 @@ let
   };
 
   aotriton =
-    let
-      torchMajorMinor = lib.versions.majorMinor version;
-    in
     aotritonVersions.${torchMajorMinor}
       or (throw "aotriton version is not specified Torch ${torchMajorMinor}");
 

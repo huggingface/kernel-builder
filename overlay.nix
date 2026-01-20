@@ -144,6 +144,11 @@ in
           torchVersion = "2.9";
           xpuPackages = final.xpuPackages_2025_2;
         };
+
+        triton-xpu_2_10 = callPackage ./pkgs/python-modules/triton-xpu {
+          torchVersion = "2.10";
+          xpuPackages = final.xpuPackages_2025_3;
+        };
       }
     )
     (import ./pkgs/python-modules/hooks)
