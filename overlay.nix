@@ -29,14 +29,6 @@ in
     }
   );
 
-  magma = (prev.callPackage ./pkgs/magma { }).magma;
-
-  magma-hip =
-    (prev.callPackage ./pkgs/magma {
-      cudaSupport = false;
-      rocmSupport = true;
-    }).magma;
-
   nvtx = final.callPackage ./pkgs/nvtx { };
 
   metal-cpp = final.callPackage ./pkgs/metal-cpp { };
@@ -125,14 +117,6 @@ in
         torch-bin_2_10 = mkTorch {
           version = "2.10";
           xpuPackages = final.xpuPackages_2025_3;
-        };
-
-        torch_2_8 = callPackage ./pkgs/python-modules/torch/source/2_8 {
-          xpuPackages = final.xpuPackages_2025_1;
-        };
-
-        torch_2_9 = callPackage ./pkgs/python-modules/torch/source/2_9 {
-          xpuPackages = final.xpuPackages_2025_2;
         };
 
         triton-xpu_2_8 = callPackage ./pkgs/python-modules/triton-xpu {

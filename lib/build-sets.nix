@@ -33,7 +33,7 @@ let
         python-self: python-super: with python-self; {
           torch =
             if sourceBuild then
-              python-self."torch_${flattenVersion torchVersion}"
+              throw "Torch versions with `sourceBuild = true` are not supported anymore"
             else
               python-self."torch-bin_${flattenVersion torchVersion}";
         }
