@@ -182,6 +182,12 @@
               }) buildSets
             );
 
+            pkgs = builtins.listToAttrs (
+              map (buildSet: {
+                name = buildSet.torch.variant;
+                value = buildSet.pkgs;
+              }) buildSets
+            );
           };
       }
     )
